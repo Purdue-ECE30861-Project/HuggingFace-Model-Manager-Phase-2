@@ -3,3 +3,4 @@ requests
 huggingface_hub
 dotenv
 coverage
+pytest
