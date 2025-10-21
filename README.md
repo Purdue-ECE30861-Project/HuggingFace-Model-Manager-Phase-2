@@ -1,10 +1,16 @@
 # ECE-461 Project 1 CLI
 
-## Team Members
+## Phase 1 Team Members
 - Eric Song  
 - Lucas Nguyen  
 - Shriya Gupta  
 - Mythrai Kapidi
+
+## Phase 2 Team Members
+- Daniel Brown
+- Michael Ray
+- Matthew Weiss
+- Brian Diaz
 
 ## Project Structure
 
