@@ -22,7 +22,7 @@ jobs:
     - name: Set up Python 3.9.2
       uses: actions/setup-python@v3
       with:
-        python-version: "3.9.2"
+        python-version: "3.9.24"
     - name: Install dependencies
       run: |
         chmod +x ./run
