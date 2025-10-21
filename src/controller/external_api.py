@@ -8,4 +8,5 @@ app = FastAPI()
 
 
 @app.post("/artifacts")
-async def get_artifacts(query: ArtifactQuery, offset: str, )
+async def get_artifacts(query: ArtifactQuery, offset: str, ):
+    ...
