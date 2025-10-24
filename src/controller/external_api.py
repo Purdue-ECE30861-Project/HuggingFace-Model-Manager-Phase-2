@@ -241,7 +241,7 @@ async def update_artifact(
 
 @access_level(AccessLevel.USER_AUTHENTICATION)
 @app.delete("/artifacts/{artifact_type}/{id}", status_code = status.HTTP_200_OK)
-async def update_artifact(
+async def delete_artifact(
         artifact_type: ArtifactType,
         id: ArtifactID,
         response: Response,
@@ -278,7 +278,7 @@ async def register_artifact(
     
     match return_code:
         case return_code.SUCCESS:
-            response.content = "Artifact is deleted."
+            return return_content
         case return_code.INVALID_REQUEST:
             raise RequestValidationError(errors=["internal"])
         case return_code.ALREADY_EXISTS:
