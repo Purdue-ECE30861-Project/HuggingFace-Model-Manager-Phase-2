@@ -11,7 +11,7 @@ from src.classes.RampUpTime import RampUpTime
 from src.classes.Size import Size
 from src.classes.Threading import MetricRunner
 from src.utils.get_metadata import get_github_readme
-from src.utils.get_metadata import get_model_metadata
+#from src.utils.get_metadata import get_model_metadata
 #import time
 import json
 from urllib.parse import urlparse
@@ -116,8 +116,8 @@ class ScoreCard:
     def getTotalScore(self) -> float:
         return self.totalScore
     
-    def getLatency(self) -> int:
-        return self.latency
+    # def getLatency(self) -> int:
+    #     return self.latency
     
     def printScores(self):
         output = {
