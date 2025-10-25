@@ -3,3 +3,5 @@ requests
 huggingface_hub
 dotenv
 coverage
+watchtower
+boto3
