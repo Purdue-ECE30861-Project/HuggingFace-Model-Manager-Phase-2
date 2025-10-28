@@ -11,3 +11,7 @@ api_core.include_router(cost_api.cost_router)
 api_core.include_router(rater_api.rater_router)
 api_core.include_router(reset_api.reset_router)
 api_core.include_router(lineage_api.lineage_router)
+
+# logging output needs:
+# just need log messages in a text file, json format
+# correspond to the log schemas in run.py
