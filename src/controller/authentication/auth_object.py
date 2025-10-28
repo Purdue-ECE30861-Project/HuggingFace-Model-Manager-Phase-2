@@ -1,7 +1,6 @@
-from enum import Enum
 from pydantic import validate_call
-from fastapi import Request, Response, HTTPException
-from ..external_contracts import *
+from fastapi import Request, HTTPException, Header, status
+from src.model.external_contracts import *
 
 
 ENFORCING_AUTHENTICATION: bool = False
@@ -25,10 +24,21 @@ class AuthenticatorReturn(Enum):
     BAD_AUTHENTICATION = 2
 
 
+class AuthClass(Enum):
+    AUTH_STANDARD = 0,
+    AUTH_ARTIFACT = 1
+def auth_class(auth_class_val: AuthClass):
+    def decorator(func):
+        setattr(func, "auth_class", auth_class_val)
+        return func
+
+    return decorator
+
+
 class Authenticator:
-    @validate_call
     def __init__(self, request: Request):
         self.level: AccessLevel = getattr(request.scope["route"].endpoint, "access_level", "public")
+        self.auth_class_value = getattr(request.scope["auth_class"].endpoint, "auth_class", "public")
 
     @validate_call
     def check_authentication(self, x_authorization: str) -> AccessLevel:
@@ -49,20 +59,17 @@ class Authenticator:
         return AuthenticatorReturn.OK
 
 
-class AuthClass(Enum):
-    AUTH_STANDARD = 0,
-    AUTH_ARTIFACT = 1
 class VerifyAuth:
-    def __init__(self, bad_permissions_message: str = "Not Authorized for Operation", auth_class: AuthClass = AuthClass.AUTH_STANDARD):
+    def __init__(self, bad_permissions_message: str = "Not Authorized for Operation", ):
         self.bad_permissions_message: str = bad_permissions_message
-        self.auth_class: AuthClass = auth_class
 
     async def special_auth(self, x_authorization: str | None, request: Request, authenticator: Authenticator) -> AuthenticatorReturn:
-        match self.auth_class:
+        match authenticator.auth_class_value:
             case AuthClass.AUTH_STANDARD:
                 return AuthenticatorReturn.OK
             case AuthClass.AUTH_ARTIFACT:
                 return await authenticator.authenticate_to_artifact(x_authorization, request.path_params["id"])
+        return AuthenticatorReturn.BAD_AUTHENTICATION
 
     async def __call__(self, request: Request, x_authorization: str | None = Header(None, alias="X-Authorization")):
         authenticator: Authenticator = Authenticator(request)

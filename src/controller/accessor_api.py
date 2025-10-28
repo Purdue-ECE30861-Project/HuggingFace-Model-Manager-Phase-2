@@ -1,14 +1,27 @@
+from fastapi import Depends, APIRouter, HTTPException, status, Response, Query
+from fastapi.exceptions import RequestValidationError
+from pydantic import ValidationError
+from typing import Annotated
+
+from src.model.external_contracts import ArtifactID, ArtifactType, ArtifactQuery, Artifact, ArtifactMetadata, ArtifactName, ArtifactRegEx, ArtifactData
+from src.model.artifact_accessor import ArtifactAccessor, GetArtifactsEnum, GetArtifactEnum, RegisterArtifactEnum
+from src.controller.authentication.auth_object import AccessLevel, access_level, VerifyAuth, AuthClass
+
+
+accessor_router = APIRouter()
+async def artifact_accessor() -> ArtifactAccessor:
+    return ArtifactAccessor()
+
 @access_level(AccessLevel.NO_AUTHENTICATION)
-@app.post("/artifacts", status_code = status.HTTP_200_OK)
+@accessor_router.post("/artifacts", status_code = status.HTTP_200_OK)
 async def get_artifacts(
         response: Response,
         body: ArtifactQuery,
         accessor: Annotated[ArtifactAccessor, Depends(artifact_accessor)],
         offset: str = Query(..., pattern=r"^\d+$"),
-        x_authorization: str = Depends(VerifyAuth())
-) -> List[ArtifactMetadata] | None:
+) -> list[ArtifactMetadata] | None:
     return_code: GetArtifactsEnum
-    return_content: List[ArtifactMetadata]
+    return_content: list[ArtifactMetadata]
 
     return_code, return_content = accessor.get_artifacts(body, offset)
 
@@ -23,16 +36,20 @@ async def get_artifacts(
 
 
 @access_level(AccessLevel.NO_AUTHENTICATION)
-@app.post("/artifact/byName/{name}", status_code = status.HTTP_200_OK)
+@accessor_router.post("/artifact/byName/{name}", status_code = status.HTTP_200_OK)
 async def get_artifacts_by_name(
-        name: ArtifactName,
+        name: str,
         accessor: Annotated[ArtifactAccessor, Depends(artifact_accessor)],
-        x_authorization: str = Depends(VerifyAuth())
-) -> List[ArtifactMetadata] | None:
-    return_code: GetArtifactEnum
-    return_content: List[ArtifactMetadata]
+) -> list[ArtifactMetadata] | None:
+    try:
+        name_model: ArtifactName = ArtifactName(name=name)
+    except ValidationError:
+        raise RequestValidationError(errors=["internal"])
 
-    return_code, return_content = accessor.get_artifact_by_name(name)
+    return_code: GetArtifactEnum
+    return_content: list[ArtifactMetadata]
+
+    return_code, return_content = accessor.get_artifact_by_name(name_model)
 
     match return_code:
         case return_code.SUCCESS:
@@ -44,14 +61,13 @@ async def get_artifacts_by_name(
 
 
 @access_level(AccessLevel.NO_AUTHENTICATION)
-@app.post("/artifact/byRegEx", status_code = status.HTTP_200_OK)
+@accessor_router.post("/artifact/byRegEx", status_code = status.HTTP_200_OK)
 async def get_artifacts_by_name(
         regex: ArtifactRegEx,
         accessor: Annotated[ArtifactAccessor, Depends(artifact_accessor)],
-        x_authorization: str = Depends(VerifyAuth())
-) -> List[ArtifactMetadata] | None:
+) -> list[ArtifactMetadata] | None:
     return_code: GetArtifactEnum
-    return_content: List[ArtifactMetadata]
+    return_content: list[ArtifactMetadata]
 
     return_code, return_content = accessor.get_artifact_by_regex(regex)
 
@@ -65,18 +81,22 @@ async def get_artifacts_by_name(
 
 
 @access_level(AccessLevel.NO_AUTHENTICATION)
-@app.get("/artifacts/{artifact_type}/{id}")
+@accessor_router.get("/artifacts/{artifact_type}/{id}")
 async def get_artifact(
-        artifact_type: ArtifactType,
-        id: ArtifactID,
-        response: Response,
+        artifact_type: str,
+        id: str,
         accessor: Annotated[ArtifactAccessor, Depends(artifact_accessor)],
-        x_authorization: str = Depends(VerifyAuth())
 ) -> Artifact | None:
+    try:
+        artifact_type_model: ArtifactType = ArtifactType(artifact_type)
+        id_model: ArtifactID = ArtifactID(id=id)
+    except ValidationError:
+        raise RequestValidationError(errors=["internal"])
+
     return_code: GetArtifactEnum
     return_content: Artifact
 
-    return_code, return_content = accessor.get_artifact(artifact_type, id)
+    return_code, return_content = accessor.get_artifact(artifact_type_model, id_model)
 
     match return_code:
         case return_code.SUCCESS:
@@ -88,19 +108,24 @@ async def get_artifact(
 
 
 @access_level(AccessLevel.USER_AUTHENTICATION)
-@app.put("/artifacts/{artifact_type}/{id}", status_code=status.HTTP_200_OK)
+@accessor_router.put("/artifacts/{artifact_type}/{id}", status_code=status.HTTP_200_OK)
 async def update_artifact(
-        artifact_type: ArtifactType,
-        id: ArtifactID,
+        artifact_type: str,
+        id: str,
         body: Artifact,
         response: Response,
         accessor: Annotated[ArtifactAccessor, Depends(artifact_accessor)],
-        x_authorization: str = Depends(VerifyAuth(auth_class=AuthClass.AUTH_ARTIFACT))
 ) -> None:
+    try:
+        artifact_type_model: ArtifactType = ArtifactType(artifact_type)
+        id_model: ArtifactID = ArtifactID(id=id)
+    except ValidationError:
+        raise RequestValidationError(errors=["internal"])
+
     return_code: GetArtifactEnum
     return_content: None
 
-    return_code, return_content = accessor.update_artifact(artifact_type, id, body)
+    return_code, return_content = accessor.update_artifact(artifact_type_model, id_model, body)
 
     match return_code:
         case return_code.SUCCESS:
@@ -112,18 +137,23 @@ async def update_artifact(
 
 
 @access_level(AccessLevel.USER_AUTHENTICATION)
-@app.delete("/artifacts/{artifact_type}/{id}", status_code=status.HTTP_200_OK)
+@accessor_router.delete("/artifacts/{artifact_type}/{id}", status_code=status.HTTP_200_OK)
 async def delete_artifact(
-        artifact_type: ArtifactType,
-        id: ArtifactID,
+        artifact_type: str,
+        id: str,
         response: Response,
         accessor: Annotated[ArtifactAccessor, Depends(artifact_accessor)],
-        x_authorization: str = Depends(VerifyAuth(auth_class=AuthClass.AUTH_ARTIFACT))
 ) -> None:
+    try:
+        artifact_type_model: ArtifactType = ArtifactType(artifact_type)
+        id_model: ArtifactID = ArtifactID(id=id)
+    except ValidationError:
+        raise RequestValidationError(errors=["internal"])
+
     return_code: GetArtifactEnum
     return_content: None
 
-    return_code, return_content = accessor.delete_artifact(artifact_type, id)
+    return_code, return_content = accessor.delete_artifact(artifact_type_model, id_model)
 
     match return_code:
         case return_code.SUCCESS:
@@ -135,18 +165,21 @@ async def delete_artifact(
 
 
 @access_level(AccessLevel.USER_AUTHENTICATION)
-@app.post("/artifacts/{artifact_type}", status_code=status.HTTP_201_CREATED)
+@accessor_router.post("/artifacts/{artifact_type}", status_code=status.HTTP_201_CREATED)
 async def register_artifact(
-        artifact_type: ArtifactType,
+        artifact_type: str,
         body: ArtifactData,
-        response: Response,
         accessor: Annotated[ArtifactAccessor, Depends(artifact_accessor)],
-        x_authorization: str = Depends(VerifyAuth())
 ) -> Artifact | None:
+    try:
+        artifact_type_model: ArtifactType = ArtifactType(artifact_type)
+    except ValidationError:
+        raise RequestValidationError(errors=["internal"])
+
     return_code: RegisterArtifactEnum
     return_content: Artifact
 
-    return_code, return_content = accessor.register_artifact(artifact_type, body)
+    return_code, return_content = accessor.register_artifact(artifact_type_model, body)
 
     match return_code:
         case return_code.SUCCESS:

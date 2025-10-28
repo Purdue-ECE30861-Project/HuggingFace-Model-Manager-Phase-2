@@ -1,27 +1,24 @@
 from enum import Enum
 from pydantic import validate_call
-from ..controller.external_contracts import *
+from src.model.external_contracts import ArtifactQuery, ArtifactMetadata, Artifact, ArtifactID, ArtifactType, ArtifactName, ArtifactRegEx, ArtifactData
 
 
 class GetArtifactsEnum(Enum):
     SUCCESS = 200
     INVALID_REQUEST = 400
     TOO_MANY_ARTIFACTS = 413
-
 class GetArtifactEnum(Enum):
     SUCCESS = 200
     INVALID_REQUEST = 400
     DOES_NOT_EXIST = 404
-
 class RegisterArtifactEnum(Enum):
     SUCCESS = 200
     INVALID_REQUEST = 400
     ALREADY_EXISTS = 409
     DISQUALIFIED = 424
-
 class ArtifactAccessor:
     @validate_call
-    def get_artifacts(self, body: ArtifactQuery, offset: str) -> tuple[GetArtifactsEnum, List[ArtifactMetadata]]:
+    def get_artifacts(self, body: ArtifactQuery, offset: str) -> tuple[GetArtifactsEnum, list[ArtifactMetadata]]:
         raise NotImplementedError()
 
     @validate_call
@@ -47,7 +44,3 @@ class ArtifactAccessor:
     @validate_call
     def get_artifact_by_regex(self, regex_exp: ArtifactRegEx) -> tuple[GetArtifactEnum, list[ArtifactMetadata]]:
         raise NotImplementedError()
-
-
-async def artifact_accessor() -> ArtifactAccessor:
-    return ArtifactAccessor()

@@ -3,30 +3,33 @@ from fastapi.exceptions import RequestValidationError
 from typing import Annotated
 from pydantic import ValidationError
 
-from src.model.external_contracts import ArtifactID, ModelRating
-from src.model.model_rater import ModelRater, ModelRaterEnum
+from src.model.external_contracts import ArtifactID, ArtifactType, ArtifactCost
+from src.model.artifact_cost import ArtifactCostAnalyzer
+from src.model.model_rater import ModelRaterEnum
 from src.controller.authentication.auth_object import AccessLevel, access_level, VerifyAuth
 
 
-rater_router = APIRouter()
-async def model_rater() -> ModelRater:
-    return ModelRater()
+cost_router = APIRouter()
+async def get_artifact_cost() -> ArtifactCostAnalyzer:
+    return ArtifactCostAnalyzer()
 
 @access_level(AccessLevel.USER_AUTHENTICATION)
-@rater_router.get("/artifact/model/{id}/rate", status_code=status.HTTP_200_OK)
+@cost_router.get("/artifact/{artifact_type}/{id}/cost", status_code=status.HTTP_200_OK)
 async def rate_model(
         id: str,
-        rater: Annotated[ModelRater, Depends(model_rater)]
-) -> ModelRating | None:
+        artifact_type: str,
+        cost_analyzer: Annotated[ArtifactCostAnalyzer, Depends(get_artifact_cost)],
+) -> ArtifactCost | None:
     try:
         id_model: ArtifactID = ArtifactID(id=id)
+        artifact_type_model: ArtifactType = ArtifactType(artifact_type)
     except ValidationError:
         raise RequestValidationError(errors=["internal"])
 
     return_code: ModelRaterEnum
-    return_content: ModelRating
+    return_content: ArtifactCost
 
-    return_code, return_content = await rater.rate_model(id_model)
+    return_code, return_content = await cost_analyzer.get_artifact_cost(artifact_type_model, id_model)
 
     match return_code:
         case return_code.SUCCESS:
@@ -36,5 +39,5 @@ async def rate_model(
         case return_code.NOT_FOUND:
             raise HTTPException(status_code=return_code.value, detail="Artifact does not exist.")
         case return_code.INTERNAL_ERROR:
-            raise HTTPException(status_code=return_code.value, detail="The artifact rating system encountered an error while computing at least one metric.")
+            raise HTTPException(status_code=return_code.value, detail="The artifact cost calculator encountered an error.")
     return None
