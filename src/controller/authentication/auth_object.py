@@ -1,7 +1,7 @@
 from enum import Enum
 from pydantic import validate_call
 from fastapi import Request, Response, HTTPException
-from ..api_types import *
+from ..external_contracts import *
 
 
 ENFORCING_AUTHENTICATION: bool = False

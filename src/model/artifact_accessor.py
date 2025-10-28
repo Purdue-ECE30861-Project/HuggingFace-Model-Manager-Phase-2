@@ -1,6 +1,6 @@
 from enum import Enum
 from pydantic import validate_call
-from ..controller.api_types import *
+from ..controller.external_contracts import *
 
 
 class GetArtifactsEnum(Enum):
