@@ -7,6 +7,7 @@ from collections import Counter
 from typing import Optional
 from huggingface_hub import HfApi, ModelCard
 from huggingface_hub.utils import HfHubHTTPError
+from huggingface_hub.errors import RepositoryNotFoundError
 import statistics
 from dotenv import load_dotenv, dotenv_values
 import requests
@@ -142,7 +143,7 @@ def find_dataset_links(url: str):
     model_id = _repo_id_from_url(url)
     try:
         info = api.model_info(model_id)
-    except requests.exceptions.HTTPError:
+    except RepositoryNotFoundError:
         return []
     links = set()
 
