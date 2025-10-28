@@ -15,7 +15,6 @@ import re
 
 from enum import Enum
 from pydantic import validate_call
-from ..controller.api_types import *
 from src.model.external_contracts import ArtifactQuery, ArtifactMetadata, Artifact, ArtifactID, ArtifactType, ArtifactName, ArtifactRegEx, ArtifactData
 
 
