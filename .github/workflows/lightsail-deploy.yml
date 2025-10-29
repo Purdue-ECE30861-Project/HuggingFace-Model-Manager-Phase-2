@@ -1,0 +1,28 @@
+name: Deploy frontend to lightsail
+
+on:
+    push:
+        branches: [ "main" ]
+
+permissions:
+    contents: read
+
+jobs:
+    build-and-deploy:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            
+            - name: Copy files to Lightsail
+              env: 
+                PEM_KEY: ${{ secrets.LIGHTSAIL_PEM_KEY }}
+                LIGHTSAIL_USER: ${{ secrets.LIGHTSAIL_USER }}
+                LIGHTSAIL_IP: ${{ secrets.LIGHTSAIL_IP }}
+              run:
+                echo "$PEM_KEY" > lightsail_key.pem
+                chmod 600 lightsail_key.pem
+                scp -o ScrictHostKeyChecking=no -i lightsail_key.pem -r lightsail-site/* $LIGHTSAIL_USER@$LIGHTSAIL_IP:/opt/hfmm/tmp
+                ssh -i lightsail_key.pem $LIGHTSAIL_USER@$LIGHTSAIL_IP << 'ENDSSH'
+                cd /opt/hfmm
+                ENDSSH
+
