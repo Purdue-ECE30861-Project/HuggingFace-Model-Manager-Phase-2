@@ -6,6 +6,7 @@ from src.classes.BusFactor import BusFactor
 from src.classes.CodeQuality import CodeQuality
 from src.classes.DatasetQuality import DatasetQuality
 from src.classes.License import License
+from src.classes.Metric import Metric
 from src.classes.PerformanceClaims import PerformanceClaims
 from src.classes.RampUpTime import RampUpTime
 from src.classes.Size import Size
@@ -52,25 +53,44 @@ class ScoreCard:
             raise ValueError("Invalid HF URL; expected https://huggingface.co/<owner>/<repo>")
         return parts[1]
 
-    def setTotalScore(self):
+    def setTotalScore(self, use_multiprocessing=True):
         """
-        Compute all metric scores in parallel using multithreading.
+        Compute all metric scores.
+        
+        Args:
+            use_multiprocessing: If True, run tasks in parallel using multiprocessing.
+                               If False, run tasks sequentially (useful for testing).
         """
+        tasks = [
+            (self.busFactor, 'setNumContributors', (self.url, self.githubURL), {}),
+            (self.datasetQuality, 'computeDatasetQuality', (self.url, self.datasetURL), {}),
+            (self.size, 'setSize', (self.url,), {}),
+            (self.license, 'evaluate', (self.url,), {}),
+            (self.rampUpTime, 'setRampUpTime', (self.readme_text,), {}),
+            (self.performanceClaims, 'evaluate', (self.url,), {}),
+            (self.codeQuality, 'evaluate', (self.url, self.githubURL), {}),
+            (self.availableDatasetAndCode, 'score_dataset_and_code_availability', (self.url, self.datasetURL, self.githubURL), {})
+        ]
 
-        runner = MetricRunner(num_processes=4)
-        
-        # Add all metric computation tasks
-        runner.add_task(self.busFactor, 'setNumContributors', self.url, self.githubURL)
-        runner.add_task(self.datasetQuality, 'computeDatasetQuality', self.url, self.datasetURL)
-        runner.add_task(self.size, 'setSize', self.url)
-        runner.add_task(self.license, 'evaluate', self.url)
-        runner.add_task(self.rampUpTime, 'setRampUpTime', self.readme_text)
-        runner.add_task(self.performanceClaims, 'evaluate', self.url)
-        runner.add_task(self.codeQuality, 'evaluate', self.url, self.githubURL)
-        runner.add_task(self.availableDatasetAndCode, 'score_dataset_and_code_availability', self.url, self.datasetURL, self.githubURL)
-        
-        # Execute all tasks in parallel
-        results = runner.run()
+        if use_multiprocessing:
+            runner = MetricRunner(num_processes=4)
+            for metric, method_name, args, kwargs in tasks:
+                runner.add_task(metric, method_name, *args, **kwargs)
+            results = runner.run()
+        else:
+            # Run tasks sequentially for testing
+            results = []
+            for metric, method_name, args, kwargs in tasks:
+                try:
+                    method = getattr(metric, method_name)
+                    result = method(*args, **kwargs)
+                    results.append((metric, result, None))
+                except Exception as e:
+                    error_info = {
+                        "message": str(e),
+                        "metric": metric.getMetricName() if hasattr(metric, 'getMetricName') else str(metric),
+                    }
+                    results.append((metric, None, error_info))
         
         # Process results and handle errors
         for metric, result, error in results:
@@ -89,19 +109,20 @@ class ScoreCard:
         # Calculate total weighted score
         total_weight = 0.0
         weighted_sum = 0.0
-        
+        total_latency = 0
         for metric in self._get_all_metrics():
+            total_latency += metric.getLatency()
             weight = metric.getWeighting()
             score = metric.getMetricScore()
             weighted_sum += score * weight
             total_weight += weight
-        
+        self.total_latency = total_latency
         if total_weight > 0:
             self.totalScore = round(weighted_sum / total_weight, 3)
         else:
             self.totalScore = 0.0
             
-    def _get_all_metrics(self):
+    def _get_all_metrics(self) -> list[Metric]:
         return [
             self.availableDatasetAndCode,
             self.busFactor,
@@ -116,9 +137,9 @@ class ScoreCard:
     def getTotalScore(self) -> float:
         return self.totalScore
     
-    # def getLatency(self) -> int:
-    #     return self.latency
-    
+    def getLatency(self) -> int:
+        return self.total_latency
+
     def printScores(self):
         output = {
             "name": self.modelName,

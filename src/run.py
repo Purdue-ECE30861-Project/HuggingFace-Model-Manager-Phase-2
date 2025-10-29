@@ -20,7 +20,7 @@ load_dotenv()
 LOG_FILE = os.getenv("LOG_FILE", "run.log")
 AWS_REGION = os.getenv("AWS_REGION", "us-east-1")
 CLOUDWATCH_LOG_GROUP = os.getenv("CLOUDWATCH_LOG_GROUP", "/ece461/project")
-CLOUDWATCH_LOG_STREAM = os.getenv("CLOUDWATCH_LOG_STREAM", f"run-logs-{datetime.utcnow().strftime('%Y%m%d')}")
+CLOUDWATCH_LOG_STREAM = os.getenv("CLOUDWATCH_LOG_STREAM", f"run-logs-{datetime.datetime.now(datetime.UTC).strftime('%Y%m%d')}")
 try:
     LOG_LEVEL = int(os.getenv("LOG_LEVEL", "0"))
 except ValueError:
@@ -109,7 +109,7 @@ def log(msg, level=1):
     level=1 -> info, level=2 -> debug
     """
     if LOG_LEVEL >= level:
-        ts = datetime.utcnow().isoformat()
+        ts = datetime.datetime.now(datetime.UTC).isoformat()
         record = {"time": ts, "level": level, "msg": msg}
         log_message = json.dumps(record, ensure_ascii=False)
         with open(LOG_FILE, "a", encoding="utf-8") as f:

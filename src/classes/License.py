@@ -56,7 +56,7 @@ class License(Metric):
         self.license: float = 0.0     
         self.llm = llmAPI()   
 
-    def score_license(license_value: Union[str, Iterable[str], None]) -> float:
+    def score_license(self, license_value: Union[str, Iterable[str], None]) -> float:
         items = [_norm(x) for x in _as_list(license_value)]
         if not items:
             return 0.3
@@ -86,9 +86,9 @@ class License(Metric):
             cardData_license = None
 
         if tag_license:
-            return self.score_license(tag_license)
+            return (self.score_license(tag_license), time.perf_counter_ns() - t0)
         elif cardData_license:
-            return self.score_license(cardData_license)
+            return (self.score_license(cardData_license), time.perf_counter_ns() - t0)
         else:
             #GenAI prompt
             prompt = (

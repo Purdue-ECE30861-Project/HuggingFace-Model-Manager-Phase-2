@@ -153,7 +153,7 @@ class PerformanceClaims(Metric):
         api = hfAPI()
         modelinfo = json.loads(api.get_info(url, printCLI=False))
         try:
-            model_index = modelinfo["data"]["model-index"]
+            model_index = modelinfo["data"]
         except (KeyError, TypeError):
             model_index = None
 
@@ -178,7 +178,6 @@ class PerformanceClaims(Metric):
         then average those group scores. If no metrics, returns (None, {}).
         """
         per_group: Dict[Tuple[Optional[str], Optional[str]], List[float]] = {}
-
         for task, dataset, mname, val in _iter_model_index(resp):
             s = _normalize_metric(mname, val)
             if s is None or math.isnan(s):
