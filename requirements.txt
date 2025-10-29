@@ -8,3 +8,4 @@ coverage
 watchtower
 boto3
 mysql-connector-python
+pytest
