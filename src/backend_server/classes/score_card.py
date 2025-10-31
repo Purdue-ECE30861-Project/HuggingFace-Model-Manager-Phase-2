@@ -89,7 +89,6 @@ class ScoreCard:
                 
                 if error:
                     # Log error but continue with other metrics
-                    logger.error(f"Error computing {metric_name}: {error.get('message', 'Unknown error')}")
                     logger.debug(f"Error details for {metric_name}: {error}")
                     # Find the actual metric object in self and set to 0
                     actual_metric = self.find_metric_by_name(metric_name)
