@@ -5,3 +5,4 @@ dotenv
 coverage
 pydantic
 mysql-connector-python
+sqlmodel
