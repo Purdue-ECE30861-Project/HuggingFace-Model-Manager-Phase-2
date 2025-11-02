@@ -1,5 +1,5 @@
 from __future__ import annotations
-from src.controller.api_types import ModelRating
+from src.model.external_contracts import ModelRating
 from sqlmodel import Field, SQLModel, Session, create_engine, select # pyright: ignore[reportUnknownVariableType]
 from sqlalchemy import Engine, JSON;
 from typing_extensions import Literal
