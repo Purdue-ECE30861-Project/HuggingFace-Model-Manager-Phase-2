@@ -156,7 +156,8 @@ class ArtifactAccessor:
             for row in cursor.fetchall():
                 try:
                     metadata_dict = json.loads(row[0])
-                    results.append(ArtifactMetadata(**metadata_dict))
+                    if pattern.search(metadata_dict['name']):
+                        results.append(ArtifactMetadata(**metadata_dict))
                 except (json.JSONDecodeError, ValueError) as e:
                     logging.warning(f"Skipping malformed metadata JSON: {e}")
                     continue
@@ -296,7 +297,7 @@ class ArtifactAccessor:
         
         except Error as e:
             logging.error(f"Error searching local metadata: {e}")
-            return []
+            raise
         finally:
             cursor.close()
 
