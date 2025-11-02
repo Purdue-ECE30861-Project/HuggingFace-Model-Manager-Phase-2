@@ -1,8 +1,12 @@
+pydantic
+fastapi
 python-dotenv>=1.0.0
 requests
 huggingface_hub
 dotenv
 coverage
-pydantic
-mysql-connector-python
 sqlmodel
+watchtower
+boto3
+mysql-connector-python
+pytest

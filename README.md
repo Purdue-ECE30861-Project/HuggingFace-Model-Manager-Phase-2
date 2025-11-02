@@ -10,7 +10,7 @@
 - Daniel Brown
 - Michael Ray
 - Matthew Weiss
-- Brian Diaz
+- Brian Diaz 
 
 ## Project Structure
 
