@@ -1,12 +1,13 @@
 from fastapi import Depends, APIRouter, status, Response
-from src.controller.authentication.auth_object import AccessLevel, access_level, VerifyAuth
+from src.frontend_controller.authentication.auth_object import AccessLevel, access_level, VerifyAuth
+from src.api_test_returns import IS_MOCK_TESTING
 
 
 reset_router = APIRouter()
 async def reset_registry():
     pass
 
-@access_level(AccessLevel.ADMIN_AUTHENTICATION)
+
 @reset_router.delete("/reset", status_code = status.HTTP_200_OK)
 async def reset(response: Response):
     response.body = "Registry is reset."

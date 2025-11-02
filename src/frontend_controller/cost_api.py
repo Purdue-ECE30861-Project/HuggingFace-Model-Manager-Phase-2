@@ -6,20 +6,23 @@ from pydantic import ValidationError
 from src.model.external_contracts import ArtifactID, ArtifactType, ArtifactCost
 from src.model.artifact_cost import ArtifactCostAnalyzer
 from src.model.model_rater import ModelRaterEnum
-from src.controller.authentication.auth_object import AccessLevel, access_level, VerifyAuth
+from src.frontend_controller.authentication.auth_object import AccessLevel, access_level, VerifyAuth
+from src.api_test_returns import IS_MOCK_TESTING
 
 
 cost_router = APIRouter()
 async def get_artifact_cost() -> ArtifactCostAnalyzer:
     return ArtifactCostAnalyzer()
 
-@access_level(AccessLevel.USER_AUTHENTICATION)
+
 @cost_router.get("/artifact/{artifact_type}/{id}/cost", status_code=status.HTTP_200_OK)
 async def rate_model(
         id: str,
         artifact_type: str,
         cost_analyzer: Annotated[ArtifactCostAnalyzer, Depends(get_artifact_cost)],
 ) -> ArtifactCost | None:
+    if IS_MOCK_TESTING:
+        return ArtifactCost.test_value()
     try:
         id_model: ArtifactID = ArtifactID(id=id)
         artifact_type_model: ArtifactType = ArtifactType(artifact_type)

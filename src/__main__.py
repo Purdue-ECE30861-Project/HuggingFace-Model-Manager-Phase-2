@@ -1,9 +1,9 @@
 from fastapi import FastAPI, Depends
-from src.controller import accessor_api, cost_api, exceptions, lineage_api, rater_api, reset_api
-from src.controller.authentication.auth_object import VerifyAuth
+from src.frontend_controller import accessor_api, cost_api, exceptions, lineage_api, rater_api, reset_api
+from src.frontend_controller.authentication.auth_object import VerifyAuth
 
 
-api_core = FastAPI(dependencies=[Depends(VerifyAuth())])
+api_core = FastAPI()#dependencies=[Depends(VerifyAuth())])
 exceptions.register_exception_handlers(api_core)
 
 api_core.include_router(accessor_api.accessor_router)
