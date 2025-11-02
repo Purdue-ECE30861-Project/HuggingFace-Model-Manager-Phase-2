@@ -5,7 +5,7 @@ from pydantic import ValidationError
 
 from src.model.external_contracts import ArtifactID, ArtifactLineageGraph
 from src.model.artifact_lineage import LineageGraphAnalyzer, LineageEnum
-from src.controller.authentication.auth_object import AccessLevel, access_level, VerifyAuth
+from src.frontend_controller.authentication.auth_object import AccessLevel, access_level, VerifyAuth
 
 
 lineage_router = APIRouter()
@@ -13,7 +13,6 @@ async def get_artifact_lineage_graph() -> LineageGraphAnalyzer:
     return LineageGraphAnalyzer()
 
 
-@access_level(AccessLevel.USER_AUTHENTICATION)
 @lineage_router.get("/artifact/model/{id}/lineage", status_code=status.HTTP_200_OK)
 async def get_model_lineage(
         id: str,

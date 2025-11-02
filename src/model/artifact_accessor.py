@@ -16,6 +16,7 @@ import re
 from enum import Enum
 from pydantic import validate_call
 from src.model.external_contracts import ArtifactQuery, ArtifactMetadata, Artifact, ArtifactID, ArtifactType, ArtifactName, ArtifactRegEx, ArtifactData
+from src.api_test_returns import IS_MOCK_TESTING
 
 
 class GetArtifactsEnum(Enum):
@@ -68,23 +69,24 @@ class ArtifactAccessor:
 
 
 class ArtifactAccessor:
-    def __init__(self):
-        self.mysql_connection = mysql.connector.connect(
-            host=os.getenv('MYSQL_HOST', 'localhost'),
-            database=os.getenv('MYSQL_DATABASE', 'artifact_manager'),
-            user=os.getenv('MYSQL_USER', 'root'),
-            password=os.getenv('MYSQL_PASSWORD'),
-            autocommit=False,
-            connection_timeout=28800
-        )
-        self.metadata_cache: Dict[str, ArtifactMetadata] = {}
+    def __init__(self, mock: bool=True):
+        if not mock:
+            self.mysql_connection = mysql.connector.connect(
+                host=os.getenv('MYSQL_HOST', 'localhost'),
+                database=os.getenv('MYSQL_DATABASE', 'artifact_manager'),
+                user=os.getenv('MYSQL_USER', 'root'),
+                password=os.getenv('MYSQL_PASSWORD'),
+                autocommit=False,
+                connection_timeout=28800
+            )
+            self.metadata_cache: Dict[str, ArtifactMetadata] = {}
 
-        self.s3_client = boto3.client('s3')
-        self.bucket_name = 'your_artifact-bucket'
+            self.s3_client = boto3.client('s3')
+            self.bucket_name = 'your_artifact-bucket'
 
-        self.data_prefix = 'artifacts/'
+            self.data_prefix = 'artifacts/'
 
-        self._init_local_db()
+            self._init_local_db()
 
 
     def _init_local_db(self):

@@ -5,14 +5,14 @@ from pydantic import ValidationError
 
 from src.model.external_contracts import ArtifactID, ModelRating
 from src.model.model_rater import ModelRater, ModelRaterEnum
-from src.controller.authentication.auth_object import AccessLevel, access_level, VerifyAuth
+from src.frontend_controller.authentication.auth_object import AccessLevel, access_level, VerifyAuth
 
 
 rater_router = APIRouter()
 async def model_rater() -> ModelRater:
     return ModelRater()
 
-@access_level(AccessLevel.USER_AUTHENTICATION)
+
 @rater_router.get("/artifact/model/{id}/rate", status_code=status.HTTP_200_OK)
 async def rate_model(
         id: str,
