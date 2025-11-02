@@ -4,6 +4,7 @@ from sqlmodel import Field, SQLModel, Session, create_engine, select # pyright: 
 from sqlalchemy import Engine;
 from typing_extensions import Literal
 from pydantic import HttpUrl
+import re
 
 class ModelData(SQLModel):
     id: int | None = Field(default=None, primary_key=True)
@@ -40,5 +41,18 @@ class SQLAccessor():
             selection = select(ModelData).where(ModelData.rating.name == model_name)
             model = session.exec(selection)
             return model.first()
+    
+    def get_all(self) -> list[ModelData]|None:
+        with Session(self.engine) as session:
+            selection = select(ModelData)
+            model = session.exec(selection)
+            return list(model.fetchall())
 
+    def get_by_regex(self, regex: str) -> list[ModelData]|None:
+        search = re.compile(regex)
+        models = self.get_all()
+        if models is None:
+            return None
+        return list(filter(lambda model: search.match(model.rating.name) is not None, models))
+                
         
