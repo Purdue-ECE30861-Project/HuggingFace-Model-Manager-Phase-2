@@ -6,6 +6,7 @@ from pydantic import ValidationError
 from src.model.external_contracts import ArtifactID, ArtifactLineageGraph
 from src.model.artifact_lineage import LineageGraphAnalyzer, LineageEnum
 from src.frontend_controller.authentication.auth_object import AccessLevel, access_level, VerifyAuth
+from src.api_test_returns import IS_MOCK_TESTING
 
 
 lineage_router = APIRouter()
@@ -18,6 +19,8 @@ async def get_model_lineage(
         id: str,
         lineage_analyzer: Annotated[LineageGraphAnalyzer, Depends(get_artifact_lineage_graph)],
 ) -> ArtifactLineageGraph | None:
+    if IS_MOCK_TESTING:
+        return ArtifactLineageGraph.test_value()
     try:
         id_model: ArtifactID = ArtifactID(id=id)
     except ValidationError:
@@ -34,5 +37,5 @@ async def get_model_lineage(
         case return_code.MALFORMED:
             raise RequestValidationError(errors=["internal"])
         case return_code.DOES_NOT_EXIST:
-            raise HTTPException(status_code=return_code, detail="Artifact does not exist.")
+            raise HTTPException(status_code=return_code.value, detail="Artifact does not exist.")
     return None

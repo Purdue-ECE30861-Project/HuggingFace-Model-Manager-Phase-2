@@ -7,6 +7,7 @@ from src.model.external_contracts import ArtifactID, ArtifactType, ArtifactCost
 from src.model.artifact_cost import ArtifactCostAnalyzer
 from src.model.model_rater import ModelRaterEnum
 from src.frontend_controller.authentication.auth_object import AccessLevel, access_level, VerifyAuth
+from src.api_test_returns import IS_MOCK_TESTING
 
 
 cost_router = APIRouter()
@@ -20,6 +21,8 @@ async def rate_model(
         artifact_type: str,
         cost_analyzer: Annotated[ArtifactCostAnalyzer, Depends(get_artifact_cost)],
 ) -> ArtifactCost | None:
+    if IS_MOCK_TESTING:
+        return ArtifactCost.test_value()
     try:
         id_model: ArtifactID = ArtifactID(id=id)
         artifact_type_model: ArtifactType = ArtifactType(artifact_type)

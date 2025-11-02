@@ -9,13 +9,12 @@ from src.frontend_controller.authentication.auth_object import AccessLevel, acce
     auth_class
 from src.api_test_returns import IS_MOCK_TESTING
 
-
 accessor_router = APIRouter()
 async def artifact_accessor() -> ArtifactAccessor:
     return ArtifactAccessor()
 
 
-@accessor_router.post("/artifacts", status_code = status.HTTP_200_OK)
+@accessor_router.post("/artifacts", status_code=status.HTTP_200_OK)
 async def get_artifacts(
         response: Response,
         body: ArtifactQuery,
@@ -41,7 +40,7 @@ async def get_artifacts(
     return None
 
 
-@accessor_router.post("/artifact/byName/{name}", status_code = status.HTTP_200_OK)
+@accessor_router.post("/artifact/byName/{name}", status_code=status.HTTP_200_OK)
 async def get_artifacts_by_name(
         name: str,
         accessor: Annotated[ArtifactAccessor, Depends(artifact_accessor)],
@@ -69,7 +68,7 @@ async def get_artifacts_by_name(
     return None
 
 
-@accessor_router.post("/artifact/byRegEx", status_code = status.HTTP_200_OK)
+@accessor_router.post("/artifact/byRegEx", status_code=status.HTTP_200_OK)
 async def get_artifacts_by_name(
         regex: ArtifactRegEx,
         accessor: Annotated[ArtifactAccessor, Depends(artifact_accessor)],
