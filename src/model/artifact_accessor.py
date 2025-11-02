@@ -1,4 +1,6 @@
+import botocore.session
 import mysql.connector
+from boto3 import Session as BOTO3Session
 from mysql.connector import Error
 from mysql.connector import pooling
 import os
@@ -35,7 +37,7 @@ class RegisterArtifactEnum(Enum):
     DISQUALIFIED = 424
 
 class ArtifactAccessor:
-    def __init__(self):
+    def __init__(self, s3_url: str = None):
         self.mysql_connection = mysql.connector.connect(
             host=os.getenv('MYSQL_HOST', 'localhost'),
             database=os.getenv('MYSQL_DATABASE', 'artifact_manager'),
@@ -46,7 +48,13 @@ class ArtifactAccessor:
         )
         self.metadata_cache: Dict[str, ArtifactMetadata] = {}
 
-        self.s3_client = boto3.client('s3')
+        self.s3_client = botocore.session.get_session().create_client(
+            's3',
+            endpoint_url='http://localhost:9000',  # Replace with your MinIO endpoint
+            aws_access_key_id='minio_access_key_123',
+            aws_secret_access_key='minio_secret_key_password_456',
+        )
+        self.s3_url = s3_url
         self.bucket_name = 'hfmm-artifact-storage'
 
         self.data_prefix = 'artifacts/'
@@ -183,6 +191,7 @@ class ArtifactAccessor:
                     return RegisterArtifactEnum.ALREADY_EXISTS, existing_artifact
             
             artifact_content = self._download_and_validate(body.url)
+            print(artifact_content)
             if not artifact_content:
                 disqualified_metadata = ArtifactMetadata(
                     id=artifact_id,
@@ -386,13 +395,13 @@ class ArtifactAccessor:
     def _upload_artifact_to_s3(self, artifact_id: str, content: bytes):
         try:
             self.s3_client.put_object(
-                Bucket = self.bucket_name,
-                Key = f"{self.data_prefix}{artifact_id}",
-                Body = content
+                Bucket="hfmm-artifact-storage",
+                Key=f"{self.data_prefix}{artifact_id}",
+                Body=content
             )
         except Exception as e:
             logging.error(f"Error uploading artifact to S3: {e}")
             raise
 
 async def artifact_accessor() -> ArtifactAccessor:
-    return ArtifactAccessor()
+    return ArtifactAccessor(s3_url="http://127.0.0.1:9000")
