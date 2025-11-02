@@ -69,7 +69,7 @@ async def get_artifacts_by_name(
 
 
 @accessor_router.post("/artifact/byRegEx", status_code=status.HTTP_200_OK)
-async def get_artifacts_by_name(
+async def get_artifacts_by_regex(
         regex: ArtifactRegEx,
         accessor: Annotated[ArtifactAccessor, Depends(artifact_accessor)],
 ) -> list[ArtifactMetadata] | None:

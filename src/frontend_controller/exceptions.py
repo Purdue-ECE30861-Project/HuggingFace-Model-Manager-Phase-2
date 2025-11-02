@@ -32,5 +32,5 @@ def register_exception_handlers(app: FastAPI) -> None:
     async def validation_exception_handler(request: Request, exc: RequestValidationError):
         raise HTTPException(
             status_code=400,
-            detail=VALIDATION_ERROR_MESSAGE_LOOKUP[(request.method, request.url.path)],
+            detail=get_validation_error_message((request.method, request.url.path)),
         )
