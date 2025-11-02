@@ -7,7 +7,7 @@ from src.classes.License import License
 # Minimal fake HF client that mirrors hfAPI().get_info(url, printCLI=False) -> JSON string
 class FakeHF:
     def __init__(self, payload): self.payload = payload
-    def get_info(self, url, printCLI=False): return json.dumps(self.payload)
+    def get_info(self, url, printCLI=False): return self.payload
 
 class FakeLLM:
     def __init__(self, text): self.text = text
