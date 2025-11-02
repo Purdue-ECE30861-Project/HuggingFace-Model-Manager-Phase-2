@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Header, Query, Path, Body, status
 from pydantic import BaseModel, Field, field_validator, RootModel
 from typing import List, Optional, Dict, Any, Literal
+from sqlmodel import SQLModel
 from datetime import datetime
 from enum import Enum
 
