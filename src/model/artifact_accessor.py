@@ -16,7 +16,6 @@ import re
 from enum import Enum
 from pydantic import validate_call
 from src.model.external_contracts import ArtifactQuery, ArtifactMetadata, Artifact, ArtifactID, ArtifactType, ArtifactName, ArtifactRegEx, ArtifactData
-from src.api_test_returns import IS_MOCK_TESTING
 
 
 class GetArtifactsEnum(Enum):
@@ -35,58 +34,24 @@ class RegisterArtifactEnum(Enum):
     ALREADY_EXISTS = 409
     DISQUALIFIED = 424
 
-
-"""
 class ArtifactAccessor:
-    @validate_call
-    def get_artifacts(self, body: ArtifactQuery, offset: str) -> tuple[GetArtifactsEnum, List[ArtifactMetadata]]:
-        raise NotImplementedError()
+    def __init__(self):
+        self.mysql_connection = mysql.connector.connect(
+            host=os.getenv('MYSQL_HOST', 'localhost'),
+            database=os.getenv('MYSQL_DATABASE', 'artifact_manager'),
+            user=os.getenv('MYSQL_USER', 'root'),
+            password=os.getenv('MYSQL_PASSWORD'),
+            autocommit=False,
+            connection_timeout=28800
+        )
+        self.metadata_cache: Dict[str, ArtifactMetadata] = {}
 
-    @validate_call
-    def get_artifact(self, artifact_type: ArtifactType, id: ArtifactID) -> tuple[GetArtifactEnum, Artifact]:
-        raise NotImplementedError()
+        self.s3_client = boto3.client('s3')
+        self.bucket_name = 'hfmm-artifact-storage'
 
-    @validate_call
-    def update_artifact(self, artifact_type: ArtifactType, id: ArtifactID, body: Artifact) -> tuple[GetArtifactEnum, None]:
-        raise NotImplementedError()
+        self.data_prefix = 'artifacts/'
 
-    @validate_call
-    def delete_artifact(self, artifact_type: ArtifactType, id: ArtifactID) -> tuple[GetArtifactEnum, Artifact]:
-        raise NotImplementedError()
-
-    @validate_call
-    def register_artifact(self, artifact_type: ArtifactType, body: ArtifactData) -> tuple[RegisterArtifactEnum, Artifact]:
-        raise NotImplementedError()
-
-    @validate_call
-    def get_artifact_by_name(self, name: ArtifactName) -> tuple[GetArtifactEnum, list[ArtifactMetadata]]:
-        raise NotImplementedError()
-
-    @validate_call
-    def get_artifact_by_regex(self, regex_exp: ArtifactRegEx) -> tuple[GetArtifactEnum, list[ArtifactMetadata]]:
-        raise NotImplementedError()
-"""
-
-
-class ArtifactAccessor:
-    def __init__(self, mock: bool=True):
-        if not mock:
-            self.mysql_connection = mysql.connector.connect(
-                host=os.getenv('MYSQL_HOST', 'localhost'),
-                database=os.getenv('MYSQL_DATABASE', 'artifact_manager'),
-                user=os.getenv('MYSQL_USER', 'root'),
-                password=os.getenv('MYSQL_PASSWORD'),
-                autocommit=False,
-                connection_timeout=28800
-            )
-            self.metadata_cache: Dict[str, ArtifactMetadata] = {}
-
-            self.s3_client = boto3.client('s3')
-            self.bucket_name = 'your_artifact-bucket'
-
-            self.data_prefix = 'artifacts/'
-
-            self._init_local_db()
+        self._init_local_db()
 
 
     def _init_local_db(self):
@@ -129,7 +94,12 @@ class ArtifactAccessor:
         try:
             metadata = self._get_cached_metadata(id.id)
             if not metadata:
-                return GetArtifactEnum.DOES_NOT_EXIST, None
+                error_metadata = ArtifactMetadata(
+                    id=id.id, name="not-found", version="0.0.0", type=artifact_type
+                )
+                not_found_data = ArtifactData(url="")
+                not_found_artifact = Artifact(metadata=error_metadata, data=not_found_data)
+                return GetArtifactEnum.DOES_NOT_EXIST, not_found_artifact
 
             data = ArtifactData(url=self._generate_presigned_url(id.id))
             artifact = Artifact(metadata=metadata, data=data)
@@ -137,7 +107,15 @@ class ArtifactAccessor:
         
         except Exception as e:
             logging.error(f"Error in get_artifact: {e}")
-            return GetArtifactEnum.DOES_NOT_EXIST, None
+            error_metadata = ArtifactMetadata(
+                id=id.id, 
+                name="artifact-error", 
+                version="0.0.0", 
+                type=artifact_type
+            )
+            error_data = ArtifactData(url="")
+            error_artifact = Artifact(metadata=error_metadata, data=error_data)
+            return GetArtifactEnum.DOES_NOT_EXIST, error_artifact
         
 
     @validate_call
@@ -151,8 +129,12 @@ class ArtifactAccessor:
 
             results = []
             for row in cursor.fetchall():
-                metadata_dict = json.loads(row[0])
-                results.append(ArtifactMetadata(**metadata_dict))
+                try:
+                    metadata_dict = json.loads(row[0])
+                    results.append(ArtifactMetadata(**metadata_dict))
+                except (json.JSONDecodeError, ValueError) as e:
+                    logging.warning(f"Skipping malformed metadata JSON: {e}")
+                    continue
 
             cursor.close()
             return GetArtifactEnum.SUCCESS, results
@@ -172,9 +154,12 @@ class ArtifactAccessor:
 
             results = []
             for row in cursor.fetchall():
-                metadata_dict = json.loads(row[0])
-                if pattern.search(metadata_dict['name']):
+                try:
+                    metadata_dict = json.loads(row[0])
                     results.append(ArtifactMetadata(**metadata_dict))
+                except (json.JSONDecodeError, ValueError) as e:
+                    logging.warning(f"Skipping malformed metadata JSON: {e}")
+                    continue
             
             cursor.close()
             return GetArtifactEnum.SUCCESS, results
@@ -190,11 +175,23 @@ class ArtifactAccessor:
             artifact_id = self._generate_unique_id(body.url)
 
             if self._artifact_exists_in_mysql(artifact_id):
-                return RegisterArtifactEnum.ALREADY_EXISTS, None
+                existing_metadata = self._get_cached_metadata(artifact_id)
+                if existing_metadata:
+                    existing_data = ArtifactData(url=self._generate_presigned_url(artifact_id))
+                    existing_artifact = Artifact(metadata=existing_metadata, data=existing_data)
+                    return RegisterArtifactEnum.ALREADY_EXISTS, existing_artifact
             
             artifact_content = self._download_and_validate(body.url)
             if not artifact_content:
-                return RegisterArtifactEnum.DISQUALIFIED, None
+                disqualified_metadata = ArtifactMetadata(
+                    id=artifact_id,
+                    name="artifact-disqualified",
+                    version="0.0.0",
+                    type=artifact_type
+                )
+                disqualified_data = ArtifactData(url=body.url)  # Keep original URL
+                disqualified_artifact = Artifact(metadata=disqualified_metadata, data=disqualified_data)
+                return RegisterArtifactEnum.DISQUALIFIED, disqualified_artifact
             
             # extract metadata before storing
             metadata = self._extract_metadata(artifact_content, artifact_type, artifact_id)
@@ -211,7 +208,15 @@ class ArtifactAccessor:
         
         except Exception as e:
             logging.error(f"Error in register_artifact: {e}")
-            return RegisterArtifactEnum.INVALID_REQUEST, None
+            invalid_metadata = ArtifactMetadata(
+                id=self._generate_unique_id(body.url),
+                name="artifact-invalid-request",
+                version="0.0.0",
+                type=artifact_type
+            )
+            invalid_data = ArtifactData(url=body.url)
+            invalid_artifact = Artifact(metadata=invalid_metadata, data=invalid_data)
+            return RegisterArtifactEnum.INVALID_REQUEST, invalid_artifact
     
     @validate_call
     def update_artifact(self, artifact_type: ArtifactType, id: ArtifactID, body: Artifact) -> tuple[GetArtifactEnum, None]:
@@ -248,7 +253,7 @@ class ArtifactAccessor:
                     type = VALUES(type),
                     metadata_json = VALUES(metadata_json),
                     last_updated = VALUES(last_updated)""",
-                    (metadata.id, metadata.name, metadata.version, metadata.type.value, json.dumps(metadata.dict()), datetime.now())
+                    (metadata.id, metadata.name, metadata.version, metadata.type.value, json.dumps(metadata.model_dump()), datetime.now())
             )
             self.mysql_connection.commit()
 
@@ -280,8 +285,12 @@ class ArtifactAccessor:
 
             results = []
             for row in cursor.fetchall():
-                metadata_dict = json.loads(row[0])
-                results.append(ArtifactMetadata(**metadata_dict))
+                try:
+                    metadata_dict = json.loads(row[0])
+                    results.append(ArtifactMetadata(**metadata_dict))
+                except (json.JSONDecodeError, ValueError) as e:
+                    logging.warning(f"Skipping malformed metadata JSON: {e}")
+                    continue
 
             return results
         
@@ -304,10 +313,14 @@ class ArtifactAccessor:
             )
             row = cursor.fetchone()
             if row:
-                metadata_dict = json.loads(row[0])
-                metadata = ArtifactMetadata(**metadata_dict)
-                self.metadata_cache[artifact_id] = metadata
-                return metadata
+                try:
+                    metadata_dict = json.loads(row[0])
+                    metadata = ArtifactMetadata(**metadata_dict)
+                    self.metadata_cache[artifact_id] = metadata
+                    return metadata
+                except (json.JSONDecodeError, ValueError) as json_error:
+                    logging.warning(f"Malformed metadata JSON for artifact {artifact_id}: {json_error}")
+                    return None
             return None
         
         except Error as e:
@@ -339,7 +352,7 @@ class ArtifactAccessor:
 
     def _download_and_validate(self, url: str) -> Optional[bytes]:
         try:
-            if not url.startswith('http://','https://'):
+            if not url.startswith(('http://','https://')):
                 return None
             
             response = requests.get(url,
