@@ -300,3 +300,36 @@ class LineageGraph:
             "children": node.children,
             "graph": graph
         }
+    
+    def visualize_lineage(self, url: str, depth: int = 2) -> str:
+        """
+        Create a text-based visualization of the lineage graph.
+        
+        Returns:
+            String representation of the tree structure
+        """
+        node = self.build_lineage(url, depth)
+        
+        lines = []
+        
+        def _add_tree(model_id: str, prefix: str = "", is_last: bool = True):
+            """Recursively build tree visualization."""
+            if model_id not in self.nodes:
+                lines.append(f"{prefix}{'└── ' if is_last else '├── '}{model_id} (not loaded)")
+                return
+            
+            node = self.nodes[model_id]
+            lines.append(f"{prefix}{'└── ' if is_last else '├── '}{node.model_id}")
+            
+            # Add parents
+            if node.parents:
+                new_prefix = prefix + ("    " if is_last else "│   ")
+                for i, parent_id in enumerate(node.parents):
+                    is_last_parent = (i == len(node.parents) - 1)
+                    _add_tree(parent_id, new_prefix, is_last_parent)
+        
+        lines.append(f"Lineage Graph for: {node.model_id}")
+        lines.append("")
+        _add_tree(node.model_id, "", True)
+        
+        return "\n".join(lines)
