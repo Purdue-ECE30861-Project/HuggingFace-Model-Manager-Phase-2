@@ -19,8 +19,6 @@ async def get_model_lineage(
         id: str,
         lineage_analyzer: Annotated[LineageGraphAnalyzer, Depends(get_artifact_lineage_graph)],
 ) -> ArtifactLineageGraph | None:
-    if IS_MOCK_TESTING:
-        return ArtifactLineageGraph.test_value()
     try:
         id_model: ArtifactID = ArtifactID(id=id)
     except ValidationError:

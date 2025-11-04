@@ -19,10 +19,9 @@ async def get_artifact_cost() -> ArtifactCostAnalyzer:
 async def rate_model(
         id: str,
         artifact_type: str,
+        dependency: bool,
         cost_analyzer: Annotated[ArtifactCostAnalyzer, Depends(get_artifact_cost)],
 ) -> ArtifactCost | None:
-    if IS_MOCK_TESTING:
-        return ArtifactCost.test_value()
     try:
         id_model: ArtifactID = ArtifactID(id=id)
         artifact_type_model: ArtifactType = ArtifactType(artifact_type)
