@@ -19,8 +19,6 @@ async def rate_model(
         id: str,
         rater: Annotated[ModelRater, Depends(model_rater)]
 ) -> ModelRating | None:
-    if IS_MOCK_TESTING:
-        return ModelRating.test_value()
     try:
         id_model: ArtifactID = ArtifactID(id=id)
     except ValidationError:
