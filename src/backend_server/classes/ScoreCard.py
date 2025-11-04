@@ -12,7 +12,7 @@ from src.classes.RampUpTime import RampUpTime
 from src.classes.Size import Size
 from src.classes.Threading import MetricRunner
 from src.utils.get_metadata import get_github_readme
-#from src.utils.get_metadata import get_model_metadata
+#from backend_server.utils.get_metadata import get_model_metadata
 #import time
 import json
 from urllib.parse import urlparse

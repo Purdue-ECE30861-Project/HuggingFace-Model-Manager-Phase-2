@@ -17,7 +17,7 @@ class FakeHFAPI:
 class TestDatasetQuality(unittest.TestCase):
     def test_no_links_returns_zero(self):
         # If there are no dataset links and none provided, function returns (0.0, 0)
-        with patch("src.classes.DatasetQuality.find_dataset_links", return_value=[]):
+        with patch("backend_server.classes.DatasetQuality.find_dataset_links", return_value=[]):
             dq = DatasetQuality()
             score, ms = dq.computeDatasetQuality(
                 url="https://huggingface.co/org/model", datasetURL=None
@@ -35,7 +35,7 @@ class TestDatasetQuality(unittest.TestCase):
                 "cardData": {"task_categories": ["text-classification"]},
             }
         }
-        with patch("src.classes.DatasetQuality.hfAPI") as HF:
+        with patch("backend_server.classes.DatasetQuality.hfAPI") as HF:
             HF.return_value = FakeHFAPI(payloads)
             dq = DatasetQuality()
             score, ms = dq.computeDatasetQuality(
@@ -50,7 +50,7 @@ class TestDatasetQuality(unittest.TestCase):
             "https://huggingface.co/datasets/b",
         ]
         # Patch link discovery to return two datasets
-        with patch("src.classes.DatasetQuality.find_dataset_links", return_value=links):
+        with patch("backend_server.classes.DatasetQuality.find_dataset_links", return_value=links):
             # Make one very weak and one strong dataset to ensure averaging works
             payloads = {
                 links[0]: {
@@ -66,7 +66,7 @@ class TestDatasetQuality(unittest.TestCase):
                     "cardData": {"task_categories": ["a", "b", "c", "d", "e"]},
                 },
             }
-            with patch("src.classes.DatasetQuality.hfAPI") as HF:
+            with patch("backend_server.classes.DatasetQuality.hfAPI") as HF:
                 HF.return_value = FakeHFAPI(payloads)
                 dq = DatasetQuality()
                 score, ms = dq.computeDatasetQuality(
