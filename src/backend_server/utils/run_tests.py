@@ -12,8 +12,8 @@ def run_testsuite() -> int:
                         help="Directory containing tests (default: tests)")
     parser.add_argument("--pattern", default="test*.py",
                         help="Glob pattern to discover tests (default: test*.py)")
-    parser.add_argument("--source", default="src",
-                        help="Directory to measure coverage for (default: src)")
+    parser.add_argument("--source", default="backend_server",
+                        help="Directory to measure coverage for (default: backend_server)")
     parser.add_argument("--omit", nargs="*", default=["*/tests/*", "*/site-packages/*"],
                         help="Glob patterns to omit from coverage")
     parser.add_argument("--verbosity", type=int, default=2,

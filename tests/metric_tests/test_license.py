@@ -15,7 +15,7 @@ class FakeLLM:
 
 
 class TestLicense(unittest.TestCase):
-    @patch("src.classes.License.hfAPI")
+    @patch("backend_server.classes.License.hfAPI")
     def test_permissive_license_via_hf_metadata(self, HF):
         """
         Drive the 'read from model card' path — no LLM needed.
@@ -35,7 +35,7 @@ class TestLicense(unittest.TestCase):
         self.assertIsInstance(latency_ms, int)
         self.assertGreaterEqual(latency_ms, 0)
 
-    @patch("src.classes.License.hfAPI")
+    @patch("backend_server.classes.License.hfAPI")
     def test_llm_fallback_when_no_metadata(self, HF):
         """
         When no license info is available in HF metadata, fall back to LLM.

@@ -11,8 +11,8 @@ class FakeLLM:
 
 class TestBusFactor(unittest.TestCase):
 
-    @patch("src.classes.BusFactor.find_github_links", return_value=[])
-    @patch("src.classes.BusFactor.llmAPI")
+    @patch("backend_server.classes.BusFactor.find_github_links", return_value=[])
+    @patch("backend_server.classes.BusFactor.llmAPI")
     def test_llm_fallback_parses_score(self, LLM, _find):
         """
         No GH link found -> fallback to LLM. Patch llmAPI() so it returns '0.5'.
@@ -26,9 +26,9 @@ class TestBusFactor(unittest.TestCase):
         self.assertIsInstance(m.metricLatency, int)
         self.assertGreaterEqual(m.metricLatency, 0)
 
-    @patch("src.classes.BusFactor.get_collaborators_github",
+    @patch("backend_server.classes.BusFactor.get_collaborators_github",
            return_value=(42.0, 500.0, {"a","b","c","d","e"}))
-    @patch("src.classes.BusFactor.llmAPI")  # guard in case code falls back
+    @patch("backend_server.classes.BusFactor.llmAPI")  # guard in case code falls back
     def test_metadata_path_with_explicit_github(self, LLM, _get):
         """
         Providing githubURL should directly use get_collaborators_github().
@@ -42,11 +42,11 @@ class TestBusFactor(unittest.TestCase):
         self.assertTrue(0.0 <= m.metricScore <= 1.0)
         self.assertIsInstance(m.metricLatency, int)
 
-    @patch("src.classes.BusFactor.find_github_links",
+    @patch("backend_server.classes.BusFactor.find_github_links",
            return_value=["https://github.com/org/one"])  # LIST, not set
-    @patch("src.classes.BusFactor.get_collaborators_github",
+    @patch("backend_server.classes.BusFactor.get_collaborators_github",
            return_value=(0.0, 1.0, {"solo"}))
-    @patch("src.classes.BusFactor.llmAPI")  # guard against unexpected fallback
+    @patch("backend_server.classes.BusFactor.llmAPI")  # guard against unexpected fallback
     def test_infer_link_then_metadata(self, LLM, _get, _find):
         """
         No explicit githubURL → infer via find_github_links() then call get_collaborators_github().
