@@ -1,13 +1,11 @@
 #from __future__ import annotations
 
 from dataclasses import dataclass
-from src.classes.Metric import Metric
+from Metric import Metric
 from typing import Optional, Tuple
 import time
-
-from src.classes.Metric import Metric
-from src.utils.llm_api import llmAPI
-from src.utils.get_metadata import find_github_links
+from ..utils.llm_api import llmAPI
+from ..utils.get_metadata import find_github_links
 import re
 
 _PROMPT = """You are evaluating CODE QUALITY (style & maintainability).

@@ -5,9 +5,9 @@ import logging
 import time
 from typing import Dict, Optional, Tuple, Any
 
-from src.classes.Metric import Metric
-from src.utils.llm_api import llmAPI
-from src.utils.hf_api import hfAPI
+from Metric import Metric
+from ..utils.llm_api import llmAPI
+from ..utils.hf_api import hfAPI
 import re
 from typing import Iterable, Union
 
