@@ -1,5 +1,5 @@
 from __future__ import annotations
-from src.external_contracts import ModelRating, Artifact, ArtifactMetadata, ArtifactQuery, ArtifactType
+from src.external_contracts import ModelRating, Artifact, ArtifactMetadata, ArtifactQuery, ArtifactType, ArtifactData
 from sqlmodel import Field, SQLModel, Session, create_engine, select # pyright: ignore[reportUnknownVariableType]
 from sqlalchemy import Engine, JSON;
 from typing_extensions import Literal
@@ -130,12 +130,31 @@ class SQLMetadataAccessor: # I assume we use separate tables for cost, lineage, 
         return list(filter(lambda model: search.match(model.rating.name) is not None, models))
 
     def get_by_query(self, query: ArtifactQuery, offset: str) -> list[ArtifactMetadata]|None: # return NONE if there are TOO MANY artifacts. If no matches return empty list. This endpoint does not call for not found errors
-        raise NotImplementedError()
+        if query.types is None:
+            query.types = [ArtifactType.code, ArtifactType.dataset, ArtifactType.model]
+        with Session(self.engine) as session:
+            sql_query = select(ModelData).where(
+                JsonExtract(ModelData.rating, '$.name').like(query.name)  and JsonExtract(ModelData.rating, '$.category') in query.types
+            )
+            artifacts = session.exec(sql_query)
+
+            return [ArtifactMetadata(name=artifact.rating.name, id=str(artifact.id), type=ArtifactType(artifact.rating.category)) for artifact in list(artifacts.fetchall())]
 
     def get_by_id(self, id: str, artifact_type: ArtifactType) -> Artifact|None:
-        raise NotImplementedError()
+        with Session(self.engine) as session:
+            sql_query = select(ModelData).where(str(ModelData.id) == id  and JsonExtract(ModelData.rating, '$.category') == artifact_type)
+            artifact = session.exec(sql_query).first()
+            if artifact is None:
+                return None
+            return Artifact(metadata=ArtifactMetadata(name=artifact.rating.name, id=str(artifact.id), type=ArtifactType(artifact.rating.category)), data=ArtifactData(url=str(artifact.model_url)))
                 
     def update_artifact(self, id: str, updated: Artifact, artifact_type: ArtifactType) -> bool: # should return false if the artifact is not found
+        with Session(self.engine) as session:
+            sanity_query = select(ModelData).where(str(ModelData.id) == id and JsonExtract(ModelData.rating, "$.category") == artifact_type)
+            artifact = session.exec(sanity_query).first()
+            if artifact is None:
+                return False
+            update_query = update
         raise NotImplementedError()
 
     def delete_artifact(self, id: str, artifact_type: ArtifactType) -> bool: # return false if artifact is not found

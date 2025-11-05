@@ -84,7 +84,6 @@ class ArtifactData(BaseModel):
 class ArtifactMetadata(BaseModel):
     """The name and version are used as a unique identifier pair when uploading an artifact."""
     name: str = Field(..., description="Name of the artifact")
-    version: str = Field(..., description="Artifact version", pattern=r"^(?:\d+\.\d+\.\d+-\d+\.\d+\.\d+|(?:\^|~)\d+\.\d+\.\d+|\d+\.\d+\.\d+)$", examples=["1.2.3"])
     id: str = Field(..., pattern=r'^[a-zA-Z0-9\-]+$', description="Unique identifier")
     type: ArtifactType = Field(..., description="Artifact category")
 
@@ -92,7 +91,6 @@ class ArtifactMetadata(BaseModel):
     def test_value() -> "ArtifactMetadata":
         return ArtifactMetadata(
             name="Stirlitz",
-            version="0.0.7",
             id="48472749248",
             type=ArtifactType.test_value()
         )
