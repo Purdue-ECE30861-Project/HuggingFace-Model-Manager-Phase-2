@@ -5,4 +5,3 @@ dotenv
 coverage
 watchtower
 boto3
-botocore
