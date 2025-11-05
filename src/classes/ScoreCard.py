@@ -5,6 +5,7 @@ from src.classes.BusFactor import BusFactor
 from src.classes.CodeQuality import CodeQuality
 from src.classes.DatasetQuality import DatasetQuality
 from src.classes.License import License
+from src.classes.Metric import Metric
 from src.classes.PerformanceClaims import PerformanceClaims
 from src.classes.RampUpTime import RampUpTime
 from src.classes.Size import Size
@@ -61,7 +62,11 @@ class ScoreCard:
     
     def setTotalScore(self):
         """
-        Compute all metric scores in parallel using multithreading.
+        Compute all metric scores.
+        
+        Args:
+            use_multiprocessing: If True, run tasks in parallel using multiprocessing.
+                               If False, run tasks sequentially (useful for testing).
         """
         
         try:

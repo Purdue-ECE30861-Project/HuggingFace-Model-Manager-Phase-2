@@ -21,9 +21,13 @@ class BusFactor(Metric):
             links = find_github_links(url)
         if links:
             avg, std, authors = get_collaborators_github(links[0], n=200)
-            evenness = 1.0 / (1.0 + (std / avg) **2) # rewards balanced contribution, penalizes concentration
-            saturation_coeff = 5
-            groupsize = 1 - math.exp((-1.0 / avg) / saturation_coeff)
+            if avg == 0:
+                evenness = 0
+                groupsize = 0
+            else:
+                evenness = 1.0 / (1.0 + (std / avg) **2) # rewards balanced contribution, penalizes concentration
+                saturation_coeff = 5
+                groupsize = 1 - math.exp((-1.0 / avg) / saturation_coeff)
             self.NumContributors = len(authors)
             self.metricScore = round(evenness * groupsize, 3)
         else:

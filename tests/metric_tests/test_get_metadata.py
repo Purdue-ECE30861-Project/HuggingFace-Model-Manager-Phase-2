@@ -3,7 +3,6 @@ import json
 import unittest
 from unittest.mock import patch, MagicMock
 import statistics
-
 # CHANGE THIS IMPORT if your file is named differently:
 from src.utils.get_metadata import (
     _repo_id_from_url,
@@ -118,9 +117,10 @@ class GetCollaboratorsHFTests(unittest.TestCase):
     @patch("src.utils.get_metadata.HfApi")
     def test_get_collaborators_hf_handles_hub_error(self, mHfApi):
         from huggingface_hub.utils import HfHubHTTPError
+        import httpx
 
         api = MagicMock()
-        api.list_repo_commits.side_effect = HfHubHTTPError("no access")
+        api.list_repo_commits.side_effect = HfHubHTTPError("no access", response=httpx.Response(400, request=httpx.Request("GET", "https://huggingface.co/org/model")))
         mHfApi.return_value = api
 
         avg, std, authors = getCollaborators("https://huggingface.co/org/model", n=10)

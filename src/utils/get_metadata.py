@@ -1,11 +1,13 @@
 # Count unique contributors from Hugging Face without cloning
 # pip install huggingface_hub
+from __future__ import annotations
 import os, re
 from urllib.parse import urlparse
 from collections import Counter
 from typing import Optional
 from huggingface_hub import HfApi, ModelCard
 from huggingface_hub.utils import HfHubHTTPError
+from huggingface_hub.errors import RepositoryNotFoundError
 import statistics
 from dotenv import load_dotenv, dotenv_values
 import requests
@@ -139,8 +141,10 @@ DATASET_URL_RE = re.compile(r"https?://huggingface\.co/datasets/[A-Za-z0-9_.\-]+
 def find_dataset_links(url: str):
     api = HfApi()
     model_id = _repo_id_from_url(url)
-
-    info = api.model_info(model_id)
+    try:
+        info = api.model_info(model_id)
+    except RepositoryNotFoundError:
+        return []
     links = set()
 
     # 1. From cardData if present

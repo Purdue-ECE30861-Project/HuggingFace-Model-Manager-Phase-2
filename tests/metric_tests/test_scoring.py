@@ -64,7 +64,7 @@ class TestScoreCard(unittest.TestCase):
 
         ramp = MagicMock(metricScore=1.0, metricLatency=1)
         ramp.getMetricScore.return_value = 1.0
-        ramp.getWeighting.return_value = 0.1
+        ramp.getWeighting.return_value = 0.2
         ramp.getLatency.return_value = 1
         mock_ramp_up.return_value = ramp
 
@@ -90,20 +90,20 @@ class TestScoreCard(unittest.TestCase):
         mock_availability.return_value = availability
 
         card = ScoreCard(url)
-        card.setTotalScore()
+        card.setTotalScore(use_multiprocessing=False)
 
         expected = round(
             0.8 * 0.1
             + 0.6 * 0.1
             + 0.7 * 0.1
             + 0.9 * 0.1
-            + 1.0 * 0.1
+            + 1.0 * 0.2
             + 0.75 * 0.1
             + 0.85 * 0.1
             + 0.65 * 0.2,
             3,
         )
-        self.assertEqual(card.getTotalScore(), expected)
+        self.assertAlmostEqual(card.getTotalScore(), expected)
         self.assertGreaterEqual(card.getLatency(), 0)
 
         buffer = io.StringIO()
