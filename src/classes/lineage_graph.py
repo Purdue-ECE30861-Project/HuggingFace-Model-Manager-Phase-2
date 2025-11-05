@@ -5,9 +5,7 @@ import re
 from typing import Dict, List, Optional, Set, Tuple
 from dataclasses import dataclass, field
 from urllib.parse import urlparse
-
-import requests
-from huggingface_hub import HfApi, hf_hub_download, ModelCard
+from huggingface_hub import HfApi, hf_hub_download
 import os
 from dotenv import load_dotenv
 
