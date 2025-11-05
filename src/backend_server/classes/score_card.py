@@ -11,11 +11,9 @@ from ramp_up_time import RampUpTime
 from size import Size
 from threading import MetricRunner
 from src.utils.get_metadata import get_github_readme
-from src.utils.cloudwatch_monitoring import track_performance, get_metrics
 import json
 from urllib.parse import urlparse
 import logging
-import time
 
 logger = logging.getLogger(__name__)
 
@@ -70,8 +68,6 @@ class ScoreCard:
             use_multiprocessing: If True, run tasks in parallel using multiprocessing.
                                If False, run tasks sequentially (useful for testing).
         """
-        metrics_publisher = get_metrics()
-        overall_start = time.time()
         
         try:
             runner = MetricRunner(num_processes=4)
@@ -85,34 +81,27 @@ class ScoreCard:
             runner.add_task(self.rampUpTime, 'setRampUpTime', self.readme_text)
             runner.add_task(self.performanceClaims, 'evaluate', self.url)
             runner.add_task(self.codeQuality, 'evaluate', self.url, self.githubURL)
-            runner.add_task(self.availableDatasetAndCode, 'score_dataset_and_code_availability', 
-                        self.url, self.datasetURL, self.githubURL)
+            runner.add_task(self.availableDatasetAndCode, 'score_dataset_and_code_availability', self.url, self.datasetURL, self.githubURL)
             
             # Execute all tasks in parallel
             logger.debug("Running metric tasks in parallel...")
-            self.net_lat_start = time.time()
             results = runner.run()
-            self.net_lat_stop = time.time()
             
-            # Process results and send individual metric stats
+            # Process results and handle errors
             logger.debug("Processing metric results...")
             for metric, result, error in results:
                 metric_name = metric.getMetricName()
                 
                 if error:
-                    logger.error(f"Error computing {metric_name}: {error.get('message', 'Unknown error')}")
+                    # Log error but continue with other metrics
+                    logger.debug(f"Error details for {metric_name}: {error}")
+                    # Find the actual metric object in self and set to 0
                     actual_metric = self.find_metric_by_name(metric_name)
                     if actual_metric:
                         actual_metric.metricScore = 0.0
                         actual_metric.metricLatency = 0
-                    
-                    # Record failed metric computation
-                    metrics_publisher.record_metric_computation(
-                        metric_name=metric_name,
-                        duration_ms=0,
-                        success=False
-                    )
                 else:
+                    # Find the actual metric object in self
                     actual_metric = self.find_metric_by_name(metric_name)
                     if not actual_metric:
                         logger.warning(f"Could not find metric object for {metric_name}")
@@ -123,28 +112,26 @@ class ScoreCard:
                         score, latency = result
                         actual_metric.metricScore = score
                         actual_metric.metricLatency = latency
+                        logger.debug(f"{metric_name}: score={score}, latency={latency}ms")
                     elif result is None:
+                        # Method didn't return anything, but modified the metric in child process
                         score = metric.getMetricScore()
                         latency = metric.getLatency()
                         actual_metric.metricScore = score
                         actual_metric.metricLatency = latency
+                        logger.debug(f"{metric_name}: score={score}, latency={latency}ms (from returned metric)")
                     elif isinstance(result, dict):
+                        # Special case for Size metric which returns device_dict
                         actual_metric.device_dict = result
                         score = metric.getMetricScore()
                         latency = metric.getLatency()
                         actual_metric.metricScore = score
                         actual_metric.metricLatency = latency
+                        logger.debug(f"{metric_name}: score={score}, latency={latency}ms (dict result)")
                     else:
                         logger.warning(f"{metric_name} returned unexpected result type: {type(result)}")
                         actual_metric.metricScore = 0.0
                         actual_metric.metricLatency = 0
-                    
-                    # Record successful metric computation
-                    metrics_publisher.record_metric_computation(
-                        metric_name=metric_name,
-                        duration_ms=actual_metric.metricLatency,
-                        success=True
-                    )
             
             # Calculate total weighted score
             logger.debug("Calculating total weighted score...")
@@ -154,6 +141,10 @@ class ScoreCard:
             for metric in self.get_all_metrics():
                 weight = metric.getWeighting()
                 score = metric.getMetricScore()
+                metric_name = metric.getMetricName()
+                
+                logger.debug(f"{metric_name}: weight={weight}, score={score}")
+                
                 weighted_sum += score * weight
                 total_weight += weight
             
@@ -165,26 +156,9 @@ class ScoreCard:
             
             logger.info(f"Total score for {self.modelName}: {self.totalScore}")
             
-            # Record overall scoring operation
-            overall_duration = (time.time() - overall_start) * 1000
-            metrics_publisher.record_artifact_operation(
-                operation='RATE',
-                artifact_type='model',
-                success=True,
-                duration_ms=overall_duration
-            )
-            
         except Exception as e:
             logger.warning(f"Failed to compute total score: {e}")
-            overall_duration = (time.time() - overall_start) * 1000
-            metrics_publisher.record_artifact_operation(
-                operation='RATE',
-                artifact_type='model',
-                success=False,
-                duration_ms=overall_duration
-            )
-            raise
-          
+            
     def find_metric_by_name(self, name: str):
         """
         Find a metric object by its name.
@@ -214,7 +188,7 @@ class ScoreCard:
             "name": self.modelName,
             "category": "MODEL",
             "net_score": round(self.totalScore, 3),
-            "net_score_latency": round((self.net_lat_stop - self.net_lat_start)*1000, 3),
+            "net_score_latency": sum(m.getLatency() for m in self.get_all_metrics()),
             "ramp_up_time": round(self.rampUpTime.getMetricScore(), 3),
             "ramp_up_time_latency": self.rampUpTime.getLatency(),
             "bus_factor": round(self.busFactor.getMetricScore(), 3),
