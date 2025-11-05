@@ -8,5 +8,6 @@ coverage
 sqlmodel
 watchtower
 boto3
+botocore
 mysql-connector-python
 pytest

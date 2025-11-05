@@ -1,5 +1,4 @@
 #from __future__ import annotations
-
 from dataclasses import dataclass
 from src.classes.AvailableDatasetAndCode import AvailableDatasetAndCode
 from src.classes.BusFactor import BusFactor
@@ -12,21 +11,23 @@ from src.classes.RampUpTime import RampUpTime
 from src.classes.Size import Size
 from src.classes.Threading import MetricRunner
 from src.utils.get_metadata import get_github_readme
-#from src.utils.get_metadata import get_model_metadata
-#import time
 import json
 from urllib.parse import urlparse
+import logging
+
+logger = logging.getLogger(__name__)
 
 @dataclass
 class ScoreCard:
     def __init__(self, url: str):
-        #t0 = time.perf_counter_ns()
+        logger.info(f"Initializing ScoreCard for {url}")
         self.url = url
         self.datasetURL = None
         self.githubURL = None
         self.totalScore = 0.0
-
+        
         # Initialize all metrics
+        logger.debug("Initializing metrics...")
         self.busFactor = BusFactor()
         self.datasetQuality = DatasetQuality()
         self.size = Size()
@@ -36,10 +37,16 @@ class ScoreCard:
         self.codeQuality = CodeQuality()
         self.availableDatasetAndCode = AvailableDatasetAndCode()
         
-        self.readme_text = get_github_readme(url)
+        logger.debug("Fetching README...")
+        try:
+            self.readme_text = get_github_readme(url)
+            logger.debug(f"README fetched")
+        except Exception as e:
+            logger.warning(f"Failed to fetch README: {e}")
+            self.readme_text = ""
+        
         self.modelName = self.getName(url)
         
-
     def setGithubURL(self, url: str):
         self.githubURL = url
     
@@ -52,8 +59,8 @@ class ScoreCard:
         if len(parts) < 2:
             raise ValueError("Invalid HF URL; expected https://huggingface.co/<owner>/<repo>")
         return parts[1]
-
-    def setTotalScore(self, use_multiprocessing=True):
+    
+    def setTotalScore(self):
         """
         Compute all metric scores.
         
@@ -61,68 +68,107 @@ class ScoreCard:
             use_multiprocessing: If True, run tasks in parallel using multiprocessing.
                                If False, run tasks sequentially (useful for testing).
         """
-        tasks = [
-            (self.busFactor, 'setNumContributors', (self.url, self.githubURL), {}),
-            (self.datasetQuality, 'computeDatasetQuality', (self.url, self.datasetURL), {}),
-            (self.size, 'setSize', (self.url,), {}),
-            (self.license, 'evaluate', (self.url,), {}),
-            (self.rampUpTime, 'setRampUpTime', (self.readme_text,), {}),
-            (self.performanceClaims, 'evaluate', (self.url,), {}),
-            (self.codeQuality, 'evaluate', (self.url, self.githubURL), {}),
-            (self.availableDatasetAndCode, 'score_dataset_and_code_availability', (self.url, self.datasetURL, self.githubURL), {})
-        ]
-
-        if use_multiprocessing:
+        
+        try:
             runner = MetricRunner(num_processes=4)
-            for metric, method_name, args, kwargs in tasks:
-                runner.add_task(metric, method_name, *args, **kwargs)
-            results = runner.run()
-        else:
-            # Run tasks sequentially for testing
-            results = []
-            for metric, method_name, args, kwargs in tasks:
-                try:
-                    method = getattr(metric, method_name)
-                    result = method(*args, **kwargs)
-                    results.append((metric, result, None))
-                except Exception as e:
-                    error_info = {
-                        "message": str(e),
-                        "metric": metric.getMetricName() if hasattr(metric, 'getMetricName') else str(metric),
-                    }
-                    results.append((metric, None, error_info))
-        
-        # Process results and handle errors
-        for metric, result, error in results:
-            if error:
-                # Log error but continue with other metrics
-                print(f"Error computing {metric.getMetricName()}: {error['message']}", flush=True)
-                metric.metricScore = 0.0
-                metric.metricLatency = 0
-            else:
-                # Update metric with result
-                if isinstance(result, tuple) and len(result) == 2:
-                    score, latency = result
-                    metric.metricScore = score
-                    metric.metricLatency = latency
-        
-        # Calculate total weighted score
-        total_weight = 0.0
-        weighted_sum = 0.0
-        total_latency = 0
-        for metric in self._get_all_metrics():
-            total_latency += metric.getLatency()
-            weight = metric.getWeighting()
-            score = metric.getMetricScore()
-            weighted_sum += score * weight
-            total_weight += weight
-        self.total_latency = total_latency
-        if total_weight > 0:
-            self.totalScore = round(weighted_sum / total_weight, 3)
-        else:
-            self.totalScore = 0.0
             
-    def _get_all_metrics(self) -> list[Metric]:
+            # Add all metric computation tasks
+            logger.debug("Adding metric tasks...")
+            runner.add_task(self.busFactor, 'setNumContributors', self.url, self.githubURL)
+            runner.add_task(self.datasetQuality, 'computeDatasetQuality', self.url, self.datasetURL)
+            runner.add_task(self.size, 'setSize', self.url)
+            runner.add_task(self.license, 'evaluate', self.url)
+            runner.add_task(self.rampUpTime, 'setRampUpTime', self.readme_text)
+            runner.add_task(self.performanceClaims, 'evaluate', self.url)
+            runner.add_task(self.codeQuality, 'evaluate', self.url, self.githubURL)
+            runner.add_task(self.availableDatasetAndCode, 'score_dataset_and_code_availability', self.url, self.datasetURL, self.githubURL)
+            
+            # Execute all tasks in parallel
+            logger.debug("Running metric tasks in parallel...")
+            results = runner.run()
+            
+            # Process results and handle errors
+            logger.debug("Processing metric results...")
+            for metric, result, error in results:
+                metric_name = metric.getMetricName()
+                
+                if error:
+                    # Log error but continue with other metrics
+                    logger.debug(f"Error details for {metric_name}: {error}")
+                    # Find the actual metric object in self and set to 0
+                    actual_metric = self.find_metric_by_name(metric_name)
+                    if actual_metric:
+                        actual_metric.metricScore = 0.0
+                        actual_metric.metricLatency = 0
+                else:
+                    # Find the actual metric object in self
+                    actual_metric = self.find_metric_by_name(metric_name)
+                    if not actual_metric:
+                        logger.warning(f"Could not find metric object for {metric_name}")
+                        continue
+                    
+                    # Update metric with result
+                    if isinstance(result, tuple) and len(result) == 2:
+                        score, latency = result
+                        actual_metric.metricScore = score
+                        actual_metric.metricLatency = latency
+                        logger.debug(f"{metric_name}: score={score}, latency={latency}ms")
+                    elif result is None:
+                        # Method didn't return anything, but modified the metric in child process
+                        score = metric.getMetricScore()
+                        latency = metric.getLatency()
+                        actual_metric.metricScore = score
+                        actual_metric.metricLatency = latency
+                        logger.debug(f"{metric_name}: score={score}, latency={latency}ms (from returned metric)")
+                    elif isinstance(result, dict):
+                        # Special case for Size metric which returns device_dict
+                        actual_metric.device_dict = result
+                        score = metric.getMetricScore()
+                        latency = metric.getLatency()
+                        actual_metric.metricScore = score
+                        actual_metric.metricLatency = latency
+                        logger.debug(f"{metric_name}: score={score}, latency={latency}ms (dict result)")
+                    else:
+                        logger.warning(f"{metric_name} returned unexpected result type: {type(result)}")
+                        actual_metric.metricScore = 0.0
+                        actual_metric.metricLatency = 0
+            
+            # Calculate total weighted score
+            logger.debug("Calculating total weighted score...")
+            total_weight = 0.0
+            weighted_sum = 0.0
+            
+            for metric in self.get_all_metrics():
+                weight = metric.getWeighting()
+                score = metric.getMetricScore()
+                metric_name = metric.getMetricName()
+                
+                logger.debug(f"{metric_name}: weight={weight}, score={score}")
+                
+                weighted_sum += score * weight
+                total_weight += weight
+            
+            if total_weight > 0:
+                self.totalScore = round(weighted_sum / total_weight, 3)
+            else:
+                logger.warning("Total weight is 0, setting total score to 0")
+                self.totalScore = 0.0
+            
+            logger.info(f"Total score for {self.modelName}: {self.totalScore}")
+            
+        except Exception as e:
+            logger.warning(f"Failed to compute total score: {e}")
+            
+    def find_metric_by_name(self, name: str):
+        """
+        Find a metric object by its name.
+        """
+        for metric in self.get_all_metrics():
+            if metric.getMetricName() == name:
+                return metric
+        return None
+    
+    def get_all_metrics(self):
         return [
             self.availableDatasetAndCode,
             self.busFactor,
@@ -133,19 +179,16 @@ class ScoreCard:
             self.rampUpTime,
             self.size
         ]
-
+    
     def getTotalScore(self) -> float:
         return self.totalScore
     
-    def getLatency(self) -> int:
-        return self.total_latency
-
     def printScores(self):
         output = {
             "name": self.modelName,
             "category": "MODEL",
             "net_score": round(self.totalScore, 3),
-            "net_score_latency": sum(m.getLatency() for m in self._get_all_metrics()),
+            "net_score_latency": sum(m.getLatency() for m in self.get_all_metrics()),
             "ramp_up_time": round(self.rampUpTime.getMetricScore(), 3),
             "ramp_up_time_latency": self.rampUpTime.getLatency(),
             "bus_factor": round(self.busFactor.getMetricScore(), 3),
@@ -163,5 +206,4 @@ class ScoreCard:
             "code_quality": round(self.codeQuality.getMetricScore(), 3),
             "code_quality_latency": self.codeQuality.getLatency()
         }
-
         print(json.dumps(output))
