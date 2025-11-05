@@ -82,9 +82,7 @@ class ArtifactData(BaseModel):
 
 
 class ArtifactMetadata(BaseModel):
-    """The name and version are used as a unique identifier pair when uploading an artifact."""
     name: str = Field(..., description="Name of the artifact")
-    version: str = Field(..., description="Artifact version", pattern=r"^(?:\d+\.\d+\.\d+-\d+\.\d+\.\d+|(?:\^|~)\d+\.\d+\.\d+|\d+\.\d+\.\d+)$", examples=["1.2.3"])
     id: str = Field(..., pattern=r'^[a-zA-Z0-9\-]+$', description="Unique identifier")
     type: ArtifactType = Field(..., description="Artifact category")
 
@@ -92,7 +90,6 @@ class ArtifactMetadata(BaseModel):
     def test_value() -> "ArtifactMetadata":
         return ArtifactMetadata(
             name="Stirlitz",
-            version="0.0.7",
             id="48472749248",
             type=ArtifactType.test_value()
         )
@@ -113,15 +110,13 @@ class Artifact(BaseModel):
 
 class ArtifactQuery(BaseModel):
     """Query parameters for searching artifacts."""
-    name: str = Field(..., description="Name of artifact to query")
-    version: Optional[str] = Field(None, description="Semver range (Exact, Bounded range, Carat, Tilde)")
+    name: str = Field(..., description="Name of artifact to query") # if this is * then get all
     types: Optional[List[ArtifactType]] = Field(None, description="Optional list of artifact types to filter results")
 
     @staticmethod
     def test_value() -> "ArtifactQuery":
         return ArtifactQuery(
             name="Stirlitz",
-            version="0.0.7",
             types=[ArtifactType.test_value()]
         )
 
@@ -215,7 +210,6 @@ class ArtifactLineageNode(BaseModel):
     """A single node in an artifact lineage graph."""
     artifact_id: str = Field(..., pattern=r'^[a-zA-Z0-9\-]+$', description="Unique identifier for the node")
     name: str = Field(..., description="Human-readable label for the node", examples=["audience-classifier"])
-    version: str = Field(..., description="Version string associated with the node", examples=["0.3.0"])
     source: str = Field(..., description="Provenance for how the node was discovered", examples=["config_json"])
     metadata: Optional[Dict[str, Any]] = Field(None, description="Optional metadata captured for lineage analysis")
 
@@ -224,7 +218,6 @@ class ArtifactLineageNode(BaseModel):
         return ArtifactLineageNode(
             artifact_id="48472749248",
             name="audience-classifier",
-            version="0.3.0",
             source="config_json",
             metadata={"key": "value"}
         )
