@@ -30,7 +30,7 @@ class S3BucketManager:
             raise
 
     def s3_generate_presigned_url(self, artifact_id: str, expires_in: int = 3600) -> str:
-        """Generate presigned URL for direct client download"""
+        """Generate presigned URL for direct client download""" # good for now but spec demands to be able to pick and choose elemnts to download
         return self.s3_client.generate_presigned_url(
             'get_object',
             Params={'Bucket': self.bucket_name, 'Key': f"{self.data_prefix}{artifact_id}"},

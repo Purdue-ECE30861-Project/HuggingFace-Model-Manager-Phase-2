@@ -1,9 +1,9 @@
 #from __future__ import annotations
 
 from dataclasses import dataclass
-from src.classes.Metric import Metric
-from src.utils.get_metadata import get_collaborators_github, find_github_links
-from src.utils.llm_api import llmAPI
+from Metric import Metric
+from ..utils.get_metadata import get_collaborators_github, find_github_links
+from ..utils.llm_api import llmAPI
 import math
 import re
 import time

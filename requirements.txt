@@ -1,3 +1,7 @@
+fastapi
+httpx
+starlette
+botocore
 python-dotenv>=1.0.0
 requests
 huggingface_hub

@@ -1,8 +1,8 @@
 #from __future__ import annotations
 from dataclasses import dataclass
-from src.classes.Metric import Metric
-from src.utils.hf_api import hfAPI
-from src.utils.get_metadata import find_dataset_links
+from Metric import Metric
+from ..utils.hf_api import hfAPI
+from ..utils.get_metadata import find_dataset_links
 import re
 import math
 import json
