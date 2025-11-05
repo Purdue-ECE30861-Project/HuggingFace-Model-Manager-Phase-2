@@ -1,13 +1,8 @@
-ray
-fastapi
-httpx
-starlette
-botocore
 python-dotenv>=1.0.0
 requests
 huggingface_hub
 dotenv
 coverage
-pydantic
-mysql-connector-python
-sqlmodel
+watchtower
+boto3
+botocore
