@@ -1,0 +1,48 @@
+name: Deploy frontend to lightsail
+
+on:
+    push:
+        branches: [ "main" ]
+
+permissions:
+    contents: read
+
+jobs:
+    build-and-deploy:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            
+            - name: Copy files to EC2
+              env: 
+                PEM_KEY: ${{ secrets.EC2_PEM_KEY }}
+                EC2_USER: ${{ secrets.EC2_USER }}
+                EC2_IP: ${{ secrets.EC@2_IP }}
+              run: |
+                echo "$PEM_KEY" > ec2_key.pem
+                chmod 600 ec2_key.pem
+                scp -o StrictHostKeyChecking=no -i ec2_key.pem -r src $EC2_USER@$EC2_IP:/home/$EC2_USER
+                scp -o StrictHostKeyChecking=no -i ec2_key.pem -r requirements.txt $EC2_USER@$EC2_IP:/home/$EC2_USER
+                ssh -i ec2_key.pem $EC2_USER@$EC2_IP << 'ENDSSH'
+                cd /home/$EC2_USER
+                sudo mkdir -p /opt/hfmm
+                sudo chown $EC2_USER:www-data /opt/hfmm
+                chmod 775 /opt/hfmm
+                sudo chmod 775 /opt/hfmm
+                sudo apt install python python-virtualenv nginx uvicorn
+                cd /opt/hfmm
+                cp /home/$EC2_USER/src/ .
+                cp /home/$EC2_USER/requirements.txt .
+                python -m venv venv
+                source venv/bin/activate
+                pip install -r requirements.txt
+                sudo cp -rf src/backend_server/server_components/nginx/hfmm /etc/nginx/sites-available/hfmm
+                sudo cp -rf src/backend_server/server_components/services/* /etc/systemd/system/hfmm.service
+                rm -r /home/$EC2_USER/src
+                rm /home/$EC2_USER/requirements.txt
+                sudo systemctl daemon-reload
+                sudo systemctl restart nginx
+                sudo systemctl restart hfmm
+                ENDSSH
+                rm ec2_key.pem
+
