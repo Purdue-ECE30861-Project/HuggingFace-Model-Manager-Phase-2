@@ -3,7 +3,7 @@
 
 
 from dataclasses import dataclass
-from src.utils.get_metadata import find_github_links
+import src.utils.get_metadata
 from src.classes.Metric import Metric
 import time
 from dotenv import load_dotenv
@@ -59,10 +59,10 @@ class Reviewedness(Metric):
         load_dotenv()
         t0 = time.perf_counter_ns()
         if githubURL is None:
-            links = list(find_github_links(url))
+            links = list(src.utils.get_metadata.find_github_links(url))
         else:
             links = [githubURL]
-        if len(links) == 0:
+        if len(links) == 0 or githubURL is None:
             return -1.0, t0
 
         pr_additions = 0
@@ -82,7 +82,7 @@ class Reviewedness(Metric):
                 if index is None:
                     next_page = False
         total = pr_additions + pr_deletions + commit_additions +commit_deletions
-        return (pr_additions + pr_deletions)/total, t0
+        return (pr_additions + pr_deletions)/total, time.perf_counter_ns() - t0
     
     def _parse_response(self, response: requests.Response) -> tuple[int, int, int, int, str|None]:
         """
@@ -111,7 +111,6 @@ class Reviewedness(Metric):
                 next_cur = None
         except KeyError:
             raise ValueError("Invalid GraphQL query or Github URL")
-
         return pr_additions, pr_deletions, commit_additions, commit_deletions, next_cur
 
     def _execute_query(self, query: str, link: str, index: str|None) -> requests.Response:
@@ -133,7 +132,7 @@ class Reviewedness(Metric):
             raise ValueError("invalid Github URL")
         url = "https://api.github.com/graphql"
         if index is not None:
-            json = {"query": query % (name, owner, f", after: {index}")}
+            json = {"query": query % (name, owner, f", after: \"{index}\"")}
         else:
             json = {"query": query % (name, owner, "")}
         headers = {"Authorization": f"bearer {os.getenv('GITHUB_TOKEN')}"}
