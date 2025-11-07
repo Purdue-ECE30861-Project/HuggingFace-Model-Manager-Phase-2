@@ -88,7 +88,7 @@ chmod +x run  # only needed once on Unix-like systems
 ### Custom Test Execution
 ```bash
 # Specify pattern or directory
-python -m src.utils.run_tests --pattern "test_*.py" --tests-dir tests
+python -m backend_server.utils.run_tests --pattern "test_*.py" --tests-dir tests
 
 # Run a single module with unittest
 python -m unittest tests.test_scoring

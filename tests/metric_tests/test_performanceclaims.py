@@ -14,7 +14,7 @@ class LLMResp:
     def main(self, prompt: str) -> str: return self.text
 
 class TestPerformanceClaims(unittest.TestCase):
-    @patch("src.classes.PerformanceClaims.hfAPI")
+    @patch("backend_server.classes.PerformanceClaims.hfAPI")
     def test_model_index_scoring(self, HF):
         # Minimal model-index with two metrics on one (task, dataset)
         modelinfo = {
@@ -42,7 +42,7 @@ class TestPerformanceClaims(unittest.TestCase):
         self.assertLessEqual(score, 1.0)
         self.assertIsInstance(ms, int)
 
-    @patch("src.classes.PerformanceClaims.hfAPI")
+    @patch("backend_server.classes.PerformanceClaims.hfAPI")
     def test_llm_fallback_0_5(self, HF):
         # No model-index -> triggers LLM fallback
         HF.return_value = FakeHF({"data": {}})
@@ -50,7 +50,7 @@ class TestPerformanceClaims(unittest.TestCase):
         score, _ = m.evaluate("https://huggingface.co/model/noindex")
         self.assertEqual(score, 0.5)
 
-    @patch("src.classes.PerformanceClaims.hfAPI")
+    @patch("backend_server.classes.PerformanceClaims.hfAPI")
     def test_llm_fallback_default_0_0_on_garbage(self, HF):
         HF.return_value = FakeHF({"data": {}})
         m = PerformanceClaims(); m.llm = LLMResp("not a valid token")

@@ -3,7 +3,7 @@ from unittest.mock import patch
 from src.classes.AvailableDatasetAndCode import AvailableDatasetAndCode
 
 class TestAvailableDatasetAndCode(unittest.TestCase):
-    @patch("src.classes.AvailableDatasetAndCode.find_github_links", return_value={"https://github.com/org/repo"})
+    @patch("backend_server.classes.AvailableDatasetAndCode.find_github_links", return_value={"https://github.com/org/repo"})
     def test_code_found_dataset_missing(self, _):
         m = AvailableDatasetAndCode()
         ds = m.score_dataset_availability(url="https://hf.co/model/x", datasetURL=None)

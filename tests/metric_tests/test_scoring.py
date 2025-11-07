@@ -7,15 +7,15 @@ from src.classes.ScoreCard import ScoreCard
 
 
 class TestScoreCard(unittest.TestCase):
-    @patch("src.classes.ScoreCard.get_github_readme", return_value="# README")
-    @patch("src.classes.ScoreCard.AvailableDatasetAndCode")
-    @patch("src.classes.ScoreCard.CodeQuality")
-    @patch("src.classes.ScoreCard.PerformanceClaims")
-    @patch("src.classes.ScoreCard.RampUpTime")
-    @patch("src.classes.ScoreCard.License")
-    @patch("src.classes.ScoreCard.Size")
-    @patch("src.classes.ScoreCard.DatasetQuality")
-    @patch("src.classes.ScoreCard.BusFactor")
+    @patch("backend_server.classes.ScoreCard.get_github_readme", return_value="# README")
+    @patch("backend_server.classes.ScoreCard.AvailableDatasetAndCode")
+    @patch("backend_server.classes.ScoreCard.CodeQuality")
+    @patch("backend_server.classes.ScoreCard.PerformanceClaims")
+    @patch("backend_server.classes.ScoreCard.RampUpTime")
+    @patch("backend_server.classes.ScoreCard.License")
+    @patch("backend_server.classes.ScoreCard.Size")
+    @patch("backend_server.classes.ScoreCard.DatasetQuality")
+    @patch("backend_server.classes.ScoreCard.BusFactor")
     def test_total_score_aggregates_metrics(
         self,
         mock_bus_factor,
