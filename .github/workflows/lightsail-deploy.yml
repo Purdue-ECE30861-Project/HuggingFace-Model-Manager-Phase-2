@@ -21,12 +21,12 @@ jobs:
               run: |
                 echo "$PEM_KEY" > lightsail_key.pem
                 chmod 600 lightsail_key.pem
-                scp -o StrictHostKeyChecking=no -i lightsail_key.pem -r src/frontend_server/* $LIGHTSAIL_USER@$LIGHTSAIL_IP:/opt/hfmm/tmp
+                scp -o StrictHostKeyChecking=no -i lightsail_key.pem -r src $LIGHTSAIL_USER@$LIGHTSAIL_IP:/opt/hfmm/tmp
                 ssh -i lightsail_key.pem $LIGHTSAIL_USER@$LIGHTSAIL_IP << 'ENDSSH'
                 cd /opt/hfmm/tmp
-                cp -rf ./* ..
-                sudo cp -rf server_components/nginx/hfmm /etc/nginx/sites-available/hfmm
-                sudo cp -rf server_components/services/* /etc/systemd/system/hfmm.service
+                cp -rf  src ..
+                sudo cp -rf frontend_server/server_components/nginx/hfmm /etc/nginx/sites-available/hfmm
+                sudo cp -rf frontend_server/server_components/services/* /etc/systemd/system/hfmm.service
                 cd ..
                 rm -r tmp/*
                 sudo systemctl daemon-reload
