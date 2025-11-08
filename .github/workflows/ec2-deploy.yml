@@ -17,7 +17,7 @@ jobs:
               env: 
                 PEM_KEY: ${{ secrets.EC2_PEM_KEY }}
                 EC2_USER: ${{ secrets.EC2_USER }}
-                EC2_IP: ${{ secrets.EC@2_IP }}
+                EC2_IP: ${{ secrets.EC2_IP }}
               run: |
                 echo "$PEM_KEY" > ec2_key.pem
                 chmod 600 ec2_key.pem
