@@ -1,7 +1,8 @@
 from __future__ import annotations
 from src.external_contracts import ModelRating, Artifact, ArtifactMetadata, ArtifactQuery, ArtifactType, ArtifactData
 from sqlmodel import Field, SQLModel, Session, create_engine, select # pyright: ignore[reportUnknownVariableType]
-from sqlalchemy import Engine, JSON;
+from sqlalchemy import Engine, JSON
+from sqlalchemy.orm.attributes import flag_modified
 from typing_extensions import Literal
 from pydantic import HttpUrl
 from sqlalchemy.types import TypeDecorator, String, Text
@@ -76,17 +77,34 @@ class ModelRatingSerializer(TypeDecorator[ModelRating]):
         return json.dumps(value.model_dump())
 
 
-class ModelData(SQLModel, table=True):
-    id: int | None = Field(default=None, primary_key=True)
-    model_url: HttpUrl = Field(sa_type=HttpUrlSerializer)
-    dataset_url: HttpUrl | None = Field(sa_type=HttpUrlSerializer)
-    codebase_url: HttpUrl | None = Field(sa_type=HttpUrlSerializer)
+class ArtifactDataDB(SQLModel, table=True):
+    id: str = Field(default="BoatyMcBoatFace", primary_key=True)
+    url: HttpUrl = Field(sa_type=HttpUrlSerializer)
     rating: ModelRating = Field(sa_type=ModelRatingSerializer)
+
+    @staticmethod
+    def create_db_artifact(id: str, url: HttpUrl, rating: ModelRating):
+        ArtifactDataDB(id=id, url=url, rating=rating)
+
+    def update_from_artifact(self, artifact: Artifact):
+        self.rating.name = artifact.metadata.name
+        flag_modified(self, "rating")
+        self.url = HttpUrl(artifact.data.url)
+
+    def generate_metadata(self) -> ArtifactMetadata:
+        return ArtifactMetadata(
+            name=self.rating.name,
+            id=str(self.id),
+            type=ArtifactType(self.rating.category)
+        )
+
+   # def generate_artifact_data(self) -> ArtifactDataDB:
+
 
 
 class SQLMetadataAccessor: # I assume we use separate tables for cost, lineage, etc
     db_url: str | Literal["sqlite+pysqlite:///:memory:"] = "sqlite+pysqlite:///:memory:"
-    schema: ModelData
+    schema: ArtifactDataDB
     engine: Engine
     
     def __init__(self, db_url: str|None = None) -> None:
@@ -95,67 +113,128 @@ class SQLMetadataAccessor: # I assume we use separate tables for cost, lineage, 
         self.engine = create_engine(self.db_url)
         SQLModel.metadata.create_all(self.engine)
     
-    def add_to_db(self, model: ModelData):
-        with Session(self.engine) as session:
-            session.add(model)
-            session.commit()
-    
-    def is_in_db(self, model_name: str) -> bool:
-        with Session(self.engine) as session:
-            # Use our database-agnostic JSON extraction
-            query = select(ModelData).where(
-                JsonExtract(ModelData.rating, '$.name') == model_name
-            )
-            return session.exec(query).first() is not None
-    
-    def get_by_name(self, model_name: str) -> ModelData|None:
-        with Session(self.engine) as session:
-            # Use our database-agnostic JSON extraction
-            query = select(ModelData).where(
-                JsonExtract(ModelData.rating, '$.name') == model_name
-            )
-            return session.exec(query).first()
-    
-    def get_all(self) -> list[ModelData]|None:
-        with Session(self.engine) as session:
-            selection = select(ModelData)
-            model = session.exec(selection)
-            return list(model.fetchall())
+    def add_to_db(self, artifact: ArtifactDataDB) -> bool: # return false if in DB already
+        try:
+            if self.is_in_db(artifact.rating.name, ArtifactType(artifact.rating.category)):
+                return False
+            with Session(self.engine) as session:
+                session.add(artifact)
+                session.commit()
+            return True
+        except Exception as e:
+            return False
 
-    def get_by_regex(self, regex: str) -> list[ModelData]|None:
+    def reset_db(self) -> bool:
+        """
+        Reset the database by deleting all data from all tables.
+        Returns True if successful, False if an error occurred.
+        """
+        try:
+            with Session(self.engine) as session:
+                # Get all table objects from SQLModel metadata
+                tables = SQLModel.metadata.tables.values()
+                
+                # Delete all data from each table in reverse dependency order
+                # This helps avoid foreign key constraint issues
+                for table in reversed(list(tables)):
+                    session.exec(table.delete())
+                
+                session.commit()
+                return True
+                
+        except Exception as e:
+            # Log the error if you have logging set up
+            # logger.error(f"Failed to reset database: {e}")
+            return False
+    
+    def get_by_name(self, name: str) -> list[ArtifactDataDB]:
+        with Session(self.engine) as session:
+            # Use our database-agnostic JSON extraction
+            query = select(ArtifactDataDB).where(
+                JsonExtract(ArtifactDataDB.rating, '$.name') == name,
+            )
+            return list(session.exec(query).all())
+
+    def is_in_db(self, name: str, artifact_type: ArtifactType) -> bool: # must assess by url and other features as well
+        with Session(self.engine) as session:
+            # Use our database-agnostic JSON extraction
+            query = select(ArtifactDataDB).where(
+                JsonExtract(ArtifactDataDB.rating, '$.name') == name,
+                JsonExtract(ArtifactDataDB.rating, '$.category') == artifact_type
+            )
+            return len(session.exec(query).all()) > 0
+
+    def is_in_db_id(self, id: str, artifact_type: ArtifactType) -> bool:
+        with Session(self.engine) as session:
+            # Use our database-agnostic JSON extraction
+            query = select(ArtifactDataDB).where(
+                ArtifactDataDB.id == id,
+                JsonExtract(ArtifactDataDB.rating, '$.category') == artifact_type
+            )
+            return len(session.exec(query).all()) > 0
+    
+    def get_all(self) -> list[ArtifactDataDB]|None:
+        with Session(self.engine) as session:
+            selection = select(ArtifactDataDB)
+            artifact = session.exec(selection)
+            return list(artifact.fetchall())
+
+    def get_by_regex(self, regex: str) -> list[ArtifactDataDB]|None:
         search = re.compile(regex)
-        models = self.get_all()
-        if models is None:
+        artifacts = self.get_all()
+        if artifacts is None:
             return None
-        return list(filter(lambda model: search.match(model.rating.name) is not None, models))
+        return list(filter(lambda artifact: search.match(artifact.rating.name) is not None, artifacts))
 
     def get_by_query(self, query: ArtifactQuery, offset: str) -> list[ArtifactMetadata]|None: # return NONE if there are TOO MANY artifacts. If no matches return empty list. This endpoint does not call for not found errors
         if query.types is None:
             query.types = [ArtifactType.code, ArtifactType.dataset, ArtifactType.model]
         with Session(self.engine) as session:
-            sql_query = select(ModelData).where(
-                JsonExtract(ModelData.rating, '$.name').like(query.name)  and JsonExtract(ModelData.rating, '$.category') in query.types
-            )
-            artifacts = session.exec(sql_query)
+            if query.name == "*":
+                sql_query = select(ArtifactDataDB)
+            else:
+                sql_query = select(ArtifactDataDB).where(
+                    JsonExtract(ArtifactDataDB.rating, '$.name') == query.name,
+                    JsonExtract(ArtifactDataDB.rating, '$.category').in_(query.types)
+                )
+            artifacts = session.exec(sql_query).fetchall()
 
-            return [ArtifactMetadata(name=artifact.rating.name, id=str(artifact.id), type=ArtifactType(artifact.rating.category)) for artifact in list(artifacts.fetchall())]
+            return [ArtifactMetadata(name=artifact.rating.name, id=str(artifact.id), type=ArtifactType(artifact.rating.category)) for artifact in artifacts]
 
     def get_by_id(self, id: str, artifact_type: ArtifactType) -> Artifact|None:
         with Session(self.engine) as session:
-            sql_query = select(ModelData).where(str(ModelData.id) == id  and JsonExtract(ModelData.rating, '$.category') == artifact_type)
+            sql_query = select(ArtifactDataDB).where(
+                ArtifactDataDB.id == id,
+                            JsonExtract(ArtifactDataDB.rating, '$.category') == artifact_type)
             artifact = session.exec(sql_query).first()
-            if artifact is None:
+            if not artifact:
                 return None
-            return Artifact(metadata=ArtifactMetadata(name=artifact.rating.name, id=str(artifact.id), type=ArtifactType(artifact.rating.category)), data=ArtifactData(url=str(artifact.model_url)))
+            return Artifact(metadata=ArtifactMetadata(name=artifact.rating.name, id=str(artifact.id), type=ArtifactType(artifact.rating.category)), data=ArtifactData(url=str(artifact.url), download_url=""))
                 
     def update_artifact(self, id: str, updated: Artifact, artifact_type: ArtifactType) -> bool: # should return false if the artifact is not found
         with Session(self.engine) as session:
-            sanity_query = select(ModelData).where(str(ModelData.id) == id and JsonExtract(ModelData.rating, "$.category") == artifact_type)
+            sanity_query = select(ArtifactDataDB).where(
+                ArtifactDataDB.id == id,
+                            JsonExtract(ArtifactDataDB.rating, "$.category") == artifact_type)
             artifact = session.exec(sanity_query).first()
-            if artifact is None:
+            if not artifact:
                 return False
-            update_query = update
-        raise NotImplementedError()
+            artifact.update_from_artifact(updated)
+            session.add(artifact)
+            session.commit()
+            session.refresh(artifact)
+
+        return True
 
     def delete_artifact(self, id: str, artifact_type: ArtifactType) -> bool: # return false if artifact is not found
-        raise NotImplementedError()
+        with Session(self.engine) as session:
+            statement = select(ArtifactDataDB).where(
+                ArtifactDataDB.id == id,
+                            JsonExtract(ArtifactDataDB.rating, "$.category") == artifact_type)
+            artifact = session.exec(statement).first()
+            if not artifact:
+                return False
+            session.delete(artifact)
+            session.commit()
+
+        return True
