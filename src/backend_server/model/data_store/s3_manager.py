@@ -1,4 +1,5 @@
 import botocore
+import botocore.session
 import logging
 
 
@@ -61,3 +62,27 @@ class S3BucketManager:
             return True
         except Exception:
             return False
+        
+    def s3_reset(self) -> None:
+        """Delete all objects from the S3 bucket."""
+        try:
+            # List all objects in the bucket
+            response = self.s3_client.list_objects_v2(
+                Bucket=self.bucket_name,
+                Prefix=self.data_prefix
+            )
+            
+            if 'Contents' in response:
+                # Create list of objects to delete
+                delete_list = {'Objects': [{'Key': obj['Key']} for obj in response['Contents']]}
+                
+                # Delete all objects if any exist
+                if delete_list['Objects']:
+                    self.s3_client.delete_objects(
+                        Bucket=self.bucket_name,
+                        Delete=delete_list
+                    )
+                    logging.info(f"Deleted {len(delete_list['Objects'])} objects from bucket {self.bucket_name}")
+        except Exception as e:
+            logging.error(f"Error resetting S3 bucket: {e}")
+            raise
