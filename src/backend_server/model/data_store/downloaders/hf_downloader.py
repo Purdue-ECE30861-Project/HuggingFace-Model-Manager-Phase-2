@@ -26,21 +26,22 @@ class HFArtifactDownloader:
             case ArtifactType.dataset:
                 if split[3] != "datasets":
                     raise NameError("Specified type of dataset, hugginface url format requires 'dataset' path")
-                return f"{split[4]}/{5}"
+                return f"{split[4]}/{split[5]}"
             case ArtifactType.code:
                 raise TypeError("Cannot retrieve code from huggingface URL, specify github url")
 
     def _huggingface_pull(self, repo_id: str, tempdir: tempfile.TemporaryDirectory, artifact_type: ArtifactType):
         try:
+            print(repo_id)
             snapshot_download(repo_id=repo_id, local_dir=tempdir.name, repo_type="dataset") \
-                if artifact_type == "model" else \
+                if artifact_type == "dataset" else \
                 snapshot_download(repo_id=repo_id, local_dir=tempdir.name)
         except (huggingface_hub.utils.RepositoryNotFoundError, huggingface_hub.utils.RevisionNotFoundError):
             raise FileNotFoundError("Requested repository doesnt exist")
         except (OSError, EnvironmentError):
             raise Exception("Internal Error Detected")
 
-    def download_artifact(self, url: str, artifact_type: ArtifactType) -> tuple[tempfile.TemporaryDirectory | None, str, int]: # returns the size of the downloaded huggingface artifact
+    def download_artifact(self, url: str, artifact_type: ArtifactType) -> tuple[tempfile.TemporaryDirectory | None, int]: # returns the size of the downloaded huggingface artifact
         size: int = 0
 
         tempdir: tempfile.TemporaryDirectory = tempfile.TemporaryDirectory()
@@ -53,6 +54,4 @@ class HFArtifactDownloader:
         for ele in os.scandir(tempdir.name):
             size += os.stat(ele).st_size
 
-        archive_dir = shutil.make_archive(storage_name, "gztar", root_dir=tempdir.name, base_dir=tempdir.name)
-
-        return tempdir, archive_dir, size
+        return tempdir, size
