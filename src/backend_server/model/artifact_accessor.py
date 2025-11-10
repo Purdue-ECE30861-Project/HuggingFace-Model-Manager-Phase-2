@@ -1,3 +1,5 @@
+from tempfile import TemporaryDirectory
+
 import botocore.session
 import mysql.connector
 from boto3 import Session as BOTO3Session
@@ -16,75 +18,15 @@ import logging
 import re
 
 from enum import Enum
-from pydantic import validate_call
+from pydantic import validate_call, HttpUrl
 
-
-from src.external_contracts import ArtifactQuery, ArtifactMetadata, Artifact, ArtifactID, ArtifactType, ArtifactName, ArtifactRegEx, ArtifactData
+from src.external_contracts import ArtifactQuery, ArtifactMetadata, Artifact, ArtifactID, ArtifactType, ArtifactName, \
+    ArtifactRegEx, ArtifactData, ModelRating
 from data_store.s3_manager import S3BucketManager
-from data_store.database import SQLMetadataAccessor
+from data_store.database import SQLMetadataAccessor, ArtifactDataDB
+from data_store.downloaders.hf_downloader import HFArtifactDownloader
+from .model_rater import ModelRater, ModelRaterEnum
 
-
-class ArtifactDownloader:
-    def __init__(self, timeout: int = 30, max_size_gb: int = 1):
-        self.timeout = timeout
-        self.max_size_bytes = max_size_gb * 1024 * 1024 * 1024
-
-    def download_artifact(self, url: str) -> Optional[bytes]:
-        try:
-            if not self._validate_url(url):
-                return None
-
-            # PLEASE NOTE: we must download the whole repository, is that what this is doing????
-            # is this loading into memory? we must find a way to handle that
-            response = requests.get(url, timeout=self.timeout, stream=True)
-            response.raise_for_status()
-
-            if not self._validate_content_size(response):
-                return None
-        
-            return response.content
-    
-        except Exception as e:
-            logging.error(f"Error downloading artifact from {url}: {e}")
-            return None
-
-    def compress_artifact(self, content: bytes) -> bytes:
-        """Compress artifact content using gzip"""
-        # this must be redesigned so the entire content does not have to be loaded in memory to zip
-        try:
-            return gzip.compress(content)
-        except Exception as e:
-            logging.error(f"Error compressing artifact: {e}")
-            raise
-
-    def download_and_compress(self, url: str) -> Optional[bytes]:
-        """Download and compress artifact in one operation"""
-        content = self.download_artifact(url)
-        if content is None:
-            return None
-        
-        return self.compress_artifact(content)
-
-    def validate_url_format(self, url: str) -> bool:
-        """Validate URL format without downloading"""
-        return self._validate_url(url)
-
-    def estimate_compressed_size(self, original_size: int, compression_ratio: float = 0.3) -> int:
-        """Estimate compressed size based on original size and compression ratio"""
-        return int(original_size * compression_ratio)
-
-    def _validate_url(self, url: str) -> bool:
-        """Internal method to validate URL format"""
-        return url.startswith(('http://', 'https://'))
-
-    def _validate_content_size(self, response: requests.Response) -> bool:
-        """Internal method to validate content size from response headers"""
-        content_length = response.headers.get('content-length')
-        if content_length and int(content_length) > self.max_size_bytes:
-            logging.error(f"Artifact too large: {content_length} bytes (max: {self.max_size_bytes})")
-            return False
-        return True
-    
 
 class GetArtifactsEnum(Enum):
     SUCCESS = 200
@@ -98,6 +40,7 @@ class RegisterArtifactEnum(Enum):
     SUCCESS = 200
     ALREADY_EXISTS = 409
     DISQUALIFIED = 424
+    BAD_REQUEST = 400
 
 class ArtifactAccessor:
     def __init__(self, amdb_url: str,
@@ -106,10 +49,6 @@ class ArtifactAccessor:
                  max_artifact_size_gb: int = 1):
         self.db: SQLMetadataAccessor = SQLMetadataAccessor(db_url=amdb_url)
         self.s3_manager = S3BucketManager(endpoint_url=s3_url)
-        self.downloader = ArtifactDownloader(
-            timeout=download_timeout,
-            max_size_gb=max_artifact_size_gb
-        )
 
     @validate_call
     def get_artifacts(self, body: ArtifactQuery, offset: str) -> tuple[GetArtifactsEnum, List[ArtifactMetadata]]:
@@ -131,35 +70,48 @@ class ArtifactAccessor:
 
     @validate_call
     def get_artifact_by_name(self, name: ArtifactName) -> tuple[GetArtifactEnum, list[ArtifactMetadata]]:
-        try:
-            results = self.db.adb_artifact_get_metadata_by_name(name)
-            return GetArtifactEnum.SUCCESS, results
-        except Exception as e:
-            logging.error(f"Error in get_artifact_by_name: {e}")
-            return GetArtifactEnum.INVALID_REQUEST, []
+        results = self.db.get_by_name(name.name)
+
+        if not results:
+            return GetArtifactEnum.DOES_NOT_EXIST, []
+
+        results_reformatted: list[ArtifactMetadata] = [model.generate_metadata() for model in results]
+        return GetArtifactEnum.SUCCESS, results_reformatted
 
     @validate_call
     def get_artifact_by_regex(self, regex_exp: ArtifactRegEx) -> tuple[GetArtifactEnum, list[ArtifactMetadata]]:
-        try:
-            pattern = re.compile(regex_exp.regex)
-            # Get all artifacts and filter by regex (since AccessorDatabase doesn't have regex method)
-            query = ArtifactQuery(name="", types=None)  # Get all artifacts
-            all_artifacts = self.db.adb_artifact_get_metadata_by_query(query, "")
-            
-            results = []
-            for artifact in all_artifacts:
-                if pattern.search(artifact.name):
-                    results.append(artifact)
-            
-            return GetArtifactEnum.SUCCESS, results
-        
-        except Exception as e:
-            logging.error(f"Error in get_artifact_by_regex: {e}")
-            return GetArtifactEnum.INVALID_REQUEST, []
+        results = self.db.get_by_regex(regex_exp.regex)
+
+        if not results:
+            return GetArtifactEnum.DOES_NOT_EXIST, []
+        results_reformatted: list[ArtifactMetadata] = [model.generate_metadata() for model in results]
+        return GetArtifactEnum.SUCCESS, results_reformatted
 
     @validate_call
-    def register_artifact(self, artifact_type: ArtifactType, body: ArtifactData) -> tuple[RegisterArtifactEnum, Artifact]:
-        pass
+    def register_artifact(self, artifact_type: ArtifactType, body: ArtifactData) -> tuple[RegisterArtifactEnum, Artifact | None]:
+        temporary_rater: ModelRater = ModelRater()
+        temporary_downloader: HFArtifactDownloader = HFArtifactDownloader()
+
+        tempfile: TemporaryDirectory
+        zip_dir: str = ""
+        size: int = 0
+
+        try:
+            tempfile, zip_dir, size = temporary_downloader.download_artifact(body.url, artifact_type)
+        except FileNotFoundError:
+            return RegisterArtifactEnum.BAD_REQUEST, None
+        except (OSError, EnvironmentError):
+            # add logs here
+            return RegisterArtifactEnum.DISQUALIFIED, None
+
+        rate_response: ModelRaterEnum
+        rate_content: ModelRating
+
+        rate_response, rate_content = temporary_rater.rate_model_ingest(tempfile)
+
+        # from here do asynchronous ingestion with model rater
+
+        #results = self.db.add_to_db()
 
     @validate_call
     def update_artifact(self, artifact_type: ArtifactType, id: ArtifactID, body: Artifact) -> tuple[GetArtifactEnum, None]:

@@ -29,6 +29,9 @@ class S3BucketManager:
             logging.error(f"Error uploading artifact to S3: {e}")
             raise
 
+    def s3_artifact_upload_from_file(self, artifact_id: str, path: str):
+        pass
+
     def s3_generate_presigned_url(self, artifact_id: str, expires_in: int = 3600) -> str:
         """Generate presigned URL for direct client download""" # good for now but spec demands to be able to pick and choose elemnts to download
         return self.s3_client.generate_presigned_url(

@@ -1,6 +1,8 @@
+from tempfile import TemporaryDirectory
+
 from pydantic import validate_call
 from enum import Enum
-from src.external_contracts import ArtifactID, ModelRating
+from src.external_contracts import ArtifactID, ModelRating, Artifact
 
 
 class ModelRaterEnum(Enum):
@@ -9,5 +11,9 @@ class ModelRaterEnum(Enum):
     INTERNAL_ERROR = 500
 class ModelRater:
     @validate_call
-    async def rate_model(self, id: ArtifactID) -> tuple[ModelRaterEnum, ModelRating]:
+    async def rate_model(self, artifact: Artifact) -> tuple[ModelRaterEnum, ModelRating]:
+        raise NotImplementedError()
+
+    @validate_call
+    async def rate_model_ingest(self, path: TemporaryDirectory) -> tuple[ModelRaterEnum, ModelRating]:
         raise NotImplementedError()
