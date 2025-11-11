@@ -1,15 +1,19 @@
-#from __future__ import annotations
-from dataclasses import dataclass
-from Metric import Metric
+from __future__ import annotations
 from ..utils.get_metadata import find_dataset_links, find_github_links
+from pathlib import Path
+from src.contracts.artifact_contracts import Artifact
+from src.contracts.metric_std import MetricStd
 import time
 
-@dataclass
-class AvailableDatasetAndCode(Metric):
-    def __init__(self, metricName="Available Dataset and Code", metricWeighting=0.2, datasetAvailable=False, codeAvailable=False):
-        super().__init__(metricName, 0, metricWeighting)
-        
-    
+
+class AvailableDatasetAndCode(MetricStd[float]):
+    metric_name = "dataset_and_code_score"
+
+    def calculate_metric_score(self, ingested_path: Path, artifact_data: Artifact, *args, **kwargs) -> float:
+        #need way to get actual codebase url, probably from the filepath
+        #return self.score_dataset_and_code_availability(artifact_data.data.url, "BoneheadRepo", "BoneheadUrl"),
+        return 0.5
+
     def score_dataset_availability(self, url: str, datasetURL) -> float:
         """
         Returns a score between 0 and 1 for dataset availability in a Hugging Face model.
@@ -70,10 +74,8 @@ class AvailableDatasetAndCode(Metric):
         - If neither available, score = 0.0
         - Otherwise returns a value in between
         """
-        t0 = time.perf_counter_ns()
         dataset_score = self.score_dataset_availability(url, datasetURL)
         code_score = self.score_code_availability(url, githubURL)
 
         total_score = 0.5 * dataset_score + 0.5 * code_score
-        dt_ms = (time.perf_counter_ns() - t0) // 1_000_000
-        return round(total_score, 3), dt_ms
+        return round(total_score, 3)

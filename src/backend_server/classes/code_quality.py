@@ -1,21 +1,23 @@
-#from __future__ import annotations
+from __future__ import annotations
 
 from dataclasses import dataclass
-from Metric import Metric
-from typing import Optional, Tuple
-import time
 from ..utils.llm_api import llmAPI
 from ..utils.get_metadata import find_github_links
 import re
+from pathlib import Path
+from src.contracts.artifact_contracts import Artifact
+from src.contracts.metric_std import MetricStd
 
 _PROMPT = """You are evaluating CODE QUALITY (style & maintainability).
 Consider consistency, naming, modularity, comments/docstrings, type hints, tests/CI hints, and readability.
 Rate on this discrete scale and reply with ONLY one number: 1.0, 0.5, or 0.0. The link to the github repository for the code is here:"""
 
-@dataclass
-class CodeQuality(Metric):
-    def __init__(self, metricName="Code Quality", metricWeighting=0.1):
-        super().__init__(metricName, 0, metricWeighting)
+
+class CodeQuality(MetricStd[float]):
+    metric_name = "code_quality"
+
+    def __init__(self, metric_weight=0.1):
+        super().__init__(metric_weight)
         self.llm = llmAPI()
 
     def _score_with_llm(self, code_text: str, readme_text: str) -> float:
@@ -28,7 +30,6 @@ class CodeQuality(Metric):
 
     #computing code quality score and returns score and latency 
     def evaluate(self, url, githubURL) -> float:
-        t0 = time.perf_counter_ns()
         if githubURL:
             links = githubURL
         else:
@@ -47,5 +48,9 @@ class CodeQuality(Metric):
             # print("cant find github links")
             score = 0.0
         score = max(0.0, min(1.0, float(score)))
-        dt_ms = (time.perf_counter_ns() - t0) // 1_000_000
-        return score, dt_ms
+
+        return score
+
+    def calculate_metric_score(self, ingested_path: Path, artifact_data: Artifact, *args, **kwargs) -> float:
+        #return self.evaluate(artifact_data.url, "BoneheadRepo")
+        return 0.5

@@ -5,7 +5,7 @@ import logging
 import time
 import uuid
 
-from src.external_contracts import ModelRating, Artifact, ArtifactMetadata, ArtifactQuery, ArtifactType, ArtifactData
+from src.contracts.artifact_contracts import ModelRating, Artifact, ArtifactMetadata, ArtifactQuery, ArtifactType, ArtifactData
 from src.backend_server.model.data_store.database import SQLMetadataAccessor, ArtifactDataDB
 from pydantic import HttpUrl
 

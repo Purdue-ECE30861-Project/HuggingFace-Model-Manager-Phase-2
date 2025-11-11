@@ -1,29 +1,22 @@
 from tempfile import TemporaryDirectory
 
-import botocore.session
-import mysql.connector
-from boto3 import Session as BOTO3Session
-from mysql.connector import Error
-from mysql.connector import pooling
-import os
-from datetime import datetime
 import hashlib
-import requests
 
-import boto3
-import json
-import gzip
-from typing import Dict, List, Optional
+from typing import List
 import logging
-import re
 
 from enum import Enum
-from pydantic import validate_call, HttpUrl
+from unicodedata import category
 
-from src.external_contracts import ArtifactQuery, ArtifactMetadata, Artifact, ArtifactID, ArtifactType, ArtifactName, \
-    ArtifactRegEx, ArtifactData, ModelRating
+from jedi.api.completion import extract_imported_names
+from pydantic import validate_call
+from pathlib import Path
+
+from src.contracts.artifact_contracts import ArtifactQuery, ArtifactMetadata, Artifact, ArtifactID, ArtifactType, ArtifactName, \
+    ArtifactRegEx, ArtifactData
+from src.contracts.model_rating import ModelRating
 from data_store.s3_manager import S3BucketManager
-from data_store.database import SQLMetadataAccessor, ArtifactDataDB
+from data_store.database import SQLMetadataAccessor
 from data_store.downloaders.hf_downloader import HFArtifactDownloader
 from .model_rater import ModelRater, ModelRaterEnum
 
@@ -41,6 +34,13 @@ class RegisterArtifactEnum(Enum):
     ALREADY_EXISTS = 409
     DISQUALIFIED = 424
     BAD_REQUEST = 400
+
+
+def extract_name_from_url(url: str) -> str:
+    return "GoobyGoober"
+
+def determine_artifact_type(url: str, filepath: Path) -> ArtifactType:
+    return ArtifactType.model
 
 class ArtifactAccessor:
     def __init__(self, amdb_url: str,
@@ -88,26 +88,39 @@ class ArtifactAccessor:
         return GetArtifactEnum.SUCCESS, results_reformatted
 
     @validate_call
+    def register_artifact_deferred(self, artifact_type: ArtifactType, body: ArtifactType):
+        pass
+
+    @validate_call
     def register_artifact(self, artifact_type: ArtifactType, body: ArtifactData) -> tuple[RegisterArtifactEnum, Artifact | None]:
         temporary_rater: ModelRater = ModelRater()
         temporary_downloader: HFArtifactDownloader = HFArtifactDownloader()
 
-        tempfile: TemporaryDirectory
-        zip_dir: str = ""
+        temp_file: TemporaryDirectory
         size: int = 0
 
         try:
-            tempfile, zip_dir, size = temporary_downloader.download_artifact(body.url, artifact_type)
+            temp_file, size = temporary_downloader.download_artifact(body.url, artifact_type)
         except FileNotFoundError:
             return RegisterArtifactEnum.BAD_REQUEST, None
         except (OSError, EnvironmentError):
             # add logs here
             return RegisterArtifactEnum.DISQUALIFIED, None
 
-        rate_response: ModelRaterEnum
-        rate_content: ModelRating
-
-        rate_response, rate_content = temporary_rater.rate_model_ingest(tempfile)
+        temp_path: Path = Path(temp_file.name)
+        new_artifact: Artifact = Artifact(
+            metadata=ArtifactMetadata(
+                    name=extract_name_from_url(body.url),
+                    id=self._generate_unique_id(body.url),
+                    type=determine_artifact_type(body.url, temp_file) # replace later with actual code
+                )
+            )
+        rating: ModelRating = ModelRating.generate_rating(Path(temp_file.name))
+        #
+        # rate_response: ModelRaterEnum
+        # rate_content: ModelRating
+        #
+        # rate_response, rate_content = temporary_rater.rate_model_ingest(tempfile)
 
         # from here do asynchronous ingestion with model rater
 

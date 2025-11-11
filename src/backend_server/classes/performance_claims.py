@@ -1,12 +1,13 @@
 #from __future__ import annotations
 from dataclasses import dataclass
-from src.classes.Metric import Metric
-from src.utils.hf_api import hfAPI
+from src.backend_server.utils.hf_api import hfAPI
 import math
 from typing import Any, Dict, List, Optional, Tuple
-from src.utils.llm_api import llmAPI
+from src.backend_server.utils.llm_api import llmAPI
 import json
-import time
+from pathlib import Path
+from src.contracts.artifact_contracts import Artifact
+from src.contracts.metric_std import MetricStd
 
 # ---- Canonicalization & rules ----
 
@@ -140,16 +141,18 @@ Rate on this discrete scale and reply with ONLY one number: 1.0, 0.5, or 0.0. \
 0.5: Benchmarks are slightly overexaggerated statistics but the model still performs well\
 0.0: Benchmarks are completely inaccurate and cannot be trusted for this model."""
 
-@dataclass
-class PerformanceClaims(Metric):
-    def __init__(self, metricName="Performance Claims", metricWeighting=0.2, benchmarks={"batch size": 64, "accuracy": 0.0, "time": 0.0}):
-        super().__init__(metricName, 0, metricWeighting)
+
+class PerformanceClaims(MetricStd[float]):
+    metric_name = "performance_claims"
+
+    def __init__(self, metric_weight=0.2):
+        super().__init__(metric_weight)
+        self.benchmarks = benchmarks={"batch size": 64, "accuracy": 0.0, "time": 0.0}
         self.benchmarks = benchmarks
         self.llm = llmAPI()
         
 
-    def evaluate(self, url: str) -> Tuple[float, int]:
-        t0 = time.perf_counter_ns()
+    def evaluate(self, url: str) -> float:
         api = hfAPI()
         modelinfo = json.loads(api.get_info(url, printCLI=False))
         try:
@@ -168,8 +171,7 @@ class PerformanceClaims(Metric):
                 score = 0.0
         else:
             score = self.score_model_performance(model_index)
-        dt_ms = (time.perf_counter_ns() - t0) // 1_000_000
-        return score, dt_ms
+        return score
 
     def score_model_performance(self, resp):
         """
@@ -200,5 +202,9 @@ class PerformanceClaims(Metric):
         }
         
         return round(overall, 4)
+
+    def calculate_metric_score(self, ingested_path: Path, artifact_data: Artifact, *args, **kwargs) -> float:
+        #return self.evaluate(artifact_data.url)
+        return 0.5
 
 

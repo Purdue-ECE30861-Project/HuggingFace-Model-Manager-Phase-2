@@ -2,14 +2,14 @@
 
 import json
 import logging
-import time
-from typing import Dict, Optional, Tuple, Any
+from pathlib import Path
 
-from Metric import Metric
 from ..utils.llm_api import llmAPI
 from ..utils.hf_api import hfAPI
 import re
 from typing import Iterable, Union
+from src.contracts.artifact_contracts import Artifact
+from src.contracts.metric_std import MetricStd
 
 HIGH_PERMISSIVE = {
     "mit", "bsd-2-clause", "bsd-3-clause",
@@ -50,9 +50,11 @@ def _as_list(lic: Union[str, Iterable[str], None]):
         return list(lic)
     return [lic]
 
-class License(Metric):
-    def __init__(self, metricName: str = "License", metricWeighting: float = 0.1) -> None:
-        super().__init__(metricName, 0.0, metricWeighting)
+class License(MetricStd[float]):
+    metric_name = "license"
+
+    def __init__(self, metric_weight=0.1) -> None:
+        super().__init__(metric_weight)
         self.license: float = 0.0     
         self.llm = llmAPI()   
 
@@ -73,7 +75,6 @@ class License(Metric):
         return 0.3
 
     def evaluate(self, url) -> float:
-        t0 = time.perf_counter_ns()
         api = hfAPI()
         response = api.get_info(url, printCLI=False)
         try:
@@ -86,9 +87,9 @@ class License(Metric):
             cardData_license = None
 
         if tag_license:
-            return (self.score_license(tag_license), time.perf_counter_ns() - t0)
+            return self.score_license(tag_license)
         elif cardData_license:
-            return (self.score_license(cardData_license), time.perf_counter_ns() - t0)
+            return self.score_license(cardData_license)
         else:
             #GenAI prompt
             prompt = (
@@ -120,5 +121,8 @@ class License(Metric):
             self.license = score
             self.metricScore = score
 
-        dt_ms = (time.perf_counter_ns() - t0) // 1_000_000
-        return score, dt_ms
+        return score
+
+    def calculate_metric_score(self, ingested_path: Path, artifact_data: Artifact, *args, **kwargs) -> float:
+        #return self.evaluate(artifact_data.data.url)
+        return 0.5

@@ -6,6 +6,7 @@ from starlette.requests import Request
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 
+from src.frontend_server.controller.health import health_router
 
 cache_router = FastAPI()
 
@@ -121,6 +122,6 @@ class CacheMiddleware(BaseHTTPMiddleware):
 
 
 # Add the middleware to api_core
-api_core.add_middleware(CacheMiddleware)
-
+#api_core.add_middleware(CacheMiddleware)
+api_core.include_router(health_router)
 

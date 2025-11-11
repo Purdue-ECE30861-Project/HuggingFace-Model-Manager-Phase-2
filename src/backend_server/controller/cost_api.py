@@ -1,9 +1,9 @@
-from fastapi import Depends, APIRouter, HTTPException, status, Response
+from fastapi import Depends, APIRouter, HTTPException, status
 from fastapi.exceptions import RequestValidationError
 from typing import Annotated
 from pydantic import ValidationError
 
-from src.external_contracts import ArtifactID, ArtifactType, ArtifactCost
+from src.contracts.artifact_contracts import ArtifactID, ArtifactType, ArtifactCost
 from ..model.model_rater import ModelRaterEnum
 from ..model.artifact_cost import ArtifactCostAnalyzer
 

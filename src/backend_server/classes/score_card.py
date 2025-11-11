@@ -5,12 +5,12 @@ from src.classes.AvailableDatasetAndCode import AvailableDatasetAndCode
 from src.classes.BusFactor import BusFactor
 from src.classes.CodeQuality import CodeQuality
 from src.classes.DatasetQuality import DatasetQuality
-from src.classes.License import License
-from src.classes.Metric import Metric
-from src.classes.PerformanceClaims import PerformanceClaims
-from src.classes.RampUpTime import RampUpTime
-from src.classes.Size import Size
-from src.classes.Threading import MetricRunner
+from license import License
+from Metric import Metric
+from performance_claims import PerformanceClaims
+from ramp_up_time import RampUpTime
+from size import Size
+from threading import MetricRunner
 from src.utils.get_metadata import get_github_readme
 #from backend_server.utils.get_metadata import get_model_metadata
 #import time

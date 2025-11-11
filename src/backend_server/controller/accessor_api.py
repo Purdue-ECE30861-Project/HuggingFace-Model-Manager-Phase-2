@@ -3,7 +3,7 @@ from fastapi.exceptions import RequestValidationError
 from pydantic import ValidationError
 from typing import Annotated
 
-from src.external_contracts import ArtifactID, ArtifactType, ArtifactQuery, Artifact, ArtifactMetadata, ArtifactName, ArtifactRegEx, ArtifactData
+from src.contracts.artifact_contracts import ArtifactID, ArtifactType, ArtifactQuery, Artifact, ArtifactMetadata, ArtifactName, ArtifactRegEx, ArtifactData
 from ..model.artifact_accessor import ArtifactAccessor, GetArtifactsEnum, GetArtifactEnum, RegisterArtifactEnum
 
 accessor_router = APIRouter()
