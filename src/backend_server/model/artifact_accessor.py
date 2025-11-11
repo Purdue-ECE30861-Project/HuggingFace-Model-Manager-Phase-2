@@ -45,10 +45,11 @@ def determine_artifact_type(url: str, filepath: Path) -> ArtifactType:
 class ArtifactAccessor:
     def __init__(self, amdb_url: str,
                  s3_url: str = None,
-                 download_timeout: int = 30,
-                 max_artifact_size_gb: int = 1):
+                 num_processors: int = 1
+                 ):
         self.db: SQLMetadataAccessor = SQLMetadataAccessor(db_url=amdb_url)
         self.s3_manager = S3BucketManager(endpoint_url=s3_url)
+        self.num_processors: int = num_processors
 
     @validate_call
     def get_artifacts(self, body: ArtifactQuery, offset: str) -> tuple[GetArtifactsEnum, List[ArtifactMetadata]]:
@@ -112,10 +113,12 @@ class ArtifactAccessor:
             metadata=ArtifactMetadata(
                     name=extract_name_from_url(body.url),
                     id=self._generate_unique_id(body.url),
-                    type=determine_artifact_type(body.url, temp_file) # replace later with actual code
-                )
-            )
-        rating: ModelRating = ModelRating.generate_rating(Path(temp_file.name))
+                    type=determine_artifact_type(body.url, temp_path) # replace later with actual code
+                ),
+            data=body
+        )
+        rating: ModelRating = ModelRating.generate_rating(temp_path, new_artifact, self.num_processors)
+
         #
         # rate_response: ModelRaterEnum
         # rate_content: ModelRating
