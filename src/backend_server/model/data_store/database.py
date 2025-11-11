@@ -1,5 +1,6 @@
 from __future__ import annotations
-from src.contracts.artifact_contracts import ModelRating, Artifact, ArtifactMetadata, ArtifactQuery, ArtifactType, ArtifactData
+from src.contracts.artifact_contracts import Artifact, ArtifactMetadata, ArtifactQuery, ArtifactType, ArtifactData
+from src.contracts.model_rating import ModelRating
 from sqlmodel import Field, SQLModel, Session, create_engine, select # pyright: ignore[reportUnknownVariableType]
 from sqlalchemy import Engine, JSON
 from sqlalchemy.orm.attributes import flag_modified
