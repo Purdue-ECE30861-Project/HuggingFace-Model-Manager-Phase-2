@@ -1,17 +1,20 @@
 #from __future__ import annotations
 
 from dataclasses import dataclass
-from src.classes.Metric import Metric
-from src.utils.llm_api import llmAPI
-from src.utils.hf_api import hfAPI
+from src.backend_server.utils.llm_api import llmAPI
+from src.backend_server.utils.hf_api import hfAPI
+from pathlib import Path
+from src.contracts.artifact_contracts import Artifact
+from src.contracts.metric_std import MetricStd
 import json
 import time
 import re
 
-@dataclass
-class Size(Metric):
-    def __init__(self, metricName="Size", metricWeighting=0.1):
-        super().__init__(metricName, 0, metricWeighting)
+class Size(MetricStd[float]):
+    metric_name = "size_score"
+
+    def __init__(self, metric_weight=0.1):
+        super().__init__(metric_weight)
         self.paramCount = 0
         self.device_dict = {}
         self.llm = llmAPI()
@@ -44,6 +47,7 @@ class Size(Metric):
                 return 0.0
         except Exception as e:
             print(f"[Size Metric] LLM scoring failed, falling back. Error: {e}")
+            return 0.0
 
     def score(self, ratio: float) -> float:
         # ratio = model_size / device_memory
@@ -104,3 +108,6 @@ class Size(Metric):
 
     def getParamCount(self) -> int:
         return self.paramCount
+
+    def calculate_metric_score(self, ingested_path: Path, artifact_data: Artifact, *args, **kwargs) -> float:
+        return 1.0

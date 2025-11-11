@@ -1,20 +1,19 @@
-#from __future__ import annotations
+from __future__ import annotations
 
 from dataclasses import dataclass
-from Metric import Metric
 from ..utils.get_metadata import get_collaborators_github, find_github_links
 from ..utils.llm_api import llmAPI
 import math
 import re
-import time
+from pathlib import Path
+from src.contracts.artifact_contracts import Artifact
+from src.contracts.metric_std import MetricStd
 
-@dataclass
-class BusFactor(Metric):
-    def __init__(self, metricName="Bus Factor", metricWeighting = 0.1):
-        super().__init__(metricName, 0, metricWeighting)
 
-    def setNumContributors(self, url, githubURL):
-        t0 = time.perf_counter_ns()
+class BusFactor(MetricStd[float]):
+    metric_name = "bus_factor"
+
+    def setNumContributors(self, url, githubURL) -> float:
         if githubURL:
             links = [githubURL]
         else:
@@ -29,7 +28,7 @@ class BusFactor(Metric):
                 saturation_coeff = 5
                 groupsize = 1 - math.exp((-1.0 / avg) / saturation_coeff)
             self.NumContributors = len(authors)
-            self.metricScore = round(evenness * groupsize, 3)
+            return round(evenness * groupsize, 3)
         else:
             api = llmAPI()
             prompt = "Given this link to a HuggingFace model repository, can you assess the Bus Factor of the model based on size of the organization/members \
@@ -41,10 +40,9 @@ class BusFactor(Metric):
             match = re.search(PAT, response)
             bus_factor = float(match.group()) if match else None
             if bus_factor:
-                self.metricScore = round(bus_factor, 3)
+                return round(bus_factor, 3)
+        return 0.0
 
-        self.metricLatency = (time.perf_counter_ns() - t0) // 1_000_000
-
-    def getNumContributors(self) -> int:
-        return self.NumContributors
-    
+    def calculate_metric_score(self, ingested_path: Path, artifact_data: Artifact, *args, **kwargs) -> float:
+        #return self.setNumContributors(artifact_data.url, "BoneheadRepo")
+        return 0.5

@@ -1,12 +1,9 @@
-from typing import Optional
-
 import huggingface_hub.utils
 from huggingface_hub import snapshot_download
 import os
-import shutil
 import tempfile
 
-from src.external_contracts import ArtifactData, ArtifactType
+from src.contracts.artifact_contracts import ArtifactType
 
 
 class HFArtifactDownloader:

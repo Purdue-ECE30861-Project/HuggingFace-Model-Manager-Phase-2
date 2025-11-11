@@ -1,4 +1,4 @@
-from src.external_contracts import HealthComponentCollection
+from src.contracts.health_contracts import HealthComponentCollection
 
 
 class HealthAccessor:

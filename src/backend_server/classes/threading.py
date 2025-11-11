@@ -1,36 +1,13 @@
 from multiprocessing import Pool
-from typing import List, Optional, Callable, Any, Tuple
+from typing import List, Optional, Callable, Any, Tuple, Generic
 import traceback
-
-
-def run_metric_task(task_tuple: Tuple[Any, str, Callable, tuple, dict]) -> Tuple[Any, Any, Optional[Exception]]:
-    """
-    Wrapper function to run a single metric task in a separate process.
-    
-    Args:
-        task_tuple: (metric_instance, method_name, method_callable, args, kwargs)
-    
-    Returns:
-        Tuple of (metric_instance, result, exception)
-    """
-    metric, method_name, method_func, args, kwargs = task_tuple
-    try:
-        result = method_func(*args, **kwargs)
-        return (metric, result, None)
-    except Exception as e:
-        tb_str = "".join(traceback.format_exception(type(e), e, e.__traceback__))
-        error_info = {
-            "error_type": e.__class__.__name__,
-            "message": str(e),
-            "traceback": tb_str,
-            "metric": metric.getMetricName() if hasattr(metric, 'getMetricName') else str(metric),
-            "method": method_name
-        }
-        return (metric, None, error_info)
+from pathlib import Path
+from src.contracts.artifact_contracts import Artifact
+from src.contracts.metric_std import MetricStd
 
 
 class MetricTask:
-    def __init__(self, metric: Any, method_name: str, *args, **kwargs):
+    def __init__(self, metric: MetricStd, artifact: Artifact, path: Path, *args, **kwargs):
         """
         Args:
             metric: The metric instance
@@ -39,14 +16,30 @@ class MetricTask:
             **kwargs: Keyword arguments for the method
         """
         self.metric = metric
-        self.method_name = method_name
+        self.artifact = artifact
+        self.path = path
         self.args = args
         self.kwargs = kwargs
-        
-    def to_tuple(self) -> Tuple:
+
+    def execute(self) -> Tuple[float, Any]:
         """Convert task to tuple for multiprocessing."""
-        method_func = getattr(self.metric, self.method_name)
-        return (self.metric, self.method_name, method_func, self.args, self.kwargs)
+        return self.metric.run_score_calculation(self.path, self.artifact, *self.args, **self.kwargs)
+
+
+def run_metric_task(task: MetricTask) -> dict[str, Tuple[float, Any, dict|None]]:
+    try:
+        latency, score = task.execute()
+        return {task.metric.get_metric_name(): (latency, score, None)}
+    except Exception as e:
+        tb_str = "".join(traceback.format_exception(type(e), e, e.__traceback__))
+        error_info = {
+            "error_type": e.__class__.__name__,
+            "message": str(e),
+            "traceback": tb_str,
+            "metric": task.metric.get_metric_name(),
+            "method": "run_score_calculation"
+        }
+        return {task.metric.get_metric_name(): (0.0, None, error_info)}
 
 
 class MetricRunner:
@@ -61,7 +54,7 @@ class MetricRunner:
         self.num_processes = num_processes
         self.tasks: List[MetricTask] = []
         
-    def add_task(self, metric: Any, method_name: str, *args, **kwargs) -> 'MetricRunner':
+    def add_task(self, metric: MetricStd, path: Path, artifact: Artifact, *args, **kwargs) -> 'MetricRunner':
         """
         Add a metric computation task to the queue.
         
@@ -74,11 +67,11 @@ class MetricRunner:
         Returns:
             Self for method chaining
         """
-        task = MetricTask(metric, method_name, *args, **kwargs)
+        task = MetricTask(metric, artifact, path, *args, **kwargs)
         self.tasks.append(task)
         return self
         
-    def run(self) -> List[Tuple[Any, Any, Optional[Exception]]]:
+    def run(self) -> dict[str, Tuple[float, Any, dict|None]]:
         """
         Execute all queued tasks in parallel.
         
@@ -86,16 +79,19 @@ class MetricRunner:
             List of (metric_instance, result, exception) tuples
         """
         if not self.tasks:
-            return []
-            
-        # Convert tasks to tuples for multiprocessing
-        task_tuples = [task.to_tuple() for task in self.tasks]
-        
-        # Run in parallel
+            return dict()
+
         with Pool(processes=self.num_processes) as pool:
-            results = pool.map(run_metric_task, task_tuples)
-            
-        return results
+            results = pool.map(run_metric_task, self.tasks)
+
+        dict_result: dict[str, Tuple[float, Any, dict|None]] = dict()
+
+        for result in results:
+            dict_result.update(result)
+
+        self.clear_tasks()
+
+        return dict_result
     
     def clear_tasks(self) -> 'MetricRunner':
         """Clear all queued tasks."""

@@ -1,10 +1,7 @@
 import unittest
-from unittest.mock import patch, MagicMock
-import tempfile
-import os
 from pathlib import Path
 from src.backend_server.model.data_store.downloaders.hf_downloader import HFArtifactDownloader
-from src.external_contracts import ArtifactType
+from src.contracts.artifact_contracts import ArtifactType
 
 
 class TestHFArtifactDownloader(unittest.TestCase):

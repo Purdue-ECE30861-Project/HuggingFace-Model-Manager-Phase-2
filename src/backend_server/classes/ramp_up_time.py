@@ -1,14 +1,18 @@
-#from __future__ import annotations
+from __future__ import annotations
 
 from dataclasses import dataclass
-from src.classes.Metric import Metric
-from src.utils.llm_api import llmAPI
+from src.backend_server.utils.llm_api import llmAPI
+from pathlib import Path
+from src.contracts.artifact_contracts import Artifact
+from src.contracts.metric_std import MetricStd
 import time
 
-@dataclass
-class RampUpTime(Metric):
-    def __init__(self, metricName="Ramp Up Time", metricWeighting=0.1):
-        super().__init__(metricName, 0, metricWeighting)
+
+class RampUpTime(MetricStd[float]):
+    metric_name = "ramp_up_time"
+
+    def __init__(self, metric_weight=0.1):
+        super().__init__(metric_weight)
         self.llm = llmAPI()
 
     def _score_readme_with_llm(self, readme_text: str) -> float:
@@ -45,14 +49,23 @@ class RampUpTime(Metric):
         - precomputed_score (manual value for testing), or
         - raw readme_text (evaluated by LLM).
         """
-        t0 = time.perf_counter_ns()
         if readme_text:
-            self.metricScore = self._score_readme_with_llm(readme_text)
+            return self._score_readme_with_llm(readme_text)
         else:
-            self.metricScore = 0.0
-        dt_ms = (time.perf_counter_ns() - t0) // 1_000_000
-        self.metricLatency = dt_ms
+            return 0.0
 
     def getRampUpTime(self) -> float:
         return self.metricScore
 
+    def calculate_metric_score(self, ingested_path: Path, artifact_data: Artifact, *args, **kwargs) -> float:
+        # readme_files = [p for p in Path.rglob('*') if p.is_file() and p.name.lower().startswith("readme")]
+        # contents = []
+        # for f in readme_files:
+        #     try:
+        #         contents.append(f.read_text(encoding="utf-8"))
+        #     except Exception:
+        #         continue
+        # readme = "\n\n".join(contents)
+        #
+        # return self.setRampUpTime(readme)
+        return 0.5

@@ -1,19 +1,16 @@
-#from __future__ import annotations
+from __future__ import annotations
 from dataclasses import dataclass
-from Metric import Metric
 from ..utils.hf_api import hfAPI
 from ..utils.get_metadata import find_dataset_links
-import re
 import math
 import json
-import time
-from typing import Tuple
+from pathlib import Path
+from src.contracts.artifact_contracts import Artifact
+from src.contracts.metric_std import MetricStd
 
-@dataclass
-class DatasetQuality(Metric):
-    def __init__(self, metricName="Dataset Quality", metricWeighting = 0.1, datasetShape=(0), datasetEntries=0):
-        super().__init__(metricName, 0, metricWeighting)
-    
+
+class DatasetQuality(MetricStd[float]):
+    metric_name = "dataset_quality"
     
     def _score_single_dataset(self, dataset_info: dict) -> float:
         """
@@ -55,20 +52,19 @@ class DatasetQuality(Metric):
 
         return round(min(total_score, 1.0), 3)
 
-    def computeDatasetQuality(self, url: str, datasetURL: str) -> Tuple[float, int]:
+    def computeDatasetQuality(self, url: str, datasetURL: str) -> float:
         """
         For a Hugging Face model URL:
         - Find dataset links mentioned in the model card
         - Compute quality scores for each dataset
         - Return an aggregated score (average across datasets)
         """
-        t0 = time.perf_counter_ns()
         if datasetURL:
             dataset_links = [datasetURL]
         else:
             dataset_links = find_dataset_links(url)
         if not dataset_links:
-            return 0.0, 0
+            return 0.0
 
         scores = []
         api = hfAPI()
@@ -79,11 +75,12 @@ class DatasetQuality(Metric):
             scores.append(score)
 
         if not scores:
-            dt_ms = (time.perf_counter_ns() - t0) / 1_000_000
-            return 0.0, dt_ms
+            return 0.0
 
         # Aggregate: average across datasets
-        dt_ms = (time.perf_counter_ns() - t0) // 1_000_000
-        return round(sum(scores) / len(scores), 3), dt_ms
+        return round(sum(scores) / len(scores), 3)
 
-        
+    def calculate_metric_score(self, ingested_path: Path, artifact_data: Artifact, *args, **kwargs) -> float:
+        #return self.computeDatasetQuality(artifact_data.url, "BoneheadDataset")
+        return 0.5
+
