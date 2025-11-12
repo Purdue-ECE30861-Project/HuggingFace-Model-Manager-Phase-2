@@ -19,13 +19,13 @@ class S3BucketManager:
             aws_access_key_id=aws_access_key_id,
             aws_secret_access_key=aws_secret_access_key
         )
-        print(self.s3_client.list_buckets())
         self.bucket_name = bucket_name
         self.data_prefix = data_prefix
 
     def s3_artifact_upload(self, artifact_id: str, filepath: Path) -> None:
         """Upload artifact content to S3 bucket"""
         try:
+
             self.s3_client.upload_file(filepath, self.bucket_name, f"{self.data_prefix}{artifact_id}")
         except botoexc.ClientError as e:
             logging.error(f"Error uploading artifact to S3: {e}")

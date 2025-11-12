@@ -10,7 +10,8 @@ from sqlalchemy.types import TypeDecorator, String, Text
 from sqlalchemy import Dialect
 from sqlalchemy.sql import expression
 from sqlalchemy.ext.compiler import compiles
-from typing import Any
+from typing import Any, Optional
+
 
 class JsonExtract(expression.FunctionElement[str]):
     inherit_cache=True
@@ -78,14 +79,22 @@ class ModelRatingSerializer(TypeDecorator[ModelRating]):
         return json.dumps(value.model_dump())
 
 
-class ArtifactDataDB(SQLModel, table=True):
+class ArtifactDataDB(SQLModel, table=True): # what about for storage of datasets? Do they themselves have 'ModelRating?' Must consider this for future iteration
     id: str = Field(default="BoatyMcBoatFace", primary_key=True)
     url: HttpUrl = Field(sa_type=HttpUrlSerializer)
     rating: ModelRating = Field(sa_type=ModelRatingSerializer)
 
     @staticmethod
     def create_db_artifact(id: str, url: HttpUrl, rating: ModelRating):
-        ArtifactDataDB(id=id, url=url, rating=rating)
+        return ArtifactDataDB(id=id, url=url, rating=rating)
+
+    @staticmethod
+    def create_from_artifact(artifact: Artifact, rating: Optional[ModelRating]):
+        return ArtifactDataDB(
+            id=artifact.metadata.id,
+            url=artifact.data.url,
+            rating=rating
+        )
 
     def update_from_artifact(self, artifact: Artifact):
         self.rating.name = artifact.metadata.name
@@ -210,7 +219,16 @@ class SQLMetadataAccessor: # I assume we use separate tables for cost, lineage, 
             artifact = session.exec(sql_query).first()
             if not artifact:
                 return None
-            return Artifact(metadata=ArtifactMetadata(name=artifact.rating.name, id=str(artifact.id), type=ArtifactType(artifact.rating.category)), data=ArtifactData(url=str(artifact.url), download_url=""))
+            return Artifact(
+                metadata=ArtifactMetadata(
+                    name=artifact.rating.name,
+                    id=str(artifact.id),
+                    type=ArtifactType(artifact.rating.category)
+                ),
+                data=ArtifactData(
+                    url=str(artifact.url),
+                    download_url="")
+            )
                 
     def update_artifact(self, id: str, updated: Artifact, artifact_type: ArtifactType) -> bool: # should return false if the artifact is not found
         with Session(self.engine) as session:

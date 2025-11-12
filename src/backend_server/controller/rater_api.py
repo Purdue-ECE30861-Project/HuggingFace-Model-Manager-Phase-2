@@ -3,7 +3,8 @@ from fastapi.exceptions import RequestValidationError
 from typing import Annotated
 from pydantic import ValidationError
 
-from src.contracts.artifact_contracts import ArtifactID, ModelRating
+from src.contracts.artifact_contracts import ArtifactID
+from src.contracts.model_rating import ModelRating
 from ..model.model_rater import ModelRater, ModelRaterEnum
 
 
