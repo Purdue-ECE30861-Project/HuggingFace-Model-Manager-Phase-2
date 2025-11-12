@@ -1,3 +1,4 @@
+import tempfile
 import unittest
 from pathlib import Path
 from src.backend_server.model.data_store.downloaders.hf_downloader import HFArtifactDownloader
@@ -40,27 +41,26 @@ class TestHFArtifactDownloader(unittest.TestCase):
         # Download
         model_url = "https://huggingface.co/prajjwal1/bert-tiny"
         artifact_type = ArtifactType.model
-        tempdir_obj, size = self.downloader.download_artifact(model_url, artifact_type)
-        self.assertIsNotNone(tempdir_obj)
-        self.assertGreater(size, 0, "Downloaded size should be > 0")
 
-        # Check that downloaded folder has files
-        download_path = Path(tempdir_obj.name)
-        files = list(download_path.rglob("*"))
-        self.assertTrue(len(files) > 0, f"No files found in downloaded folder {download_path}")
+        with tempfile.TemporaryDirectory() as tempdir_obj:
+            size = self.downloader.download_artifact(model_url, artifact_type, Path(tempdir_obj))
+            self.assertIsNotNone(tempdir_obj)
+            self.assertGreater(size, 0, "Downloaded size should be > 0")
 
-        # Inspect one expected file: config or pytorch_model.bin might exist
-        found = False
-        for f in files:
-            if f.name in ("config.json", "pytorch_model.bin", "model.safetensors"):
-                found = True
-                break
-        self.assertTrue(found, f"Expected model file not found in {download_path}")
+            # Check that downloaded folder has files
+            download_path = Path(tempdir_obj)
+            files = list(download_path.rglob("*"))
+            self.assertTrue(len(files) > 0, f"No files found in downloaded folder {download_path}")
 
-        # Check size corresponds roughly to sum of file sizes
-        computed_size = sum(f.stat().st_size for f in files if f.is_file())
-        self.assertLess(abs(size - computed_size), 10000, "Reported size must equal sum of file sizes")
+            # Inspect one expected file: config or pytorch_model.bin might exist
+            found = False
+            for f in files:
+                if f.name in ("config.json", "pytorch_model.bin", "model.safetensors"):
+                    found = True
+                    break
+            self.assertTrue(found, f"Expected model file not found in {download_path}")
 
-        # Clean up the temporary directory
-        tempdir_obj.cleanup()
+            # Check size corresponds roughly to sum of file sizes
+            computed_size = sum(f.stat().st_size for f in files if f.is_file())
+            self.assertLess(abs(size - computed_size), 10000, "Reported size must equal sum of file sizes")
 
