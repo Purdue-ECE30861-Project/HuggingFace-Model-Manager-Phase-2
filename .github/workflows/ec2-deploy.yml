@@ -12,18 +12,27 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
-            
+            - name: install dependencies
+              run: |
+                sudo apt install aws-cli
             - name: Copy files to EC2
               env: 
-                PEM_KEY: ${{ secrets.EC2_PEM_KEY }}
+                AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+                AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+                AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
                 EC2_USER: ${{ secrets.EC2_USER }}
-                EC2_IP: ${{ secrets.EC2_IP }}
+                EC2_INSTANCE: ${{ secrets.EC2_INSTANCE }}
               run: |
-                echo "$PEM_KEY" > ec2_key.pem
-                chmod 600 ec2_key.pem
-                scp -o StrictHostKeyChecking=no -i ec2_key.pem -r src $EC2_USER@$EC2_IP:/home/$EC2_USER
-                scp -o StrictHostKeyChecking=no -i ec2_key.pem -r requirements.txt $EC2_USER@$EC2_IP:/home/$EC2_USER
-                ssh -i ec2_key.pem $EC2_USER@$EC2_IP << 'ENDSSH'
+                ssh-keygen -b 2048 -t rsa -f /tmp_ssh -q -N ""
+                aws ec2 start-instances --instance-ids i-0f6f64fd8c1426c72
+                # src folder
+                aws ec2-instance-connect send-ssh-public-key --instance-id $EC2_INSTANCE --instance-os-user $EC2_USER --ssh-public-key "file://tmp_ssh.pub"
+                scp -o StrictHostKeyChecking=no -i file://tmp_ssh -o ProxyCommand='aws ec2-instance-connect open-tunnel --instance-id $EC2_INSTANCE' -r src $EC2_USER@$EC2_INSTANCE:/home/$EC2_USER
+                # requirements.txt
+                aws ec2-instance-connect send-ssh-public-key --instance-id $EC2_INSTANCE --instance-os-user $EC2_USER --ssh-public-key "file://tmp_ssh.pub"
+                scp -o StrictHostKeyChecking=no -i file://tmp_ssh -o ProxyCommand='aws ec2-instance-connect open-tunnel --instance-id $EC2_INSTANCE' -r src $EC2_USER@$EC2_INSTANCE:/home/$EC2_USER
+                # final setup
+                aws ssh --instance-id $EC2_INSTANCE --os-user $EC2_USER << 'ENDSSH'
                 cd /home/$EC2_USER
                 sudo mkdir -p /opt/hfmm
                 sudo chown $EC2_USER:www-data /opt/hfmm
