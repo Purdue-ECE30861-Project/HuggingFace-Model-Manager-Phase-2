@@ -33,6 +33,9 @@ jobs:
                 aws configure set aws_secret_access_key "$AWS_SECRET_ACCESS_KEY"
                 aws configure set aws_session_token "$AWS_SESSION_TOKEN"
                 aws ec2 start-instances --instance-ids i-0f6f64fd8c1426c72
+                while [[ ! $(aws ec2 describe-instance-status --instance-ids i-0f6f64fd8c1426c72 --include-all-instances --output text --no-cli-pager | grep INSTANCESTATE) =~ "running" ]];do
+                sleep 1
+                done
                 # src folder
                 aws ec2-instance-connect send-ssh-public-key --instance-id $EC2_INSTANCE --instance-os-user $EC2_USER --ssh-public-key "file://$(pwd)/tmp_ssh.pub"
                 scp -o StrictHostKeyChecking=no -i file://$(pwd)/tmp_ssh -o ProxyCommand='aws ec2-instance-connect open-tunnel --instance-id $EC2_INSTANCE' -r src $EC2_USER@$EC2_INSTANCE:/home/$EC2_USER
