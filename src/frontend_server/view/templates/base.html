@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,9 +11,11 @@
         .gradient-bg {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
+
         .card-hover {
             transition: transform 0.2s, box-shadow 0.2s;
         }
+
         .card-hover:hover {
             transform: translateY(-4px);
             box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
@@ -20,6 +23,7 @@
     </style>
     {% block extra_head %}{% endblock %}
 </head>
+
 <body class="bg-gray-50">
     <!-- Navbar -->
     <nav class="gradient-bg text-white shadow-lg">
@@ -60,9 +64,7 @@
 
     <!-- Footer -->
     <footer class="bg-gray-800 text-gray-200 py-8 mt-12">
-        <div class="container mx-auto px-4 text-center">
-            <p>&copy; 2025 Model Registry. ECE 461 Project Phase 2</p>
-        </div>
     </footer>
 </body>
+
 </html>
