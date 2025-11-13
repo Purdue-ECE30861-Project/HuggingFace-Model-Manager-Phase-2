@@ -37,11 +37,11 @@ jobs:
                 sleep 1
                 done
                 # src folder
-                aws ec2-instance-connect send-ssh-public-key --instance-id $EC2_INSTANCE --instance-os-user $EC2_USER --ssh-public-key "file://$(pwd)/tmp_ssh.pub"
-                scp -o StrictHostKeyChecking=no -i file://$(pwd)/tmp_ssh -o ProxyCommand='aws ec2-instance-connect open-tunnel --instance-id $EC2_INSTANCE' -r src $EC2_USER@$EC2_INSTANCE:/home/$EC2_USER
+                aws ec2-instance-connect send-ssh-public-key --instance-id $EC2_INSTANCE --instance-os-user $EC2_USER --ssh-public-key "file:/$(pwd)/tmp_ssh.pub"
+                scp -o StrictHostKeyChecking=no -i file:/$(pwd)/tmp_ssh -o ProxyCommand='aws ec2-instance-connect open-tunnel --instance-id $EC2_INSTANCE' -r src $EC2_USER@$EC2_INSTANCE:/home/$EC2_USER
                 # requirements.txt
-                aws ec2-instance-connect send-ssh-public-key --instance-id $EC2_INSTANCE --instance-os-user $EC2_USER --ssh-public-key "file://$(pwd)/tmp_ssh.pub"
-                scp -o StrictHostKeyChecking=no -i file://$(pwd)/tmp_ssh -o ProxyCommand='aws ec2-instance-connect open-tunnel --instance-id $EC2_INSTANCE' -r src $EC2_USER@$EC2_INSTANCE:/home/$EC2_USER
+                aws ec2-instance-connect send-ssh-public-key --instance-id $EC2_INSTANCE --instance-os-user $EC2_USER --ssh-public-key "file:/$(pwd)/tmp_ssh.pub"
+                scp -o StrictHostKeyChecking=no -i file:/$(pwd)/tmp_ssh -o ProxyCommand='aws ec2-instance-connect open-tunnel --instance-id $EC2_INSTANCE' -r src $EC2_USER@$EC2_INSTANCE:/home/$EC2_USER
                 # final setup
                 aws ssh --instance-id $EC2_INSTANCE --os-user $EC2_USER << 'ENDSSH'
                 cd /home/$EC2_USER

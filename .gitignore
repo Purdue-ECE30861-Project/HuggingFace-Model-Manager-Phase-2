@@ -7,3 +7,5 @@ __pycache__/
 *.pyo
 *.pyd
 *.pem
+tmp_ssh
+tmp_ssh.pub
