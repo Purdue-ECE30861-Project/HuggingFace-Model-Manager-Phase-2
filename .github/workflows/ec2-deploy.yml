@@ -29,6 +29,12 @@ jobs:
                 [default]
                 region = us-east-2
                 EOF
+                cat << EOF > ~/.aws/credentials
+                [default]
+                aws_access_key_id=$AWS_ACCESS_KEY_ID
+                aws_secret_access_key=$AWS_SECRET_ACCESS_KEY
+                aws_session_token=$AWS_SESSION_TOKEN
+                EOF
                 aws ec2 start-instances --instance-ids i-0f6f64fd8c1426c72
                 # src folder
                 aws ec2-instance-connect send-ssh-public-key --instance-id $EC2_INSTANCE --instance-os-user $EC2_USER --ssh-public-key "file://tmp_ssh.pub"
