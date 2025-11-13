@@ -24,6 +24,10 @@ jobs:
                 EC2_INSTANCE: ${{ secrets.EC2_INSTANCE }}
               run: |
                 sudo ssh-keygen -b 2048 -t rsa -f /tmp_ssh -q -N ""
+                cat << EOF > ~/.aws/config 
+                [default]
+                region = us-east-2
+                EOF
                 aws ec2 start-instances --instance-ids i-0f6f64fd8c1426c72
                 # src folder
                 aws ec2-instance-connect send-ssh-public-key --instance-id $EC2_INSTANCE --instance-os-user $EC2_USER --ssh-public-key "file://tmp_ssh.pub"
