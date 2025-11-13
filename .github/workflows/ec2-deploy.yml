@@ -1,4 +1,4 @@
-name: Deploy frontend to lightsail
+name: Deploy backend to ec2
 
 on:
     push:
