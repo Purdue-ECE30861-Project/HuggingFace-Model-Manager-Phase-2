@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Artifact - Model Registry{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto space-y-6">
+    <!-- Header -->
+    <div>
+        <h1 class="text-4xl font-bold text-gray-800">Upload New Artifact</h1>
+        <p class="text-gray-500 mt-2">Register a new model, dataset, or code repository</p>
+    </div>
+
+    <!-- Upload Form -->
+    <div class="bg-white rounded-lg shadow-md p-8">
+        <form method="post" action="/artifact/create" class="space-y-6">
+            <!-- Artifact Type Selection -->
+            <div>
+                <label class="block text-lg font-semibold text-gray-800 mb-4">Artifact Type</label>
+                <div class="grid grid-cols-3 gap-4">
+                    {% for artifact_type in artifact_types %}
+                    <label class="flex items-center cursor-pointer">
+                        <input 
+                            type="radio" 
+                            name="artifact_type" 
+                            value="{{ artifact_type }}"
+                            class="mr-3"
+                            {% if loop.first %}checked{% endif %}
+                            required
+                        >
+                        <span class="text-lg font-medium text-gray-700">{{ artifact_type.title() }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Name Field -->
+            <div>
+                <label for="name" class="block text-sm font-semibold text-gray-800 mb-2">
+                    Artifact Name (Optional)
+                </label>
+                <input 
+                    type="text" 
+                    id="name"
+                    name="name" 
+                    placeholder="e.g., my-awesome-model"
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                >
+                <p class="text-xs text-gray-500 mt-2">If not provided, will be extracted from the URL</p>
+            </div>
+
+            <!-- URL Field -->
+            <div>
+                <label for="url" class="block text-sm font-semibold text-gray-800 mb-2">
+                    Source URL <span class="text-red-600">*</span>
+                </label>
+                <input 
+                    type="url" 
+                    id="url"
+                    name="url" 
+                    placeholder="https://huggingface.co/openai/whisper-tiny/tree/main"
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    required
+                >
+                <p class="text-xs text-gray-500 mt-2">Must be a valid, downloadable source URL</p>
+            </div>
+
+            <!-- Info Box -->
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p class="text-sm text-blue-800">
+                    <span class="font-semibold">Note:</span> The artifact will be ingested and evaluated automatically after upload. 
+                    Evaluation may take some time depending on the artifact size and type.
+                </p>
+            </div>
+
+            <!-- Submit Buttons -->
+            <div class="flex space-x-4">
+                <button 
+                    type="submit" 
+                    class="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-3 px-6 rounded-lg transition"
+                >
+                    Upload Artifact
+                </button>
+                <a 
+                    href="/" 
+                    class="flex-1 bg-gray-400 hover:bg-gray-500 text-white font-bold py-3 px-6 rounded-lg transition text-center"
+                >
+                    Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Help Section -->
+    <div class="bg-white rounded-lg shadow-md p-8">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">About Artifact Types</h2>
+        <div class="space-y-4">
+            <div class="border-l-4 border-purple-600 pl-4">
+                <h3 class="font-semibold text-gray-800">Model</h3>
+                <p class="text-gray-600 text-sm">A machine learning model artifact (e.g., from Hugging Face, PyTorch Hub)</p>
+            </div>
+            <div class="border-l-4 border-blue-600 pl-4">
+                <h3 class="font-semibold text-gray-800">Dataset</h3>
+                <p class="text-gray-600 text-sm">A dataset artifact used for training or evaluation</p>
+            </div>
+            <div class="border-l-4 border-green-600 pl-4">
+                <h3 class="font-semibold text-gray-800">Code</h3>
+                <p class="text-gray-600 text-sm">A code repository or implementation artifact (e.g., from GitHub)</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Accepted Sources -->
+    <div class="bg-white rounded-lg shadow-md p-8">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">Accepted Sources</h2>
+        <ul class="space-y-2 text-gray-700">
+            <li class="flex items-center">
+                <span class="text-green-600 font-bold mr-2">✓</span>
+                Hugging Face (huggingface.co)
+            </li>
+            <li class="flex items-center">
+                <span class="text-green-600 font-bold mr-2">✓</span>
+                GitHub (github.com)
+            </li>
+            <li class="flex items-center">
+                <span class="text-green-600 font-bold mr-2">✓</span>
+                PyTorch Hub (pytorch.org)
+            </li>
+            <li class="flex items-center">
+                <span class="text-green-600 font-bold mr-2">✓</span>
+                Direct HTTP(S) downloads
+            </li>
+        </ul>
+    </div>
+</div>
+{% endblock %}
