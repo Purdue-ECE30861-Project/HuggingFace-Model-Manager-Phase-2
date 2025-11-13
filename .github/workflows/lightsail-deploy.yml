@@ -22,16 +22,20 @@ jobs:
                 echo "$PEM_KEY" > lightsail_key.pem
                 chmod 600 lightsail_key.pem
                 scp -o StrictHostKeyChecking=no -i lightsail_key.pem -r src $LIGHTSAIL_USER@$LIGHTSAIL_IP:/opt/hfmm/tmp
+                scp -o StrictHostKeyChecking=no -i lightsail_key.pem -r requirements.txt $LIGHTSAIL_USER@$LIGHTSAIL_IP:/opt/hfmm/tmp
                 ssh -i lightsail_key.pem $LIGHTSAIL_USER@$LIGHTSAIL_IP << 'ENDSSH'
                 cd /opt/hfmm/tmp
                 cp -rf src ..
+                cp -rf requirements.txt ..
                 sudo cp -rf src/frontend_server/server_components/nginx/hfmm /etc/nginx/sites-available/hfmm
                 sudo cp -rf src/frontend_server/server_components/services/* /etc/systemd/system/hfmm.service
                 cd ..
                 rm -r tmp/*
+                ./.venv/bin/pip install -r requirements.txt
                 sudo systemctl daemon-reload
                 sudo systemctl restart nginx
                 sudo systemctl restart hfmm
+                sudo systemctl daemon-reload
                 ENDSSH
                 rm lightsail_key.pem
 
