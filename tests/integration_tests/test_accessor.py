@@ -1,104 +1,58 @@
-import unittest
-import docker
-import time
 import logging
-import hashlib
 import tempfile
-import os
-import shutil
-from pathlib import Path
-import pymysql
+import unittest
+
 import boto3
 
-from botocore import exceptions as botoexc
-from src.backend_server.model.data_store.database import SQLMetadataAccessor, ArtifactDataDB
-from src.backend_server.model.data_store.s3_manager import S3BucketManager
-from src.contracts.artifact_contracts import (
-    Artifact,
-    ArtifactData,
-    ArtifactMetadata,
-    ArtifactType, ArtifactQuery, ArtifactID, ArtifactName, ArtifactRegEx,
-)
-from src.contracts.model_rating import ModelRating
-from src.backend_server.model.artifact_accessor.register_direct import *
 from src.backend_server.model.artifact_accessor.artifact_accessor import RegisterArtifactEnum, GetArtifactEnum, \
     GetArtifactsEnum, ArtifactAccessor
+from src.backend_server.model.artifact_accessor.register_direct import *
+from src.contracts.artifact_contracts import (
+    ArtifactQuery, ArtifactID, ArtifactName, ArtifactRegEx,
+)
+from tests.integration_tests.helpers import docker_init
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Docker image configs
-MYSQL_IMAGE = "mysql:8.0"
-MINIO_IMAGE = "minio/minio:latest"
+# MySQL settings from docker_init
+MYSQL_PORT = getattr(docker_init, "MYSQL_HOST_PORT", 3307)
+MYSQL_ROOT_PASSWORD = getattr(docker_init, "MYSQL_ROOT_PASSWORD", "root")
+MYSQL_DATABASE = getattr(docker_init, "MYSQL_DATABASE", "test_db")
+MYSQL_USER = getattr(docker_init, "MYSQL_USER", "test_user")
+MYSQL_PASSWORD = getattr(docker_init, "MYSQL_PASSWORD", "test_password")
 
-MYSQL_PORT = 3307
-MINIO_PORT = 9000
-MINIO_CONSOLE_PORT = 9001
-MYSQL_ROOT_PASSWORD = "root"
-MYSQL_DATABASE = "test_db"
-MYSQL_USER = "test_user"
-MYSQL_PASSWORD = "test_password"
-BUCKET_NAME = "artifact-bucket"
-DATA_PREFIX = "artifacts/"
+DATA_PREFIX = "test_"
 
-
-class TestRegisterDataStoreIntegration(unittest.TestCase):
+class TestAccessor(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        logger.info("Setting up infrastructure")
-        cls.docker_client = docker.from_env()
-
-        # MySQL container
-        cls.mysql_container = cls.docker_client.containers.run(
-            MYSQL_IMAGE,
-            environment={
-                'MYSQL_ROOT_PASSWORD': MYSQL_ROOT_PASSWORD,
-                'MYSQL_DATABASE': MYSQL_DATABASE,
-                'MYSQL_USER': MYSQL_USER,
-                'MYSQL_PASSWORD': MYSQL_PASSWORD,
-            },
-            ports={'3306/tcp': ('127.0.0.1', MYSQL_PORT)},
-            detach=True,
-            remove=True,
-            name=f"mysql_int_{os.getpid()}"
-        )
-
-        # MinIO container
-        cls.minio_container = cls.docker_client.containers.run(
-            MINIO_IMAGE,
-            command=["server", "/data", "--console-address", f":{MINIO_CONSOLE_PORT}"],
-            environment={
-                "MINIO_ROOT_USER": "minio_access_key",
-                "MINIO_ROOT_PASSWORD": "minio_secret_key"
-            },
-            ports={
-                '9000/tcp': ('127.0.0.1', MINIO_PORT),
-                '9001/tcp': ('127.0.0.1', MINIO_CONSOLE_PORT)
-            },
-            detach=True,
-            remove=True,
-            name=f"minio_int_{os.getpid()}"
-        )
-
-        logger.info("Awaiting infrastructure")
-        cls._wait_for_mysql()
-        cls._wait_for_minio()
-        logger.info("Infrastructure setup complete")
-
-        # Create SQL accessor
+        """Set up test fixtures using docker_init helper."""
+        logger.info("Starting MySQL container via docker_init helper...")
+        cls.mysql_container = docker_init.start_mysql_container()
+        docker_init.wait_for_mysql(port=MYSQL_PORT)
+        
+        # Initialize database connection
         db_url = f"mysql+pymysql://{MYSQL_USER}:{MYSQL_PASSWORD}@127.0.0.1:{MYSQL_PORT}/{MYSQL_DATABASE}"
         cls.db = SQLMetadataAccessor(db_url)
-
+        
         # Create S3 client and bucket manager
+        cls.s3bucket_container = docker_init.start_minio_container()
+        docker_init.wait_for_minio()
         s3_client = boto3.client(
             "s3",
-            endpoint_url=f"http://127.0.0.1:{MINIO_PORT}",
-            aws_access_key_id="minio_access_key",
-            aws_secret_access_key="minio_secret_key",
+            endpoint_url=f"http://127.0.0.1:{docker_init.MINIO_HOST_PORT}",
+            aws_access_key_id=docker_init.MINIO_ROOT_USER,
+            aws_secret_access_key=docker_init.MINIO_ROOT_PASSWORD,
         )
-        s3_client.create_bucket(Bucket=BUCKET_NAME)
+        s3_client.create_bucket(Bucket=docker_init.MINIO_BUCKET)
         s3_client.close()
-        cls.s3_manager = S3BucketManager(f"http://127.0.0.1:{MINIO_PORT}", bucket_name=BUCKET_NAME, data_prefix=DATA_PREFIX, aws_access_key_id="minio_access_key", aws_secret_access_key="minio_secret_key")
+        cls.s3_manager = S3BucketManager(
+            f"http://127.0.0.1:{docker_init.MINIO_HOST_PORT}",
+            bucket_name=docker_init.MINIO_BUCKET,
+            data_prefix=DATA_PREFIX,
+            aws_access_key_id=docker_init.MINIO_ROOT_USER,
+            aws_secret_access_key=docker_init.MINIO_ROOT_PASSWORD
+        )
         cls.accessor: ArtifactAccessor = ArtifactAccessor(
             cls.db,
             cls.s3_manager
@@ -106,38 +60,12 @@ class TestRegisterDataStoreIntegration(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        if hasattr(cls, "mysql_container"):
-            cls.mysql_container.stop()
-        if hasattr(cls, "minio_container"):
-            cls.minio_container.stop()
-
-    @classmethod
-    def _wait_for_mysql(cls, max_attempts=20, delay=2):
-        for i in range(max_attempts):
-            try:
-                pymysql.connect(
-                    host="127.0.0.1",
-                    port=MYSQL_PORT,
-                    user=MYSQL_USER,
-                    password=MYSQL_PASSWORD,
-                    database=MYSQL_DATABASE,
-                ).close()
-                return
-            except Exception:
-                time.sleep(delay)
-        raise RuntimeError("MySQL not ready")
-
-    @classmethod
-    def _wait_for_minio(cls, max_attempts=20, delay=2):
-        import requests
-        for i in range(max_attempts):
-            try:
-                resp = requests.get(f"http://127.0.0.1:{MINIO_PORT}/minio/health/live")
-                if resp.status_code == 200:
-                    return
-            except Exception:
-                time.sleep(delay)
-        raise RuntimeError("MinIO not ready")
+        """Clean up test fixtures using docker_init helper."""
+        logger.info("Cleaning up MySQL container via docker_init helper...")
+        try:
+            docker_init.cleanup_test_containers()
+        except Exception:
+            logger.exception("Error cleaning up test containers")
 
     def tearDown(self):
         self.db.reset_db()
@@ -171,7 +99,7 @@ class TestRegisterDataStoreIntegration(unittest.TestCase):
             self.assertIsNotNone(stored)
 
             # Verify upload
-            objects = self.s3_manager.s3_client.list_objects_v2(Bucket=BUCKET_NAME, Prefix=DATA_PREFIX)
+            objects = self.s3_manager.s3_client.list_objects_v2(Bucket=docker_init.MINIO_BUCKET, Prefix=DATA_PREFIX)
             self.assertTrue(any(obj['Key'].endswith(new_artifact.metadata.id) for obj in objects.get('Contents', [])))
 
             # Verify DB insert

@@ -5,6 +5,7 @@ from src.backend_server.model.artifact_accessor.artifact_accessor import Artifac
 from src.backend_server.model.artifact_accessor.register_deferred import RaterTaskManager
 from src.backend_server.model.data_store.database import create_engine, SQLModel, SQLMetadataAccessor
 from src.backend_server.model.data_store.s3_manager import S3BucketManager
+from src.backend_server.model.model_rater import ModelRater
 
 
 class S3Config(BaseModel):
@@ -62,3 +63,4 @@ artifact_accessor: ArtifactAccessor = ArtifactAccessor(
     global_config.rater_processes,
     global_config.ingest_score_threshold
 )
+rater_accessor: ModelRater = ModelRater(database_accessor)

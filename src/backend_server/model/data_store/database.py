@@ -33,6 +33,7 @@ def _json_extract_postgres(element: JsonExtract, compiler: Any, **kw: Any) -> st
         compiler.process(args[0], **kw),
         args[1].value[2:].replace(".", ",")  # Convert $.path.to.field to path,to,field
     )
+
 from pydantic_core import ValidationError
 import re
 import json

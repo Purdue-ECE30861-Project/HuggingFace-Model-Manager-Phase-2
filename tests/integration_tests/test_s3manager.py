@@ -1,97 +1,57 @@
 import unittest
-import docker
 import time
 import logging
-import boto3
 import uuid
-from pathlib import Path
-import requests
 import tempfile
 import zipfile
+from pathlib import Path
+import boto3
+import requests 
 from src.backend_server.model.data_store.s3_manager import S3BucketManager
+from tests.integration_tests.helpers import docker_init
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# MinIO configuration
-MINIO_IMAGE = "minio/minio:latest"
-MINIO_PORT = 9000
-MINIO_CONSOLE_PORT = 9001
-MINIO_ROOT_USER = "minio_access_key_123"
-MINIO_ROOT_PASSWORD = "minio_secret_key_password_456"
-BUCKET_NAME = "hfmm-artifact-storage"
+# MinIO configuration (kept for test-level visibility; docker_init controls actual values)
+MINIO_PORT = getattr(docker_init, "MINIO_HOST_PORT", 9000)
+MINIO_CONSOLE_PORT = getattr(docker_init, "MINIO_CONSOLE_PORT", 9001)
+MINIO_ROOT_USER = getattr(docker_init, "MINIO_ROOT_USER", "minio_access_key_123")
+MINIO_ROOT_PASSWORD = getattr(docker_init, "MINIO_ROOT_PASSWORD", "minio_secret_key_password_456")
+BUCKET_NAME = getattr(docker_init, "MINIO_BUCKET", "hfmm-artifact-storage")
 
 class TestS3BucketManager(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        """Set up MinIO container before all tests."""
-        logger.info("Setting up MinIO container...")
-        cls.client = docker.from_env()
-        
-        # Start MinIO container
-        cls.container = cls.client.containers.run(
-            MINIO_IMAGE,
-            command=["server", "/data", "--console-address", f":{MINIO_CONSOLE_PORT}"],
-            environment={
-                'MINIO_ROOT_USER': MINIO_ROOT_USER,
-                'MINIO_ROOT_PASSWORD': MINIO_ROOT_PASSWORD,
-            },
-            ports={
-                '9000/tcp': ('127.0.0.1', MINIO_PORT),
-                '9001/tcp': ('127.0.0.1', MINIO_CONSOLE_PORT)
-            },
-            detach=True,
-            remove=True,
-            name=f"minio_test_{uuid.uuid4().hex[:8]}"
-        )
-        
-        # Wait for MinIO to be ready
-        cls._wait_for_minio()
-        
-        # Create boto3 S3 client
-        cls.s3_client = boto3.client(
-            's3',
-            endpoint_url=f'http://localhost:{MINIO_PORT}',
-            aws_access_key_id=MINIO_ROOT_USER,
-            aws_secret_access_key=MINIO_ROOT_PASSWORD,
-            config=boto3.session.Config(signature_version='s3v4'),
-            verify=False
-        )
-        
-        # Create test bucket
-        try:
-            cls.s3_client.create_bucket(Bucket=BUCKET_NAME)
-            logger.info(f"Created bucket: {BUCKET_NAME}")
-        except Exception as e:
-            logger.error(f"Error creating bucket: {e}")
-            raise
-
-    @classmethod
-    def _wait_for_minio(cls, max_attempts: int = 30, delay: int = 2):
-        """Wait for MinIO to be ready."""
-        for attempt in range(max_attempts):
-            try:
-                s3_client = boto3.client(
-                    's3',
-                    endpoint_url=f'http://localhost:{MINIO_PORT}',
-                    aws_access_key_id=MINIO_ROOT_USER,
-                    aws_secret_access_key=MINIO_ROOT_PASSWORD,
-                )
-                print(s3_client.list_buckets())
-                logger.info(f"MinIO ready after {attempt + 1} attempts")
-                return
-            except Exception as e:
-                logger.info(f"Attempt {attempt + 1}: MinIO not ready yet ({e})")
-                time.sleep(delay)
-        raise Exception("MinIO container failed to become ready")
+        """Set up MinIO container before all tests using docker_init helper."""
+        logger.info("Setting up MinIO container via docker_init helper...")
+        cls.container = docker_init.start_minio_container()
+        # wait_for_minio is provided by docker_init and will raise on timeout
+        docker_init.wait_for_minio()
+        # ensure bucket exists (idempotent)
+        docker_init.create_minio_bucket(bucket=BUCKET_NAME)
+        # expose boto3 client from docker_init for convenience if available
+        cls.s3_client = getattr(docker_init, "boto3_client", None)
+        if cls.s3_client is None:
+            # create a local boto3 client if docker_init didn't expose one
+            cls.s3_client = boto3.client(
+                's3',
+                endpoint_url=f'http://localhost:{MINIO_PORT}',
+                aws_access_key_id=MINIO_ROOT_USER,
+                aws_secret_access_key=MINIO_ROOT_PASSWORD,
+                config=boto3.session.Config(signature_version='s3v4'),
+                verify=False
+            )
 
     @classmethod
     def tearDownClass(cls):
-        """Clean up after all tests."""
-        logger.info("Cleaning up MinIO container...")
-        if hasattr(cls, 'container') and cls.container:
-            cls.container.stop()
+        """Clean up after all tests using docker_init helper."""
+        logger.info("Cleaning up MinIO container via docker_init helper...")
+        try:
+            docker_init.cleanup_test_containers(("minio_test_",))
+        except Exception:
+            logger.exception("Error while cleaning up test containers")
 
     def setUp(self):
         """Set up test fixtures before each test."""

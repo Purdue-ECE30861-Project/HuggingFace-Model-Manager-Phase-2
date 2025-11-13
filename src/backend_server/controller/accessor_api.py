@@ -143,7 +143,8 @@ async def delete_artifact(
 async def register_artifact(
         artifact_type: str,
         body: ArtifactData,
-) -> Artifact:
+        response: Response
+) -> Artifact | None:
     try:
         artifact_type_model: ArtifactType = ArtifactType(artifact_type)
     except ValidationError:
@@ -163,3 +164,7 @@ async def register_artifact(
         case return_code.DISQUALIFIED:
             raise HTTPException(status_code=return_code.value,
                                 detail="Artifact is not registered due to the disqualified rating.")
+        case return_code.BAD_REQUEST:
+            raise HTTPException(status_code=return_code.value)
+        case return_code.DEFERRED:
+            response.status_code = 202

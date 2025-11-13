@@ -1,22 +1,24 @@
-from enum import Enum
-from pathlib import Path
-from queue import Queue
-from tempfile import TemporaryDirectory
-from atasker import task_supervisor, background_task
+from enum import IntEnum
 
 from pydantic import validate_call
 
-from src.contracts.model_rating import ModelRating, Artifact
+from src.backend_server.model.data_store.database import SQLMetadataAccessor
+from src.contracts.artifact_contracts import ArtifactID, ArtifactType
+from src.contracts.model_rating import ModelRating
 
 
-class ModelRaterEnum(Enum):
+class ModelRaterEnum(IntEnum):
     SUCCESS = 200
     NOT_FOUND = 404
     INTERNAL_ERROR = 500
 class ModelRater:
-    @validate_call
-    async def rate_model(self, artifact: Artifact) -> tuple[ModelRaterEnum, ModelRating]:
-        raise NotImplementedError()
+    def __init__(self, database_accessor: SQLMetadataAccessor):
+        self.accessor = database_accessor
 
-    async def rate_model_ingest(self, path: TemporaryDirectory) -> tuple[ModelRaterEnum, ModelRating]:
-        raise NotImplementedError()
+    @validate_call
+    async def rate_model(self, id: ArtifactID) -> tuple[ModelRaterEnum, ModelRating | None]:
+        result = self.accessor.get_by_id(id.id, ArtifactType.model)
+
+        if not result:
+            return ModelRaterEnum.NOT_FOUND, None
+        return ModelRaterEnum.SUCCESS, result

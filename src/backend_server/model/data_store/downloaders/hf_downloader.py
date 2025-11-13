@@ -40,8 +40,6 @@ class HFArtifactDownloader:
                 snapshot_download(repo_id=repo_id, local_dir=tempdir)
         except (huggingface_hub.utils.RepositoryNotFoundError, huggingface_hub.utils.RevisionNotFoundError):
             raise FileNotFoundError("Requested repository doesnt exist")
-        except (OSError, EnvironmentError):
-            raise Exception("Internal Error Detected")
 
     def download_artifact(self, url: str, artifact_type: ArtifactType, tempdir: Path) -> int: # returns the size of the downloaded huggingface artifact
         size: int = 0
