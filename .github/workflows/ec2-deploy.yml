@@ -24,6 +24,7 @@ jobs:
                 EC2_INSTANCE: ${{ secrets.EC2_INSTANCE }}
               run: |
                 sudo ssh-keygen -b 2048 -t rsa -f /tmp_ssh -q -N ""
+                mkdir -p ~/.aws
                 cat << EOF > ~/.aws/config 
                 [default]
                 region = us-east-2
