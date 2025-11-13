@@ -90,10 +90,6 @@ class ModelRating(BaseModel):
         scores: dict[str, Any] = dict()
         weighted_scores: dict[str, Any] = dict()
         latencies: dict[str, float] = dict()
-
-        print("Executing")
-        print(metrics)
-
         # for metric in metrics:
         #     name, latency, value = ModelRating._run_metric(metric)
 

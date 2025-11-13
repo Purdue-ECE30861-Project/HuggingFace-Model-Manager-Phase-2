@@ -1,10 +1,12 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
-from controller import accessor_api, cost_api, lineage_api, rater_api, reset_api
-
+from .controller import accessor_api, cost_api, lineage_api, rater_api, reset_api
 
 api_core = FastAPI()#dependencies=[Depends(VerifyAuth())])
+
 
 api_core.include_router(accessor_api.accessor_router)
 api_core.include_router(cost_api.cost_router)
