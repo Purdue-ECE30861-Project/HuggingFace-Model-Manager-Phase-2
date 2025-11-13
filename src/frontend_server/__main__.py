@@ -122,6 +122,6 @@ class CacheMiddleware(BaseHTTPMiddleware):
 
 
 # Add the middleware to api_core
-#api_core.add_middleware(CacheMiddleware)
+api_core.add_middleware(CacheMiddleware)
 api_core.include_router(health_router)
 

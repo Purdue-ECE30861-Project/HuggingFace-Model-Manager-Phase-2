@@ -6,6 +6,7 @@ from typing import Optional, List
 
 import docker
 import pymysql
+import redis
 import boto3
 from botocore.exceptions import ClientError
 
@@ -28,6 +29,10 @@ MINIO_CONSOLE_PORT = int(os.environ.get("MINIO_CONSOLE_PORT", "9001"))
 MINIO_ROOT_USER = os.environ.get("MINIO_ROOT_USER", "minio_access_key_123")
 MINIO_ROOT_PASSWORD = os.environ.get("MINIO_ROOT_PASSWORD", "minio_secret_key_password_456")
 MINIO_BUCKET = os.environ.get("S3_BUCKET", "hfmm-artifact-storage")
+
+REDIS_HOST = os.environ.get("REDIS_HOST", "127.0.0.1")
+REDIS_HOST_PORT=(int(os.environ.get("REDIS_PORT", 6379)))
+REDIS_IMAGE=os.environ.get("REDIS_IMAGE", "redis:7.2")
 
 
 def _client() -> docker.DockerClient:
@@ -154,6 +159,39 @@ def create_minio_bucket(endpoint: Optional[str] = None, bucket: Optional[str] = 
             logger.info("Bucket %s already exists", bucket)
         else:
             raise
+
+
+def start_redis_container(name_prefix: str = "redis_test_", host_port: Optional[int] = None, keep: bool = False):
+    """Start a Redis container for tests. Returns docker.Container."""
+    client = docker.from_env()
+    host_port = host_port or REDIS_HOST_PORT
+    name = f"{name_prefix}{uuid.uuid4().hex[:8]}"
+    logger.info("Starting Redis container %s -> host:%s", name, host_port)
+
+    container = client.containers.run(
+        REDIS_IMAGE,
+        ports={"6379/tcp": (REDIS_HOST, host_port)},
+        detach=True,
+        remove=False,  # keep for debugging; caller may remove
+        name=name
+    )
+    return container
+
+
+def wait_for_redis(host: str = REDIS_HOST, port: int = REDIS_HOST_PORT, retries: int = 60, delay: float = 1.0):
+    """Wait until Redis accepts connections and responds to PING."""
+    last_exc: Optional[Exception] = None
+    for attempt in range(retries):
+        try:
+            r = redis.Redis(host=host, port=port, socket_connect_timeout=2)
+            if r.ping():
+                logger.info("Redis ready after %d attempts", attempt + 1)
+                return
+        except Exception as e:
+            last_exc = e
+            logger.debug("Redis not ready (attempt %d): %s", attempt + 1, e)
+            time.sleep(delay)
+    raise RuntimeError(f"Redis failed to become ready: {last_exc!r}")
 
 
 def cleanup_test_containers(name_prefixes: List[str] = ("mysql_test_", "minio_test_")):
