@@ -17,28 +17,40 @@ class S3Config(BaseModel):
     s3_region_name: str
 
 
+class RedisConfig(BaseModel):
+    redis_image: str
+    redis_host: str
+    redis_port: int
+
+
 class GlobalConfig(BaseModel):
     db_url: str
     s3_config: S3Config
     rater_task_manager_workers: int
     rater_processes: int
     ingest_score_threshold: float
+    redis_config: RedisConfig
 
     @staticmethod
     def read_env() -> "GlobalConfig":
         return GlobalConfig(
-            db_url=os.environ.get("DB_URL", "sqlite:///local.db"),
+            db_url=os.environ.get("DB_URL", "mysql+pymysql://test_user:test_password@127.0.0.1:3307/test_db"),
             s3_config=S3Config(
-                s3_url=os.environ.get("S3_URL", "https://s3.amazonaws.com"),
-                s3_access_key_id=os.environ.get("S3_ACCESS_KEY_ID", ""),
-                s3_secret_access_key=os.environ.get("S3_SECRET_ACCESS_KEY", ""),
-                s3_bucket_name=os.environ.get("S3_BUCKET_NAME", "default-bucket"),
-                s3_data_prefix=os.environ.get("S3_DATA_PREFIX", ""),
-                s3_region_name=os.environ.get("S3_REGION_NAME", "us-east-1"),
+                s3_url=os.environ.get("S3_URL", "127.0.0.1"),
+                s3_access_key_id=os.environ.get("S3_ACCESS_KEY_ID", "minio_access_key_123"),
+                s3_secret_access_key=os.environ.get("S3_SECRET_ACCESS_KEY", "minio_secret_key_password_456"),
+                s3_bucket_name=os.environ.get("S3_BUCKET_NAME", "hfmm-artifact-storage"),
+                s3_data_prefix=os.environ.get("S3_DATA_PREFIX", "artifact"),
+                s3_region_name=os.environ.get("S3_REGION_NAME", ""),
             ),
             rater_task_manager_workers=int(os.environ.get("RATER_TASK_MANAGER_WORKERS", 1)),
             rater_processes=int(os.environ.get("RATER_PROCESSES", 1)),
             ingest_score_threshold=float(os.environ.get("INGEST_SCORE_THRESHOLD", 0.5)),
+            redis_config=RedisConfig(
+                redis_host=os.environ.get("REDIS_HOST", "127.0.0.1"),
+                redis_port=int(os.environ.get("REDIS_PORT", 6379)),
+                redis_image=os.environ.get("REDIS_IMAGE", "redis:7.2"),
+            )
         )
 
 

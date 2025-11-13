@@ -15,10 +15,12 @@ from tests.integration_tests.helpers.docker_init import (
     wait_for_mysql,
     start_minio_container,
     wait_for_minio,
+    start_redis_container,
+    wait_for_redis,
     create_minio_bucket,
     cleanup_test_containers,
     MYSQL_HOST, MYSQL_HOST_PORT, MYSQL_ROOT_PASSWORD, MYSQL_DATABASE, MYSQL_USER, MYSQL_PASSWORD,
-    MINIO_HOST, MINIO_HOST_PORT, MINIO_ROOT_USER, MINIO_ROOT_PASSWORD, MINIO_BUCKET
+    MINIO_HOST, MINIO_HOST_PORT, MINIO_ROOT_USER, MINIO_ROOT_PASSWORD, MINIO_BUCKET,
 )
 
 logger = logging.getLogger(__name__)
@@ -34,6 +36,9 @@ def set_env_variables():
     os.environ["S3_BUCKET_NAME"] = MINIO_BUCKET
     os.environ["S3_DATA_PREFIX"] = ""
     os.environ["S3_REGION_NAME"] = "us-east-1"
+    os.environ["REDIS_HOST"] = "127.0.0.1"
+    os.environ["REDIS_PORT"] = str(6379)
+    os.environ["REDIS_IMAGE"] = "redis:7.2"
     os.environ["RATER_TASK_MANAGER_WORKERS"] = "1"
     os.environ["RATER_PROCESSES"] = "1"
     os.environ["INGEST_SCORE_THRESHOLD"] = "0.5"
@@ -49,8 +54,10 @@ def start_all():
     minio_container = start_minio_container()
     wait_for_minio()
     create_minio_bucket()
+    redis_container = start_redis_container()
+    wait_for_redis()
     logger.info("All containers started successfully.")
-    return mysql_container, minio_container
+    return mysql_container, minio_container, redis_container
 
 
 def stop_all():
@@ -71,16 +78,20 @@ def start_service(service: str):
         wait_for_minio()
         create_minio_bucket()
         logger.info("MinIO container started.")
+    elif service == "redis":
+        container = start_redis_container()
+        wait_for_redis()
+        logger.info("Redis container started.")
     else:
-        raise ValueError("Unknown service: must be 'mysql' or 's3'")
+        raise ValueError("Unknown service: must be 'mysql', 's3', or redis")
     return container
 
 
 def stop_service(service: str):
     """Stop only specific service containers."""
-    prefix = f"{service}_test_" if service in ("mysql", "minio", "s3") else None
+    prefix = f"{service}_test_" if service in ("mysql", "minio", "s3", 'redis') else None
     if not prefix:
-        raise ValueError("Unknown service: must be 'mysql' or 's3'")
+        raise ValueError("Unknown service: must be 'mysql' or 's3' or redis")
     cleanup_test_containers([prefix])
     logger.info("Stopped all containers matching prefix %s", prefix)
 
@@ -90,15 +101,15 @@ def main():
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     # start-all
-    subparsers.add_parser("start-all", help="Start both MySQL and MinIO containers.")
+    subparsers.add_parser("start-all", help="Start both MySQL, Minio, and Redis containers.")
     # stop-all
-    subparsers.add_parser("stop-all", help="Stop all MySQL and MinIO containers.")
+    subparsers.add_parser("stop-all", help="Stop all MySQL and MinIO and Redis containers.")
     # start one
     start_parser = subparsers.add_parser("start", help="Start a specific service (mysql or s3).")
-    start_parser.add_argument("service", choices=["mysql", "s3"], help="Service to start")
+    start_parser.add_argument("service", choices=["mysql", "s3", 'redis'], help="Service to start")
     # stop one
     stop_parser = subparsers.add_parser("stop", help="Stop a specific service (mysql or s3).")
-    stop_parser.add_argument("service", choices=["mysql", "s3"], help="Service to stop")
+    stop_parser.add_argument("service", choices=["mysql", "s3", 'redis'], help="Service to stop")
     # set-env
     subparsers.add_parser("set-env", help="Set environment variables globally for configuration.")
 

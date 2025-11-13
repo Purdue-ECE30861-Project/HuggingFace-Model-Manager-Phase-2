@@ -1,16 +1,23 @@
 from __future__ import annotations
+
+import json
+import re
+from typing import Optional
+from typing import override, Dict, Any
+
+from pydantic import HttpUrl
+from pydantic_core import ValidationError
+from sqlalchemy import Dialect
+from sqlalchemy import Engine, JSON
+from sqlalchemy.ext.compiler import compiles
+from sqlalchemy.orm.attributes import flag_modified
+from sqlalchemy.sql import expression
+from sqlalchemy.types import TypeDecorator, String, Text
+from sqlmodel import Field, SQLModel, Session, create_engine, select  # pyright: ignore[reportUnknownVariableType]
+from typing_extensions import Literal
+
 from src.contracts.artifact_contracts import Artifact, ArtifactMetadata, ArtifactQuery, ArtifactType, ArtifactData
 from src.contracts.model_rating import ModelRating
-from sqlmodel import Field, SQLModel, Session, create_engine, select # pyright: ignore[reportUnknownVariableType]
-from sqlalchemy import Engine, JSON
-from sqlalchemy.orm.attributes import flag_modified
-from typing_extensions import Literal
-from pydantic import HttpUrl
-from sqlalchemy.types import TypeDecorator, String, Text
-from sqlalchemy import Dialect
-from sqlalchemy.sql import expression
-from sqlalchemy.ext.compiler import compiles
-from typing import Any, Optional
 
 
 class JsonExtract(expression.FunctionElement[str]):
@@ -33,11 +40,6 @@ def _json_extract_postgres(element: JsonExtract, compiler: Any, **kw: Any) -> st
         compiler.process(args[0], **kw),
         args[1].value[2:].replace(".", ",")  # Convert $.path.to.field to path,to,field
     )
-
-from pydantic_core import ValidationError
-import re
-import json
-from typing import override, Dict, Any
 
 class HttpUrlSerializer(TypeDecorator[HttpUrl|None]):
     impl = String(2083)
