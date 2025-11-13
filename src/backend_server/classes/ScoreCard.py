@@ -1,32 +1,35 @@
 #from __future__ import annotations
 from dataclasses import dataclass
-from src.classes.AvailableDatasetAndCode import AvailableDatasetAndCode
-from src.classes.BusFactor import BusFactor
-from src.classes.CodeQuality import CodeQuality
-from src.classes.DatasetQuality import DatasetQuality
-from src.classes.License import License
-from src.classes.Metric import Metric
-from src.classes.PerformanceClaims import PerformanceClaims
-from src.classes.RampUpTime import RampUpTime
-from src.classes.Size import Size
-from src.classes.Threading import MetricRunner
-from src.utils.get_metadata import get_github_readme
+from src.backend_server.classes.AvailableDatasetAndCode import AvailableDatasetAndCode
+from src.backend_server.classes.BusFactor import BusFactor
+from src.backend_server.classes.CodeQuality import CodeQuality
+from src.backend_server.classes.DatasetQuality import DatasetQuality
+from src.backend_server.classes.License import License
+from src.backend_server.classes.Metric import Metric
+from src.backend_server.classes.PerformanceClaims import PerformanceClaims
+from src.backend_server.classes.RampUpTime import RampUpTime
+from src.backend_server.classes.Size import Size
+from src.backend_server.classes.Threading import MetricRunner
+from src.backend_server.utils.get_metadata import get_github_readme
+from src.frontend_server.model.cloudwatch_publisher import CloudWatchPublisher
 #from backend_server.utils.get_metadata import get_model_metadata
-#import time
+import time
 import json
 from urllib.parse import urlparse
 import logging
 
 logger = logging.getLogger(__name__)
-
+    
 @dataclass
 class ScoreCard:
     def __init__(self, url: str):
         logger.info(f"Initializing ScoreCard for {url}")
+        self.metrics_publisher = CloudWatchPublisher("scoring_engine")
         self.url = url
         self.datasetURL = None
         self.githubURL = None
         self.totalScore = 0.0
+        self.start_time = time.time()
         
         # Initialize all metrics
         logger.debug("Initializing metrics...")
@@ -64,12 +67,11 @@ class ScoreCard:
     
     def setTotalScore(self):
         """
-        Compute all metric scores.
-        
-        Args:
-            use_multiprocessing: If True, run tasks in parallel using multiprocessing.
-                               If False, run tasks sequentially (useful for testing).
+        Compute all metric scores in parallel using multithreading.
         """
+        job_success = True
+        metric_errors = 0
+        metrics_computed = 0
         
         try:
             runner = MetricRunner(num_processes=4)
@@ -87,7 +89,9 @@ class ScoreCard:
             
             # Execute all tasks in parallel
             logger.debug("Running metric tasks in parallel...")
+            self.net_lat_start = time.time()
             results = runner.run()
+            self.net_let_end = time.time()
             
             # Process results and handle errors
             logger.debug("Processing metric results...")
@@ -96,13 +100,25 @@ class ScoreCard:
                 
                 if error:
                     # Log error but continue with other metrics
-                    logger.debug(f"Error details for {metric_name}: {error}")
+                    if isinstance(error, dict):
+                        err_msg = error.get('message', 'Unknown error')
+                        logger.debug(f"Error details for {metric_name}: {error}")
+                    else:
+                        try:
+                            err_msg = str(error)
+                        except Exception:
+                            err_msg = 'Unknown error'
+                        logger.debug(f"Error details for {metric_name}: {err_msg}")
+                    logger.warning(f"Error computing {metric_name}: {err_msg}")
+                    metric_errors += 1
+                    
                     # Find the actual metric object in self and set to 0
                     actual_metric = self.find_metric_by_name(metric_name)
                     if actual_metric:
                         actual_metric.metricScore = 0.0
                         actual_metric.metricLatency = 0
                 else:
+                    metrics_computed += 1
                     # Find the actual metric object in self
                     actual_metric = self.find_metric_by_name(metric_name)
                     if not actual_metric:
@@ -160,7 +176,57 @@ class ScoreCard:
             
         except Exception as e:
             logger.warning(f"Failed to compute total score: {e}")
+            job_success = False
             
+        finally:
+            # Publish metrics to CloudWatch
+            self.publish_health_metrics(job_success, metric_errors, metrics_computed)
+            
+    def publish_health_metrics(self, success: bool, errors: int, metrics_computed: int):
+        """
+        Publish scoring job metrics to CloudWatch.
+        
+        Args:
+            success: Whether the scoring job completed successfully
+            errors: Number of metric computation errors
+            metrics_computed: Number of metrics successfully computed
+        """
+        if not self.metrics_publisher:
+            return
+        
+        job_latency_ms = (time.time() - self.start_time) * 1000
+        
+        # Publish scoring job metrics as a batch
+        metrics_batch = [
+            {
+                'name': 'ScoringJobs',
+                'value': 1,
+                'unit': 'Count'
+            },
+            {
+                'name': 'ScoringLatency',
+                'value': job_latency_ms,
+                'unit': 'Milliseconds'
+            },
+            {
+                'name': 'MetricsComputed',
+                'value': metrics_computed,
+                'unit': 'Count'
+            }
+        ]
+        
+        if errors > 0:
+            metrics_batch.append({
+                'name': 'MetricErrors',
+                'value': errors,
+                'unit': 'Count'
+            })
+        
+        self.metrics_publisher.publish_batch(metrics_batch)
+        
+        logger.debug(f"Published CloudWatch metrics: success={success}, "
+                    f"latency={job_latency_ms:.2f}ms, metrics={metrics_computed}, errors={errors}")            
+                    
     def find_metric_by_name(self, name: str):
         """
         Find a metric object by its name.
@@ -190,7 +256,7 @@ class ScoreCard:
             "name": self.modelName,
             "category": "MODEL",
             "net_score": round(self.totalScore, 3),
-            "net_score_latency": sum(m.getLatency() for m in self.get_all_metrics()),
+            "net_score_latency": round((self.net_let_end - self.net_lat_start) * 1000, 3),
             "ramp_up_time": round(self.rampUpTime.getMetricScore(), 3),
             "ramp_up_time_latency": self.rampUpTime.getLatency(),
             "bus_factor": round(self.busFactor.getMetricScore(), 3),
