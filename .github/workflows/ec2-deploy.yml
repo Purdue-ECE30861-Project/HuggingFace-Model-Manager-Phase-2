@@ -50,7 +50,7 @@ jobs:
                 ssh-keyscan github.com >> ~/.ssh/known_hosts
                 git clone git@github.com:Purdue-ECE30861-Project/HuggingFace-Model-Manager-Phase-2.git
                 sudo mkdir -p /opt/hfmm
-                sudo chown {{ secrets.EC2_USER }}:www-data /opt/hfmm
+                sudo chown ${{ secrets.EC2_USER }}:www-data /opt/hfmm
                 sudo chmod 775 /opt/hfmm
                 sudo apt install -y python3 virtualenv nginx
                 cd /opt/hfmm
