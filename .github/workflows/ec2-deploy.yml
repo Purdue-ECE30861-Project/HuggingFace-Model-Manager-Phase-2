@@ -50,19 +50,19 @@ jobs:
                 ssh-keyscan github.com >> ~/.ssh/known_hosts
                 git clone git@github.com:Purdue-ECE30861-Project/HuggingFace-Model-Manager-Phase-2.git
                 sudo mkdir -p /opt/hfmm
-                sudo chown $EC2_USER:www-data /opt/hfmm
+                sudo chown {{ secrets.EC2_USER }}:www-data /opt/hfmm
                 sudo chmod 775 /opt/hfmm
                 sudo apt install -y python3 virtualenv nginx
                 cd /opt/hfmm
-                cp ~/tmp/HuggingFace-Model-Manager-Phase-2/src/ .
-                cp ~/tmp/HuggingFace-Model-Manager-Phase-2/requirements.txt .
+                cp -r ~/tmp/HuggingFace-Model-Manager-Phase-2/src/ .
+                cp -r ~/tmp/HuggingFace-Model-Manager-Phase-2/requirements.txt .
                 python3 -m venv venv
                 source venv/bin/activate
                 pip3 install -r requirements.txt
                 pip3 install uvicorn
                 sudo cp -rf src/backend_server/server_components/nginx/hfmm /etc/nginx/sites-available/hfmm
                 sudo cp -rf src/backend_server/server_components/services/* /etc/systemd/system/hfmm.service
-                rm -r /home/$EC2_USER/tmp/*
+                rm -r ~/tmp/*
                 sudo systemctl daemon-reload
                 sudo systemctl enable nginx
                 sudo systemctl restart nginx
