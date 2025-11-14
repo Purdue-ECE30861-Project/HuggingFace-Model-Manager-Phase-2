@@ -11,3 +11,4 @@ boto3
 botocore
 mysql-connector-python
 pytest
+pymysql
