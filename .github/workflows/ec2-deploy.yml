@@ -11,7 +11,6 @@ jobs:
     build-and-deploy:
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@v4
             - name: install dependencies
               run: |
                 sudo snap install aws-cli --classic
@@ -22,8 +21,9 @@ jobs:
                 AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
                 EC2_USER: ${{ secrets.EC2_USER }}
                 EC2_INSTANCE: ${{ secrets.EC2_INSTANCE }}
+                GITHUB_PRIVATE_KEY: ${{ secrets.REPO_PRIVATE_KEY }}
+                GITHUB_PUBLIC_KEY: ${{ secrets.REPO_PUBLIC_KEY }}
               run: |
-                ssh-keygen -b 2048 -t rsa -f $(pwd)/tmp_ssh -q -N ""
                 mkdir -p ~/.aws
                 cat << EOF > ~/.aws/config 
                 [default]
@@ -32,38 +32,34 @@ jobs:
                 aws configure set aws_access_key_id "$AWS_ACCESS_KEY_ID"
                 aws configure set aws_secret_access_key "$AWS_SECRET_ACCESS_KEY"
                 aws configure set aws_session_token "$AWS_SESSION_TOKEN"
-                aws ec2 start-instances --instance-ids $EC2_INSTANCE
-                while [[ ! $(aws ec2 describe-instance-status --instance-ids $EC2_INSTANCE --include-all-instances --output text --no-cli-pager | grep INSTANCESTATE) =~ "running" ]];do
-                sleep 1
-                done
-                # src folder
-                aws ec2-instance-connect send-ssh-public-key --instance-id $EC2_INSTANCE --instance-os-user $EC2_USER --ssh-public-key "file://$(pwd)/tmp_ssh.pub"
-                scp -o StrictHostKeyChecking=no -i file://$(pwd)/tmp_ssh -o ProxyCommand='aws ec2-instance-connect open-tunnel --instance-id $EC2_INSTANCE' -r src $EC2_USER@$EC2_INSTANCE:/home/$EC2_USER
-                # requirements.txt
-                aws ec2-instance-connect send-ssh-public-key --instance-id $EC2_INSTANCE --instance-os-user $EC2_USER --ssh-public-key "file://$(pwd)/tmp_ssh.pub"
-                scp -o StrictHostKeyChecking=no -i file://$(pwd)/tmp_ssh -o ProxyCommand='aws ec2-instance-connect open-tunnel --instance-id $EC2_INSTANCE' -r src $EC2_USER@$EC2_INSTANCE:/home/$EC2_USER
+                aws ec2 start-instances --instance-ids EC2_INSTANCE
                 # final setup
                 aws ssh --instance-id $EC2_INSTANCE --os-user $EC2_USER << 'ENDSSH'
-                cd /home/$EC2_USER
+                mkdir -p ~/.ssh/
+                echo "$GITHUB_PRIVATE_KEY" > ~/.ssh/id_github
+                echo "$GITHUB_PUBLIC_KEY" > ~/.ssh/id_github.pub
+                eval $(ssh-agent)
+                ssh-add ~/.ssh/id_github
+                mkdir -p ~/tmp
+                cd ~/tmp
+                git clone git@github.com:Purdue-ECE30861-Project/HuggingFace-Model-Manager-Phase-2.git 
                 sudo mkdir -p /opt/hfmm
                 sudo chown $EC2_USER:www-data /opt/hfmm
                 chmod 775 /opt/hfmm
                 sudo chmod 775 /opt/hfmm
                 sudo apt install python python-virtualenv nginx uvicorn
                 cd /opt/hfmm
-                cp /home/$EC2_USER/src/ .
-                cp /home/$EC2_USER/requirements.txt .
+                cp ~/tmp/HuggingFace-Model-Manager-Phase-2/src/ .
+                cp ~/tmp/HuggingFace-Model-Manager-Phase-2/requirements.txt .
                 python -m venv venv
                 source venv/bin/activate
                 pip install -r requirements.txt
                 sudo cp -rf src/backend_server/server_components/nginx/hfmm /etc/nginx/sites-available/hfmm
                 sudo cp -rf src/backend_server/server_components/services/* /etc/systemd/system/hfmm.service
-                rm -r /home/$EC2_USER/src
-                rm /home/$EC2_USER/requirements.txt
+                rm -r /home/$EC2_USER/tmp/*
                 sudo systemctl daemon-reload
                 sudo systemctl restart nginx
                 sudo systemctl restart hfmm
                 ENDSSH
                 rm -r ~/.aws
-                sudo rm /tmp_ssh
 
