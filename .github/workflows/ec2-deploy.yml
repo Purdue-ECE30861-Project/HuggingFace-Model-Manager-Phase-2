@@ -41,6 +41,7 @@ jobs:
                 ssh -o StrictHostKeyChecking=no -i ec2_key.pem $EC2_USER@$public_ip << 'ENDSSH'
                 mkdir -p ~/.ssh/
                 echo "$GITHUB_PRIVATE_KEY" > ~/.ssh/id_github
+                chmod 600 ~/.ssh/id_github
                 echo "$GITHUB_PUBLIC_KEY" > ~/.ssh/id_github.pub
                 eval $(ssh-agent)
                 ssh-add ~/.ssh/id_github
