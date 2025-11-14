@@ -21,8 +21,8 @@ jobs:
                 AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
                 EC2_USER: ${{ secrets.EC2_USER }}
                 EC2_INSTANCE: ${{ secrets.EC2_INSTANCE }}
-                GITHUB_PRIVATE_KEY: ${{ secrets.REPO_PRIVATE_KEY }}
-                GITHUB_PUBLIC_KEY: ${{ secrets.REPO_PUBLIC_KEY }}
+                REPO_PRIVATE_KEY: ${{ secrets.REPO_PRIVATE_KEY }}
+                REPO_PUBLIC_KEY: ${{ secrets.REPO_PUBLIC_KEY }}
                 EC2_PRIVATE_KEY: ${{ secrets.EC2_PRIVATE_KEY }}
               run: |
                 mkdir -p ~/.aws
@@ -36,13 +36,13 @@ jobs:
                 aws ec2 start-instances --instance-ids $EC2_INSTANCE
                 # final setup
                 public_ip=$(aws ec2 describe-instances --instance-ids $EC2_INSTANCE | grep "PublicIpAddress" | sed 's/"PublicIpAddress": //g' | sed 's/["|"]//g' | awk '{$1=$1};1')
-                echo "$EC2_PRIVATE_KEY" > ec2_key.pem
+                echo "${{EC2_PRIVATE_KEY}}" > ec2_key.pem
                 chmod 600 ec2_key.pem
                 ssh -o StrictHostKeyChecking=no -i ec2_key.pem $EC2_USER@$public_ip << 'ENDSSH'
                 mkdir -p ~/.ssh/
-                echo "$GITHUB_PRIVATE_KEY" > ~/.ssh/id_github
+                echo "${{ secrets.REPO_PRIVATE_KEY }}" > ~/.ssh/id_github
                 chmod 600 ~/.ssh/id_github
-                echo "$GITHUB_PUBLIC_KEY" > ~/.ssh/id_github.pub
+                echo "${{ secrets.REPO_PUBLIC_KEY }}" > ~/.ssh/id_github.pub
                 eval $(ssh-agent)
                 ssh-add ~/.ssh/id_github
                 mkdir -p ~/tmp
@@ -51,7 +51,7 @@ jobs:
                 sudo mkdir -p /opt/hfmm
                 sudo chown $EC2_USER:www-data /opt/hfmm
                 sudo chmod 775 /opt/hfmm
-                sudo apt install python3 virtualenv nginx
+                sudo apt install -y python3 virtualenv nginx
                 cd /opt/hfmm
                 cp ~/tmp/HuggingFace-Model-Manager-Phase-2/src/ .
                 cp ~/tmp/HuggingFace-Model-Manager-Phase-2/requirements.txt .
