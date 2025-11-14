@@ -23,6 +23,7 @@ jobs:
                 EC2_INSTANCE: ${{ secrets.EC2_INSTANCE }}
                 GITHUB_PRIVATE_KEY: ${{ secrets.REPO_PRIVATE_KEY }}
                 GITHUB_PUBLIC_KEY: ${{ secrets.REPO_PUBLIC_KEY }}
+                EC2_PRIVATE_KEY: ${{ secrets.EC2_PRIVATE_KEY }}
               run: |
                 mkdir -p ~/.aws
                 cat << EOF > ~/.aws/config 
@@ -34,7 +35,9 @@ jobs:
                 aws configure set aws_session_token "$AWS_SESSION_TOKEN"
                 aws ec2 start-instances --instance-ids $EC2_INSTANCE
                 # final setup
-                aws ssh --instance-id $EC2_INSTANCE --os-user $EC2_USER << 'ENDSSH'
+                public_ip=$(aws ec2 describe-instances --instance-ids $EC2_INSTANCE | grep "PublicIpAddress" | sed 's/"PublicIpAddress": //g' | sed 's/["|"]//g' | awk '{$1=$1};1')
+                echo "$EC2_PRIVATE_KEY" > ec2_key.pem
+                ssh -i ec2_key.pem $EC2_USER@$public_ip << 'ENDSSH'
                 mkdir -p ~/.ssh/
                 echo "$GITHUB_PRIVATE_KEY" > ~/.ssh/id_github
                 echo "$GITHUB_PUBLIC_KEY" > ~/.ssh/id_github.pub
