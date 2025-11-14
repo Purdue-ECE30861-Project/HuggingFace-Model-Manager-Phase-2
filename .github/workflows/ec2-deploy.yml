@@ -47,7 +47,8 @@ jobs:
                 ssh-add ~/.ssh/id_github
                 mkdir -p ~/tmp
                 cd ~/tmp
-                git clone git@github.com:Purdue-ECE30861-Project/HuggingFace-Model-Manager-Phase-2.git 
+                ssh-keyscan github.com >> ~/.ssh/known_hosts
+                git clone git@github.com:Purdue-ECE30861-Project/HuggingFace-Model-Manager-Phase-2.git
                 sudo mkdir -p /opt/hfmm
                 sudo chown $EC2_USER:www-data /opt/hfmm
                 sudo chmod 775 /opt/hfmm
@@ -55,15 +56,17 @@ jobs:
                 cd /opt/hfmm
                 cp ~/tmp/HuggingFace-Model-Manager-Phase-2/src/ .
                 cp ~/tmp/HuggingFace-Model-Manager-Phase-2/requirements.txt .
-                python -m venv venv
+                python3 -m venv venv
                 source venv/bin/activate
-                pip install -r requirements.txt
-                pip install uvicorn
+                pip3 install -r requirements.txt
+                pip3 install uvicorn
                 sudo cp -rf src/backend_server/server_components/nginx/hfmm /etc/nginx/sites-available/hfmm
                 sudo cp -rf src/backend_server/server_components/services/* /etc/systemd/system/hfmm.service
                 rm -r /home/$EC2_USER/tmp/*
                 sudo systemctl daemon-reload
+                sudo systemctl enable nginx
                 sudo systemctl restart nginx
+                sudo systemctl enable hfmm
                 sudo systemctl restart hfmm
                 ENDSSH
                 rm -r ~/.aws
