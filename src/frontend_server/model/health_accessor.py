@@ -120,7 +120,7 @@ class HealthAccessor:
             except Exception as e:
                 logger.warning(f"Error getting health for component {component_id}: {e}")
                 # Add component with unknown status on error
-                components.append(self._create_error_component(
+                components.append(self.create_error_component(
                     component_id, 
                     component_info,
                     str(e)
@@ -410,7 +410,7 @@ class HealthAccessor:
             logger.warning(f"Failed to get log references for {component_id}: {e}")
             return []
     
-    def _create_error_component(
+    def create_error_component(
         self,
         component_id: str,
         component_info: Dict,
