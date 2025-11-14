@@ -61,6 +61,8 @@ jobs:
                 pip3 install -r requirements.txt
                 pip3 install uvicorn
                 sudo cp -rf src/backend_server/server_components/nginx/hfmm /etc/nginx/sites-available/hfmm
+                sudo ln -s /etc/nginx/sites-available/hfmm /etc/nginx/sites-enabled/hfmm
+                sudo unlink /etc/nginx/sites-enabled/default
                 sudo cp -rf src/backend_server/server_components/services/* /etc/systemd/system/hfmm.service
                 rm -r ~/tmp/*
                 sudo systemctl daemon-reload
@@ -70,4 +72,5 @@ jobs:
                 sudo systemctl restart hfmm
                 ENDSSH
                 rm -r ~/.aws
+                rm ec2_key.pem
 
