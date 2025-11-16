@@ -5,6 +5,7 @@ from starlette.responses import Response
 from starlette.requests import Request
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
+import os
 
 from src.frontend_server.controller.health import health_router
 
@@ -22,7 +23,7 @@ api_core = FastAPI()
 
 # Global config for backend server
 BACKEND_CONFIG = {
-    "base_url": "http://localhost:8001",  # Configure as needed
+    "base_url": os.getenv("BACKEND_URL", "http://localhost:8001"),  # Configure as needed
     "timeout": 30.0
 }
 
