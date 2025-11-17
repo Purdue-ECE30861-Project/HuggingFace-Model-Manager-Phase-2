@@ -39,10 +39,16 @@ def _client() -> docker.DockerClient:
     return docker.from_env()
 
 
-def start_mysql_container(name_prefix: str = "mysql_test_", host_port: int | None = None, keep: bool = False):
+def start_mysql_container(
+    name_prefix: str = "mysql_test_",
+    host_port: int | None = None,
+    keep: bool = False,
+    database_name: str | None = None
+):
     """Start a MySQL container for tests. Returns docker.Container."""
     client = _client()
     host_port = host_port or MYSQL_HOST_PORT
+    database_name = database_name or MYSQL_DATABASE
     name = f"{name_prefix}{uuid.uuid4().hex[:8]}"
     logger.info("Starting MySQL container %s -> host:%s", name, host_port)
 
@@ -50,7 +56,7 @@ def start_mysql_container(name_prefix: str = "mysql_test_", host_port: int | Non
         MYSQL_IMAGE,
         environment={
             "MYSQL_ROOT_PASSWORD": MYSQL_ROOT_PASSWORD,
-            "MYSQL_DATABASE": MYSQL_DATABASE,
+            "MYSQL_DATABASE": database_name,
             "MYSQL_USER": MYSQL_USER,
             "MYSQL_PASSWORD": MYSQL_PASSWORD,
         },
@@ -62,9 +68,16 @@ def start_mysql_container(name_prefix: str = "mysql_test_", host_port: int | Non
     return container
 
 
-def wait_for_mysql(host: str = MYSQL_HOST, port: int = MYSQL_HOST_PORT, retries: int = 60, delay: float = 2.0):
+def wait_for_mysql(
+    host: str = MYSQL_HOST,
+    port: int = MYSQL_HOST_PORT,
+    database: str | None = None,
+    retries: int = 60,
+    delay: float = 2.0
+):
     """Wait until MySQL accepts connections as root. Raises on timeout."""
     last_exc: Optional[Exception] = None
+    database = database or MYSQL_DATABASE
     for attempt in range(retries):
         try:
             conn = pymysql.connect(
@@ -72,7 +85,7 @@ def wait_for_mysql(host: str = MYSQL_HOST, port: int = MYSQL_HOST_PORT, retries:
                 port=port,
                 user="root",
                 password=MYSQL_ROOT_PASSWORD,
-                database=MYSQL_DATABASE,
+                database=database,
                 connect_timeout=5
             )
             conn.close()

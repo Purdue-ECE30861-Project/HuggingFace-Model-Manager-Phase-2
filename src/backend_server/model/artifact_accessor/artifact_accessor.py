@@ -11,6 +11,7 @@ from src.contracts.artifact_contracts import ArtifactQuery, ArtifactMetadata, Ar
     ArtifactRegEx, ArtifactData
 from .enums import *
 from .register_direct import generate_unique_id, register_data_store, artifact_and_rating_direct
+from ..data_store.audit_database import SQLAuditAccessor
 from ..data_store.database import SQLMetadataAccessor
 from ..data_store.downloaders.hf_downloader import HFArtifactDownloader
 from ..data_store.s3_manager import S3BucketManager
@@ -21,12 +22,14 @@ logger = logging.getLogger(__name__)
 
 class ArtifactAccessor:
     def __init__(self, db: SQLMetadataAccessor,
+                 audit_db: SQLAuditAccessor,
                  s3: S3BucketManager,
                  num_processors: int = 1,
                  ingest_score_threshold: float = 0.5
                  ):
         logger.info("Artifact Accessor is Started")
         self.db: SQLMetadataAccessor = db
+        self.audit_db = audit_db
         self.s3_manager = s3
         self.num_processors: int = num_processors
         self.ingest_score_threshold: float = ingest_score_threshold

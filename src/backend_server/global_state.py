@@ -6,6 +6,7 @@ from src.backend_server.model.artifact_accessor.register_deferred import RaterTa
 from src.backend_server.model.data_store.database import create_engine, SQLModel, SQLMetadataAccessor
 from src.backend_server.model.data_store.s3_manager import S3BucketManager
 from src.backend_server.model.model_rater import ModelRater
+from src.backend_server.model.data_store.audit_database import SQLAuditAccessor
 
 
 class S3Config(BaseModel):
@@ -25,6 +26,7 @@ class RedisConfig(BaseModel):
 
 class GlobalConfig(BaseModel):
     db_url: str
+    audit_db_url: str
     s3_config: S3Config
     rater_task_manager_workers: int
     rater_processes: int
@@ -35,6 +37,7 @@ class GlobalConfig(BaseModel):
     def read_env() -> "GlobalConfig":
         return GlobalConfig(
             db_url=os.environ.get("DB_URL", "mysql+pymysql://test_user:newpassword@localhost:3307/test_db"),
+            audit_db_url=os.environ.get("AUDIT_DB_URL", "mysql+pymysql://test_user:newpassword@localhost:3307/test_audit_db"),
             s3_config=S3Config(
                 s3_url=f"http://{os.environ.get("S3_URL", "127.0.0.1")}:{os.environ.get("S3_HOST_PORT", "9000")}",
                 s3_access_key_id=os.environ.get("S3_ACCESS_KEY_ID", "minio_access_key_123"),
@@ -61,6 +64,7 @@ rater_task_manager: RaterTaskManager = RaterTaskManager(
     max_workers=global_config.rater_task_manager_workers,
     max_processes_per_rater=global_config.rater_processes
 )
+audit_db_accessor: SQLAuditAccessor = SQLAuditAccessor(global_config.audit_db_url)
 s3_accessor: S3BucketManager = S3BucketManager(
     global_config.s3_config.s3_url,
     global_config.s3_config.s3_access_key_id,
@@ -71,6 +75,7 @@ s3_accessor: S3BucketManager = S3BucketManager(
 )
 artifact_accessor: ArtifactAccessor = ArtifactAccessor(
     database_accessor,
+    audit_db_accessor,
     s3_accessor,
     global_config.rater_processes,
     global_config.ingest_score_threshold

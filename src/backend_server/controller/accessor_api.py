@@ -170,14 +170,3 @@ async def register_artifact(
         case return_code.DEFERRED:
             response.status_code = 202
 
-
-@accessor_router.get("/artifact/{artifact_type}/{id}/audit")
-async def get_audit_history(
-    artifact_type: str,
-    id: str,
-) -> List[ArtifactAuditEntry]:
-    try:
-        artifact_type_model: ArtifactType = ArtifactType(artifact_type)
-    except ValidationError:
-        raise RequestValidationError(errors=["invalid artifact type"])
-

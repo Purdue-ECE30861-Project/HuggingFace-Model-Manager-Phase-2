@@ -18,6 +18,10 @@ from typing_extensions import Literal
 
 from src.contracts.artifact_contracts import Artifact, ArtifactMetadata, ArtifactQuery, ArtifactType, ArtifactData
 from src.contracts.model_rating import ModelRating
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 
 class JsonExtract(expression.FunctionElement[str]):
@@ -135,6 +139,7 @@ class SQLMetadataAccessor: # I assume we use separate tables for cost, lineage, 
                 session.commit()
             return True
         except Exception as e:
+            logger.error(e)
             return False
 
     def reset_db(self) -> bool:
