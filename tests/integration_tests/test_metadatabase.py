@@ -336,6 +336,8 @@ class TestMySQLInfrastructure(unittest.TestCase):
         self.assertFalse(self.db_accessor.is_in_db("artifact-dataset", ArtifactType.dataset))
         self.assertFalse(self.db_accessor.is_in_db_id("int-id-2", ArtifactType.dataset))
 
+    # ADD TESTS FOR REGEX AND BY NAME
+
 
 if __name__ == '__main__':
     unittest.main()

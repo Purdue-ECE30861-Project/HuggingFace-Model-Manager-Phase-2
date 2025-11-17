@@ -7,6 +7,7 @@ from src.contracts.artifact_contracts import ArtifactID, ArtifactType, ArtifactQ
 from ..model.artifact_accessor.artifact_accessor import ArtifactAccessor, GetArtifactsEnum, GetArtifactEnum, RegisterArtifactEnum
 from ..model.artifact_accessor.register_deferred import RaterTaskManager
 from ..global_state import artifact_accessor as accessor
+from ...contracts.auth_contracts import ArtifactAuditEntry
 
 accessor_router = APIRouter()
 
@@ -168,3 +169,15 @@ async def register_artifact(
             raise HTTPException(status_code=return_code.value)
         case return_code.DEFERRED:
             response.status_code = 202
+
+
+@accessor_router.get("/artifact/{artifact_type}/{id}/audit")
+async def get_audit_history(
+    artifact_type: str,
+    id: str,
+) -> List[ArtifactAuditEntry]:
+    try:
+        artifact_type_model: ArtifactType = ArtifactType(artifact_type)
+    except ValidationError:
+        raise RequestValidationError(errors=["invalid artifact type"])
+

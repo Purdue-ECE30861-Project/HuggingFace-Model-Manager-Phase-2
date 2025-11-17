@@ -30,10 +30,15 @@ logging.basicConfig(level=logging.INFO)
 def set_env_variables():
     """Set global environment variables as per GlobalConfig and S3Config."""
     os.environ["DB_URL"] = f"mysql+pymysql://{MYSQL_USER}:{MYSQL_PASSWORD}@{MYSQL_HOST}:{MYSQL_HOST_PORT}/{MYSQL_DATABASE}"
+    print(f"mysql+pymysql://{MYSQL_USER}:{MYSQL_PASSWORD}@{MYSQL_HOST}:{MYSQL_HOST_PORT}/{MYSQL_DATABASE}")
     os.environ["S3_URL"] = f"http://{MINIO_HOST}:{MINIO_HOST_PORT}"
+    print(f"http://{MINIO_HOST}:{MINIO_HOST_PORT}")
     os.environ["S3_ACCESS_KEY_ID"] = MINIO_ROOT_USER
+    print(MINIO_ROOT_USER)
     os.environ["S3_SECRET_ACCESS_KEY"] = MINIO_ROOT_PASSWORD
+    print(MINIO_ROOT_PASSWORD)
     os.environ["S3_BUCKET_NAME"] = MINIO_BUCKET
+    print(MINIO_BUCKET)
     os.environ["S3_DATA_PREFIX"] = ""
     os.environ["S3_REGION_NAME"] = "us-east-1"
     os.environ["REDIS_HOST"] = "127.0.0.1"

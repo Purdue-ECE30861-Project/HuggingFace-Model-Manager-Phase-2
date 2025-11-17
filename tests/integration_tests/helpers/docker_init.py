@@ -31,7 +31,7 @@ MINIO_ROOT_PASSWORD = os.environ.get("MINIO_ROOT_PASSWORD", "minio_secret_key_pa
 MINIO_BUCKET = os.environ.get("S3_BUCKET", "hfmm-artifact-storage")
 
 REDIS_HOST = os.environ.get("REDIS_HOST", "127.0.0.1")
-REDIS_HOST_PORT=(int(os.environ.get("REDIS_PORT", 6379)))
+REDIS_HOST_PORT=(int(os.environ.get("REDIS_PORT", 6399)))
 REDIS_IMAGE=os.environ.get("REDIS_IMAGE", "redis:7.2")
 
 

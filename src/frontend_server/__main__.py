@@ -32,21 +32,23 @@ class CacheMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         # Step 1: Check cache router
         try:
-            # Create a test request to the cache router
-            cache_response = await self._check_cache(request)
+            # # Create a test request to the cache router
+            # cache_response = await self._check_cache(request)
+            #
+            # if cache_response.status_code == 200:
+            #     # Cache hit - return immediately
+            #     return cache_response
+            # elif cache_response.status_code == 400:
+            #     # Bad request format - return error
+            #     return generate_400_error_return()
+            # elif cache_response.status_code == 404:
+            #     # Cache miss - continue to step 2
+            #     return await self._forward_to_backend(request)
+            # elif cache_response.status_code == 500:
+            #     # Not cacheable - continue to step 3
+            #     return await self._handle_internal_or_backend(request, call_next)
 
-            if cache_response.status_code == 200:
-                # Cache hit - return immediately
-                return cache_response
-            elif cache_response.status_code == 400:
-                # Bad request format - return error
-                return generate_400_error_return()
-            elif cache_response.status_code == 404:
-                # Cache miss - continue to step 2
-                return await self._forward_to_backend(request)
-            elif cache_response.status_code == 500:
-                # Not cacheable - continue to step 3
-                return await self._handle_internal_or_backend(request, call_next)
+            await self._handle_internal_or_backend(request, call_next)
 
         except Exception as e:
             # If cache check fails, treat as cache miss
