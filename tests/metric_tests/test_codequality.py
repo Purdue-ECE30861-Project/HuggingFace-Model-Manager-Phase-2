@@ -9,7 +9,7 @@ class FakeLLM:
 
 def _mk_case(name, gh_url, inferred_links, llm_resp, expected):
     def _t(self):
-        with patch("src.classes.CodeQuality.find_github_links", return_value=inferred_links):
+        with patch("backend_server.classes.CodeQuality.find_github_links", return_value=inferred_links):
             m = CodeQuality()
             m.llm = FakeLLM(llm_resp)
             score, _ = m.evaluate(url="https://hf.co/model", githubURL=gh_url)

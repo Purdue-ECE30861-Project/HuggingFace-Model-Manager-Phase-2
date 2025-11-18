@@ -53,8 +53,8 @@ class NormalizeAuthorTests(unittest.TestCase):
 # -----------------------------
 
 class FindGithubLinksTests(unittest.TestCase):
-    @patch("src.utils.get_metadata.ModelCard")
-    @patch("src.utils.get_metadata.HfApi")
+    @patch("backend_server.utils.get_metadata.ModelCard")
+    @patch("backend_server.utils.get_metadata.HfApi")
     def test_finds_links_in_cardData_and_readme(self, mHfApi, mModelCard):
         # Mock model_info().cardData with nested github URL
         info = MagicMock()
@@ -85,7 +85,7 @@ class FindGithubLinksTests(unittest.TestCase):
 # -----------------------------
 
 class GetCollaboratorsHFTests(unittest.TestCase):
-    @patch("src.utils.get_metadata.HfApi")
+    @patch("backend_server.utils.get_metadata.HfApi")
     def test_get_collaborators_hf_success(self, mHfApi):
         # Create fake commit objects with 'authors' attribute (list of strings)
         class Commit:
@@ -114,7 +114,7 @@ class GetCollaboratorsHFTests(unittest.TestCase):
         self.assertEqual(authors["Alice"], 3)
         self.assertEqual(authors["Bob"], 1)
 
-    @patch("src.utils.get_metadata.HfApi")
+    @patch("backend_server.utils.get_metadata.HfApi")
     def test_get_collaborators_hf_handles_hub_error(self, mHfApi):
         from huggingface_hub.utils import HfHubHTTPError
         import httpx
@@ -132,7 +132,7 @@ class GetCollaboratorsHFTests(unittest.TestCase):
 # -----------------------------
 
 class GetCollaboratorsGithubTests(unittest.TestCase):
-    @patch("src.utils.get_metadata.requests.get")
+    @patch("backend_server.utils.get_metadata.requests.get")
     def test_github_collectors_paginates_and_filters_bots(self, mget):
         # Page 1
         r1 = MagicMock()
@@ -165,7 +165,7 @@ class GetCollaboratorsGithubTests(unittest.TestCase):
         # std with proportions [2/4, 1/4] (one author omitted if bot-only)
         self.assertAlmostEqual(std, statistics.stdev([0.5, 0.25]), places=6)
 
-    @patch("src.utils.get_metadata.requests.get")
+    @patch("backend_server.utils.get_metadata.requests.get")
     def test_github_rate_limit_returns_partial(self, mget):
         # First page ok, second page rate-limited (403 with hint text)
         r1 = MagicMock()

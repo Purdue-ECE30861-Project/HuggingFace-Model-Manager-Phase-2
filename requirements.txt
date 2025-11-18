@@ -5,7 +5,10 @@ requests
 huggingface_hub
 dotenv
 coverage
+sqlmodel
 watchtower
 boto3
+botocore
 mysql-connector-python
 pytest
+pymysql

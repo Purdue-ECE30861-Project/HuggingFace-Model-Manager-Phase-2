@@ -66,7 +66,7 @@ class MainTests(unittest.TestCase):
         called_headers = mpost.call_args[1]["headers"]
         self.assertEqual(called_headers.get("Authorization"), "Bearer ENV_TOKEN")
 
-    @patch("src.utils.llm_api.load_dotenv", return_value=False)  # prevent loading local .env
+    @patch("backend_server.utils.llm_api.load_dotenv", return_value=False)  # prevent loading local .env
     @patch.dict(os.environ, {}, clear=True)                      # ensure env is empty
     @patch("requests.post")                                      # guard against any accidental network call
     def test_main_raises_if_no_key(self, mpost, _noop_loadenv):
