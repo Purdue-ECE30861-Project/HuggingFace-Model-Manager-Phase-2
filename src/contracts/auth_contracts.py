@@ -2,6 +2,9 @@ from pydantic import BaseModel, Field
 from datetime import datetime
 from enum import Enum
 
+from .artifact_contracts import ArtifactMetadata
+
+
 
 class User(BaseModel):
     """User information."""
@@ -40,6 +43,19 @@ class AuthenticationRequest(BaseModel):
         )
 
 
+class AuditAction(str, Enum):
+    """Action types for audit entries."""
+    CREATE = "CREATE"
+    UPDATE = "UPDATE"
+    DOWNLOAD = "DOWNLOAD"
+    RATE = "RATE"
+    AUDIT = "AUDIT"
+
+    @staticmethod
+    def test_value() -> "AuditAction":
+        return AuditAction.CREATE
+
+
 class ArtifactAuditEntry(BaseModel):
     """One entry in an artifact's audit history."""
     user: User
@@ -55,16 +71,3 @@ class ArtifactAuditEntry(BaseModel):
             artifact=ArtifactMetadata.test_value(),
             action=AuditAction.test_value()
         )
-
-
-class AuditAction(str, Enum):
-    """Action types for audit entries."""
-    CREATE = "CREATE"
-    UPDATE = "UPDATE"
-    DOWNLOAD = "DOWNLOAD"
-    RATE = "RATE"
-    AUDIT = "AUDIT"
-
-    @staticmethod
-    def test_value() -> "AuditAction":
-        return AuditAction.CREATE

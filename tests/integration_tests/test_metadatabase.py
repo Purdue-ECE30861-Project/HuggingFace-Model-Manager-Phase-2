@@ -1,82 +1,58 @@
 import unittest
-import docker
-import pymysql
-import logging
 import time
-import uuid
-
-from src.contracts.artifact_contracts import Artifact, ArtifactMetadata, ArtifactQuery, ArtifactType, ArtifactData
+import logging
+import pymysql
+from pydantic import HttpUrl
+from src.contracts.artifact_contracts import ArtifactType, Artifact, ArtifactData, ArtifactMetadata, ArtifactQuery
+from src.backend_server.model.data_store.database import SQLMetadataAccessor
+from tests.integration_tests.helpers import docker_init
 from src.contracts.model_rating import ModelRating
 from src.backend_server.model.data_store.database import SQLMetadataAccessor, ArtifactDataDB
-from pydantic import HttpUrl
 
 
-# Configure logging
+# configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# MySQL configuration
-MYSQL_IMAGE = "mysql:8.0"
-MYSQL_PORT = 3307  # Using non-default port to avoid conflicts
-MYSQL_ROOT_PASSWORD = "root"
-MYSQL_DATABASE = "test_db"
-MYSQL_USER = "test_user"
-MYSQL_PASSWORD = "test_password"
+# MySQL settings are taken from docker_init defaults
+MYSQL_PORT = getattr(docker_init, "MYSQL_HOST_PORT", 3307)
+MYSQL_ROOT_PASSWORD = getattr(docker_init, "MYSQL_ROOT_PASSWORD", "root")
+MYSQL_DATABASE = getattr(docker_init, "MYSQL_DATABASE", "test_db")
+MYSQL_USER = getattr(docker_init, "MYSQL_USER", "test_user")
+MYSQL_PASSWORD = getattr(docker_init, "MYSQL_PASSWORD", "test_password")
+
 
 class TestMySQLInfrastructure(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        logger.info("Setting up MySQL container...")
-        cls.client = docker.from_env()
+        """Set up MySQL container and initialize database accessor."""
+        logger.info("Starting MySQL container via docker_init helper...")
+        # start and wait are handled by helper which will raise if something fails
+        cls.container = docker_init.start_mysql_container()
+        docker_init.wait_for_mysql(port=MYSQL_PORT)
 
-        cls.container = cls.client.containers.run(
-            MYSQL_IMAGE,
-            environment={
-                'MYSQL_ROOT_PASSWORD': MYSQL_ROOT_PASSWORD,
-                'MYSQL_DATABASE': MYSQL_DATABASE,
-                'MYSQL_USER': MYSQL_USER,
-                'MYSQL_PASSWORD': MYSQL_PASSWORD,
-            },
-            ports={'3306/tcp': ('127.0.0.1', MYSQL_PORT)},
-            detach=True,
-            remove=True,
-            name=f"mysql_test_{uuid.uuid4().hex[:8]}"
-        )
-        logger.info("Started setup")
-
-        cls._wait_for_mysql()
-
+        # Initialize database accessor
         db_url = f"mysql+pymysql://{MYSQL_USER}:{MYSQL_PASSWORD}@127.0.0.1:{MYSQL_PORT}/{MYSQL_DATABASE}"
         cls.db_accessor = SQLMetadataAccessor(db_url)
 
-    @classmethod
-    def _wait_for_mysql(cls, max_attempts: int = 20, delay: int = 2):
-        for attempt in range(max_attempts):
-            try:
-                connection = pymysql.connect(
-                    host='127.0.0.1',
-                    port=MYSQL_PORT,
-                    user='root',
-                    password=MYSQL_ROOT_PASSWORD,
-                    database=MYSQL_DATABASE,
-                    connect_timeout=5
-                )
-                connection.close()
-                logger.info(f"MySQL ready after {attempt + 1} attempts")
-                return
-            except Exception as e:
-                logger.info(f"Attempt {attempt + 1}: MySQL not ready yet ({e})")
-                time.sleep(delay)
-        raise Exception("MySQL container failed to become ready")
+    def tearDown(self):
+        self.db_accessor.reset_db()
 
     @classmethod
     def tearDownClass(cls):
-        logger.info("Cleaning up MySQL container...")
-        if hasattr(cls, 'container') and cls.container:
-            cls.container.stop()
+        """Clean up after each test."""
+        if hasattr(cls, 'db_accessor'):
+            cls.db_accessor.reset_db()
+        # use docker_init helper to remove any test containers
+        try:
+            docker_init.cleanup_test_containers(("mysql_test_",))
+        except Exception:
+            logger.exception("Error cleaning up mysql test containers")
 
-    def tearDown(self):
-        self.db_accessor.reset_db()
+    def _wait_for_mysql(self, max_attempts: int = 20, delay: int = 2):
+        """Wait for MySQL to be ready to accept connections."""
+        # Keep this helper for tests that call it directly; delegate to docker_init.wait_for_mysql
+        docker_init.wait_for_mysql(port=MYSQL_PORT, retries=max_attempts, delay=delay)
 
     def test_mysql_connection(self):
         try:
@@ -359,6 +335,8 @@ class TestMySQLInfrastructure(unittest.TestCase):
         self.db_accessor.reset_db()
         self.assertFalse(self.db_accessor.is_in_db("artifact-dataset", ArtifactType.dataset))
         self.assertFalse(self.db_accessor.is_in_db_id("int-id-2", ArtifactType.dataset))
+
+    # ADD TESTS FOR REGEX AND BY NAME
 
 
 if __name__ == '__main__':
