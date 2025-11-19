@@ -106,7 +106,7 @@ def get_model_metadata(url: str):
 
     return param_count, file_sizes, model_type
 
-def find_github_links(url):
+def find_github_links(url: str) -> set[str]:
     api = HfApi()
     model_id = _repo_id_from_url(url)
 
