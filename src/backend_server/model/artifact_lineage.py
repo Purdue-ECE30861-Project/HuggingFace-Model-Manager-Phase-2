@@ -1,9 +1,9 @@
 from pydantic import validate_call
-from enum import Enum
-from src.external_contracts import ArtifactID, ArtifactLineageGraph
+from enum import IntEnum
+from src.contracts.artifact_contracts import ArtifactID, ArtifactLineageGraph
 
 
-class LineageEnum(Enum):
+class LineageEnum(IntEnum):
     SUCCESS = 200
     DOES_NOT_EXIST = 404
 class LineageGraphAnalyzer:

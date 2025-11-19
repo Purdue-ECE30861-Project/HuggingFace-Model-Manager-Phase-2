@@ -1,6 +1,6 @@
 from pydantic import validate_call
 from ..model.model_rater import ModelRaterEnum
-from src.external_contracts import ArtifactID, ArtifactType, ArtifactCost
+from src.contracts.artifact_contracts import ArtifactID, ArtifactType, ArtifactCost
 
 
 class ArtifactCostAnalyzer:

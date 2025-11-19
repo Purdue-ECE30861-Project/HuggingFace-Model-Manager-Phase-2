@@ -1,10 +1,13 @@
 from fastapi import Depends, APIRouter, HTTPException, status, Response, Query
 from fastapi.exceptions import RequestValidationError
 from pydantic import ValidationError
-from typing import Annotated
+from typing import Annotated, List
 
-from src.external_contracts import ArtifactID, ArtifactType, ArtifactQuery, Artifact, ArtifactMetadata, ArtifactName, ArtifactRegEx, ArtifactData
-from ..model.artifact_accessor import ArtifactAccessor, GetArtifactsEnum, GetArtifactEnum, RegisterArtifactEnum
+from src.contracts.artifact_contracts import ArtifactID, ArtifactType, ArtifactQuery, Artifact, ArtifactMetadata, ArtifactName, ArtifactRegEx, ArtifactData
+from ..model.artifact_accessor.artifact_accessor import ArtifactAccessor, GetArtifactsEnum, GetArtifactEnum, RegisterArtifactEnum
+from ..model.artifact_accessor.register_deferred import RaterTaskManager
+from ..global_state import artifact_accessor as accessor
+from ...contracts.auth_contracts import ArtifactAuditEntry
 
 accessor_router = APIRouter()
 
@@ -13,9 +16,8 @@ accessor_router = APIRouter()
 async def get_artifacts(
         response: Response,
         body: ArtifactQuery,
-        accessor: Annotated[ArtifactAccessor, Depends(ArtifactAccessor)],
         offset: str = Query(..., pattern=r"^\d+$"),
-) -> list[ArtifactMetadata]:
+) -> List[ArtifactMetadata]:
     return_code: GetArtifactsEnum
     return_content: list[ArtifactMetadata]
 
@@ -32,8 +34,7 @@ async def get_artifacts(
 @accessor_router.post("/artifact/byName/{name}", status_code=status.HTTP_200_OK)
 async def get_artifacts_by_name(
         name: str,
-        accessor: Annotated[ArtifactAccessor, Depends(ArtifactAccessor)],
-) -> list[ArtifactMetadata]:
+) -> List[ArtifactMetadata]:
     try:
         name_model: ArtifactName = ArtifactName(name=name)
     except ValidationError:
@@ -54,8 +55,7 @@ async def get_artifacts_by_name(
 @accessor_router.post("/artifact/byRegEx", status_code=status.HTTP_200_OK)
 async def get_artifacts_by_regex(
         regex: ArtifactRegEx,
-        accessor: Annotated[ArtifactAccessor, Depends(ArtifactAccessor)],
-) -> list[ArtifactMetadata]:
+) -> List[ArtifactMetadata]:
     return_code: GetArtifactEnum
     return_content: list[ArtifactMetadata]
 
@@ -72,7 +72,6 @@ async def get_artifacts_by_regex(
 async def get_artifact(
         artifact_type: str,
         id: str,
-        accessor: Annotated[ArtifactAccessor, Depends(ArtifactAccessor)],
 ) -> Artifact:
     try:
         artifact_type_model: ArtifactType = ArtifactType(artifact_type)
@@ -98,7 +97,6 @@ async def update_artifact(
         id: str,
         body: Artifact,
         response: Response,
-        accessor: Annotated[ArtifactAccessor, Depends(ArtifactAccessor)],
 ) -> None:
     try:
         artifact_type_model: ArtifactType = ArtifactType(artifact_type)
@@ -123,7 +121,6 @@ async def delete_artifact(
         artifact_type: str,
         id: str,
         response: Response,
-        accessor: Annotated[ArtifactAccessor, Depends(ArtifactAccessor)],
 ) -> None:
     try:
         artifact_type_model: ArtifactType = ArtifactType(artifact_type)
@@ -147,8 +144,8 @@ async def delete_artifact(
 async def register_artifact(
         artifact_type: str,
         body: ArtifactData,
-        accessor: Annotated[ArtifactAccessor, Depends(ArtifactAccessor)],
-) -> Artifact:
+        response: Response
+) -> Artifact | None:
     try:
         artifact_type_model: ArtifactType = ArtifactType(artifact_type)
     except ValidationError:
@@ -168,3 +165,8 @@ async def register_artifact(
         case return_code.DISQUALIFIED:
             raise HTTPException(status_code=return_code.value,
                                 detail="Artifact is not registered due to the disqualified rating.")
+        case return_code.BAD_REQUEST:
+            raise HTTPException(status_code=return_code.value)
+        case return_code.DEFERRED:
+            response.status_code = 202
+

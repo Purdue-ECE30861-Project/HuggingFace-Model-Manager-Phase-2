@@ -6,3 +6,6 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
+*.pem
+tmp_ssh
+tmp_ssh.pub

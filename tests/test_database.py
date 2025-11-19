@@ -1,6 +1,6 @@
 from src.utils.database import *
 from unittest import TestCase
-from src.model.external_contracts import ModelRating, SizeScore
+from src.controller.api_types import ModelRating, SizeScore
 from pydantic import HttpUrl
 
 

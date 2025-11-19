@@ -1,0 +1,13 @@
+[Unit]
+Description=uvicorn instance for the Huggingface Model Manager frontend
+After=network.target
+
+[Service]
+User=ubuntu
+Group=www-data
+WorkingDirectory=/opt/hfmm
+Environment="PATH=/opt/hfmm/venv/bin"
+ExecStart=/opt/hfmm/venv/bin/uvicorn src.backend_server.__main__:api_core --workers 4 --uds /opt/hfmm/hfmm.sock --proxy-headers
+
+[Install]
+WantedBy=multi-user.target

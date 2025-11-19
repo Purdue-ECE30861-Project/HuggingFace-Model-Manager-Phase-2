@@ -1,10 +1,12 @@
-from fastapi import Depends, APIRouter, HTTPException, status, Response
+from fastapi import Depends, APIRouter, HTTPException, status
 from fastapi.exceptions import RequestValidationError
 from typing import Annotated
 from pydantic import ValidationError
 
-from src.external_contracts import ArtifactID, ModelRating
+from src.contracts.artifact_contracts import ArtifactID
+from src.contracts.model_rating import ModelRating
 from ..model.model_rater import ModelRater, ModelRaterEnum
+from src.backend_server.global_state import rater_accessor
 
 
 rater_router = APIRouter()
@@ -13,7 +15,6 @@ rater_router = APIRouter()
 @rater_router.get("/artifact/model/{id}/rate", status_code=status.HTTP_200_OK)
 async def rate_model(
         id: str,
-        rater: Annotated[ModelRater, Depends(ModelRater)]
 ) -> ModelRating:
     try:
         id_model: ArtifactID = ArtifactID(id=id)
@@ -23,7 +24,7 @@ async def rate_model(
     return_code: ModelRaterEnum
     return_content: ModelRating
 
-    return_code, return_content = await rater.rate_model(id_model)
+    return_code, return_content = await rater_accessor.rate_model(id_model)
 
     match return_code:
         case return_code.SUCCESS:

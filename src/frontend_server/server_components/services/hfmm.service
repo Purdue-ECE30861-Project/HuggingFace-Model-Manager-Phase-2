@@ -5,9 +5,10 @@ After=network.target
 [Service]
 User=ubuntu
 Group=www-data
-WorkingDirectory=/opt/hfmm/
+WorkingDirectory=/opt/hfmm
 Environment="PATH=/opt/hfmm/.venv/bin"
-ExecStart=/opt/hfmm/.venv/bin/uvicorn main:app --workers 4 --uds /opt/hfmm/hfmm.sock --proxy-headers
+Environment="BACKEND_URL=172.31.34.188"
+ExecStart=/opt/hfmm/.venv/bin/uvicorn src.frontend_server.__main__:api_core --workers 4 --uds /opt/hfmm/hfmm.sock --proxy-headers
 
 [Install]
 WantedBy=multi-user.target
