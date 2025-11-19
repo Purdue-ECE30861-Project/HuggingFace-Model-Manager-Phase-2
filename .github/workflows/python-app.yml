@@ -45,4 +45,4 @@ jobs:
         GEN_AI_STUDIO_API_KEY: ${{ secrets.GEN_AI_STUDIO_API_KEY }}
       run: |
         python3 -m pip install coverage pytest pytest-cov
-        python3 --cov=src --cov-fail-under=60 tests
+        pytest --cov=src --cov-fail-under=60 tests
