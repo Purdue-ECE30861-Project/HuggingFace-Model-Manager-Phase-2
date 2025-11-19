@@ -15,4 +15,7 @@ mysql-connector-python
 pytest
 pydantic
 sqlmodel
+jinja2
+uvicorn
+python-multipart
 pymysql
