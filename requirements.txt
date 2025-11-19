@@ -1,5 +1,7 @@
-pydantic
 fastapi
+httpx
+starlette
+botocore
 python-dotenv>=1.0.0
 requests
 huggingface_hub
@@ -11,6 +13,8 @@ boto3
 botocore
 mysql-connector-python
 pytest
+pydantic
+sqlmodel
 jinja2
 uvicorn
 python-multipart
