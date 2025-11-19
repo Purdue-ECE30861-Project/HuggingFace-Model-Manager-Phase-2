@@ -18,32 +18,12 @@ from typing_extensions import Literal
 
 from src.contracts.artifact_contracts import Artifact, ArtifactMetadata, ArtifactQuery, ArtifactType, ArtifactData
 from src.contracts.model_rating import ModelRating
+from .db_utils import *
 import logging
 
 
 logger = logging.getLogger(__name__)
 
-
-class JsonExtract(expression.FunctionElement[str]):
-    inherit_cache=True
-    name = 'json_extract'
-    type = Text()
-
-@compiles(JsonExtract, 'sqlite')
-def _json_extract_sqlite(element: JsonExtract, compiler: Any, **kw: Any) -> str: # pyright: ignore[reportUnusedFunction]
-    return "json_extract(%s)" % compiler.process(element.clauses, **kw)
-
-@compiles(JsonExtract, 'mysql')
-def _json_extract_mysql(element: JsonExtract, compiler: Any, **kw: Any) -> str: # pyright: ignore[reportUnusedFunction]
-    return "json_extract(%s)" % compiler.process(element.clauses, **kw)
-
-@compiles(JsonExtract, 'postgresql')
-def _json_extract_postgres(element: JsonExtract, compiler: Any, **kw: Any) -> str: # pyright: ignore[reportUnusedFunction]
-    args = list(element.clauses)
-    return "%s #>> '{%s}'" % (
-        compiler.process(args[0], **kw),
-        args[1].value[2:].replace(".", ",")  # Convert $.path.to.field to path,to,field
-    )
 
 class HttpUrlSerializer(TypeDecorator[HttpUrl|None]):
     impl = String(2083)
@@ -200,7 +180,12 @@ class SQLMetadataAccessor: # I assume we use separate tables for cost, lineage, 
     def get_by_regex(self, regex: str) -> list[ArtifactDataDB]|None:
         with Session(self.engine) as session:
             query = select(ArtifactDataDB) \
-                .where(ArtifactDataDB.name)
+                .where(JsonExtract(ArtifactDataDB.rating, '$.name').regexp_match(regex))
+            result = session.exec(query).fetchall()
+
+            if not result:
+                return None
+            return result
 
     def get_by_query(self, query: ArtifactQuery, offset: str) -> list[ArtifactMetadata]|None: # return NONE if there are TOO MANY artifacts. If no matches return empty list. This endpoint does not call for not found errors
         if query.types is None:

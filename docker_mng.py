@@ -6,11 +6,9 @@ from pathlib import Path
 
 ROOT_DIR = Path(__file__).resolve().parents[2]  # adjust if layout differs
 sys.path.append(str(ROOT_DIR))
-from pathlib import Path
 
 # Import from existing script (assumed same directory or adjust path accordingly)
-import docker
-from tests.integration_tests.helpers.docker_init import (
+from mock_infrastructure.docker_init import (
     start_mysql_container,
     wait_for_mysql,
     start_minio_container,
@@ -19,7 +17,7 @@ from tests.integration_tests.helpers.docker_init import (
     wait_for_redis,
     create_minio_bucket,
     cleanup_test_containers,
-    MYSQL_HOST, MYSQL_HOST_PORT, MYSQL_ROOT_PASSWORD, MYSQL_DATABASE, MYSQL_USER, MYSQL_PASSWORD,
+    MYSQL_HOST, MYSQL_HOST_PORT, MYSQL_DATABASE, MYSQL_USER, MYSQL_PASSWORD,
     MINIO_HOST, MINIO_HOST_PORT, MINIO_ROOT_USER, MINIO_ROOT_PASSWORD, MINIO_BUCKET,
 )
 

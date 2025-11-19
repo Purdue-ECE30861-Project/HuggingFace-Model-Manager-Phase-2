@@ -65,6 +65,7 @@ def start_mysql_container(
         remove=False,  # keep container for debugging; caller may remove
         name=name
     )
+    logger.info("MySQL Container started")
     return container
 
 
@@ -80,6 +81,7 @@ def wait_for_mysql(
     database = database or MYSQL_DATABASE
     for attempt in range(retries):
         try:
+            logger.info("Attempting MySQL Connection")
             conn = pymysql.connect(
                 host=host,
                 port=port,

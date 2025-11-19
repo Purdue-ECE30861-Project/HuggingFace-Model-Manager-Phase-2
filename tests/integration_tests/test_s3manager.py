@@ -1,14 +1,12 @@
 import unittest
-import time
 import logging
 import uuid
 import tempfile
 import zipfile
 from pathlib import Path
 import boto3
-import requests 
-from src.backend_server.model.data_store.s3_manager import S3BucketManager
-from tests.integration_tests.helpers import docker_init
+import requests
+from mock_infrastructure import docker_init
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -26,9 +24,6 @@ class TestS3BucketManager(unittest.TestCase):
     def setUpClass(cls):
         """Set up MinIO container before all tests using docker_init helper."""
         logger.info("Setting up MinIO container via docker_init helper...")
-        cls.container = docker_init.start_minio_container()
-        # wait_for_minio is provided by docker_init and will raise on timeout
-        docker_init.wait_for_minio()
         # ensure bucket exists (idempotent)
         docker_init.create_minio_bucket(bucket=BUCKET_NAME)
         # expose boto3 client from docker_init for convenience if available
@@ -43,15 +38,6 @@ class TestS3BucketManager(unittest.TestCase):
                 config=boto3.session.Config(signature_version='s3v4'),
                 verify=False
             )
-
-    @classmethod
-    def tearDownClass(cls):
-        """Clean up after all tests using docker_init helper."""
-        logger.info("Cleaning up MinIO container via docker_init helper...")
-        try:
-            docker_init.cleanup_test_containers(("minio_test_",))
-        except Exception:
-            logger.exception("Error while cleaning up test containers")
 
     def setUp(self):
         """Set up test fixtures before each test."""

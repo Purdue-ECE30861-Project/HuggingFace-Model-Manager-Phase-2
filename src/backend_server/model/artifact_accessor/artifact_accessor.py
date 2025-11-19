@@ -12,7 +12,7 @@ from src.contracts.artifact_contracts import ArtifactQuery, ArtifactMetadata, Ar
 from .enums import *
 from .register_direct import generate_unique_id, register_data_store, artifact_and_rating_direct
 from ..data_store.audit_database import SQLAuditAccessor
-from ..data_store.database import SQLMetadataAccessor
+from ..data_store.artifact_database import SQLMetadataAccessor
 from ..data_store.downloaders.hf_downloader import HFArtifactDownloader
 from ..data_store.s3_manager import S3BucketManager
 
@@ -84,7 +84,6 @@ class ArtifactAccessor:
     @validate_call
     def register_artifact(self, artifact_type: ArtifactType, body: ArtifactData) -> tuple[RegisterArtifactEnum, Artifact | None]:
         # NEEDS LOGS
-        temporary_downloader: HFArtifactDownloader = HFArtifactDownloader()
         artifact_id: str = generate_unique_id(body.url)
 
         if self.db.is_in_db_id(artifact_id, artifact_type):
@@ -96,6 +95,7 @@ class ArtifactAccessor:
 
             try:
                 size = temporary_downloader.download_artifact(body.url, artifact_type, Path(tempdir))
+
             except FileNotFoundError:
                 logger.error(f"FAILED: model not found for {body.url}")
                 return RegisterArtifactEnum.BAD_REQUEST, None

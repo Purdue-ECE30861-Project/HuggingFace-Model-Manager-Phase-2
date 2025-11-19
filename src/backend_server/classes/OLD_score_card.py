@@ -1,6 +1,6 @@
 # from __future__ import annotations
 from dataclasses import dataclass
-from src.backend_server.classes.Reviewedness import Reviewedness
+from src.backend_server.classes.reviewedness import Reviewedness
 from src.backend_server.classes.available_datasets_and_code import (
     AvailableDatasetAndCode,
 )

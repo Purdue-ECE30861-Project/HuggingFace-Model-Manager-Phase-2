@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 from typing import Optional
 from typing import override, Dict, Any
 from datetime import datetime
 
+from huggingface_hub.utils.insecure_hashlib import sha256
 from pydantic import HttpUrl
 from pydantic_core import ValidationError
 from sqlalchemy import Dialect
@@ -22,49 +24,45 @@ from src.contracts.artifact_contracts import Artifact, ArtifactMetadata, Artifac
 from src.contracts.model_rating import ModelRating
 from src.contracts.auth_contracts import User, AuditAction, ArtifactAuditEntry
 import logging
+from .db_utils import *
 
 
 logger = logging.getLogger(__name__)
 
 
-class JsonExtract(expression.FunctionElement[str]):
-    inherit_cache = True
-    name = 'json_extract'
-    type = Text()
+class UserSerializer(TypeDecorator[User | None]):
+    impl = String(2083)
+    cache_ok = True
 
+    @override
+    def process_bind_param(self, value: User | None, dialect: Dialect) -> str:
+        return value.model_dump_json()
 
-@compiles(JsonExtract, 'sqlite')
-def _json_extract_sqlite(element: JsonExtract, compiler: Any,
-                         **kw: Any) -> str:  # pyright: ignore[reportUnusedFunction]
-    return "json_extract(%s)" % compiler.process(element.clauses, **kw)
+    def process_result_value(self, value: str | None, dialect: Dialect) -> User | None:
+        if value is None:
+            return None
+        try:
+            return User.model_validate_json(value)
+        except ValidationError:
+            return None
 
-
-@compiles(JsonExtract, 'mysql')
-def _json_extract_mysql(element: JsonExtract, compiler: Any, **kw: Any) -> str:  # pyright: ignore[reportUnusedFunction]
-    return "json_extract(%s)" % compiler.process(element.clauses, **kw)
-
-
-@compiles(JsonExtract, 'postgresql')
-def _json_extract_postgres(element: JsonExtract, compiler: Any,
-                           **kw: Any) -> str:  # pyright: ignore[reportUnusedFunction]
-    args = list(element.clauses)
-    return "%s #>> '{%s}'" % (
-        compiler.process(args[0], **kw),
-        args[1].value[2:].replace(".", ",")  # Convert $.path.to.field to path,to,field
-    )
+    def process_literal_param(self, value: User | None, dialect: Dialect) -> str:
+        return value.model_dump_json()
 
 
 class ArtifactAuditSchemaDB(SQLModel, table=True):
-    id: str = Field(default="Python have me goonin", primary_key=True)
+    hash_id: str = Field(primary_key=True)
+    id: str = Field(default="Python have me goonin")
     artifact_type: ArtifactType
-    name: ArtifactName
-    user: User
+    name: str
+    user: User = Field(sa_type=UserSerializer)
     date: datetime
     action: AuditAction
 
     @staticmethod
     def generate_from_information(metadata: ArtifactMetadata, user: User, action: AuditAction, time: datetime) -> "ArtifactAuditSchemaDB":
-        return ArtifactAuditSchemaDB (
+        db_formatted = ArtifactAuditSchemaDB (
+            hash_id="",
             id=metadata.id,
             artifact_type=metadata.type,
             name=metadata.name,
@@ -72,6 +70,13 @@ class ArtifactAuditSchemaDB(SQLModel, table=True):
             action=action,
             date=time
         )
+        hash_id: str = hashlib.sha256(
+            db_formatted.model_dump_json()
+            .encode("utf-8")
+        ).hexdigest()
+        db_formatted.hash_id = hash_id
+
+        return db_formatted
 
     def to_audit_entry(self) -> ArtifactAuditEntry:
         return ArtifactAuditEntry(
@@ -79,7 +84,7 @@ class ArtifactAuditSchemaDB(SQLModel, table=True):
             date=self.date,
             artifact=ArtifactMetadata(
                 id=self.id,
-                name=self.name.name,
+                name=self.name,
                 type=self.artifact_type
             ),
             action=self.action

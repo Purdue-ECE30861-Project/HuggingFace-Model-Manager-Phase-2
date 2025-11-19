@@ -5,28 +5,16 @@ import logging
 from src.backend_server.model.data_store.audit_database import SQLAuditAccessor
 from src.contracts.artifact_contracts import ArtifactMetadata, ArtifactType, ArtifactID
 from src.contracts.auth_contracts import User, AuditAction
-from tests.integration_tests.helpers import docker_init
-
+from mock_infrastructure import docker_init
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-MYSQL_HOST = getattr(docker_init, "MYSQL_HOST", "127.0.0.1")
-MYSQL_PORT = getattr(docker_init, "MYSQL_HOST_PORT", 3307)
-MYSQL_USER = getattr(docker_init, "MYSQL_USER", "test_user")
-MYSQL_PASSWORD = getattr(docker_init, "MYSQL_PASSWORD", "test_password")
-AUDIT_DB_NAME = os.environ.get("TEST_AUDIT_DB_NAME", "hfmm_audit_test_db")
 
 
 class TestAuditDatabaseDockerized(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.container = docker_init.start_mysql_container(
-            name_prefix="mysql_audit_test_",
-            database_name=AUDIT_DB_NAME
-        )
-        docker_init.wait_for_mysql(port=MYSQL_PORT, database=AUDIT_DB_NAME)
-        db_url = f"mysql+pymysql://{MYSQL_USER}:{MYSQL_PASSWORD}@{MYSQL_HOST}:{MYSQL_PORT}/{AUDIT_DB_NAME}"
+        db_url = f"mysql+pymysql://{docker_init.MYSQL_USER}:{docker_init.MYSQL_PASSWORD}@{docker_init.MYSQL_HOST}:{docker_init.MYSQL_HOST_PORT}/{docker_init.MYSQL_DATABASE}"
         cls.audit_accessor = SQLAuditAccessor(db_url)
 
     def tearDown(self):

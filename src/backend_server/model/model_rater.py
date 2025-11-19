@@ -2,7 +2,7 @@ from enum import IntEnum
 
 from pydantic import validate_call
 
-from src.backend_server.model.data_store.database import SQLMetadataAccessor
+from src.backend_server.model.data_store.artifact_database import SQLMetadataAccessor
 from src.contracts.artifact_contracts import ArtifactID, ArtifactType
 from src.contracts.model_rating import ModelRating
 
