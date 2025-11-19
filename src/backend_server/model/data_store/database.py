@@ -7,7 +7,7 @@ from typing import override, Dict, Any
 
 from pydantic import HttpUrl
 from pydantic_core import ValidationError
-from sqlalchemy import Dialect
+from sqlalchemy import Dialect, func
 from sqlalchemy import Engine, JSON
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.orm.attributes import flag_modified
@@ -198,11 +198,9 @@ class SQLMetadataAccessor: # I assume we use separate tables for cost, lineage, 
             return list(artifact.fetchall())
 
     def get_by_regex(self, regex: str) -> list[ArtifactDataDB]|None:
-        search = re.compile(regex)
-        artifacts = self.get_all()
-        if artifacts is None:
-            return None
-        return list(filter(lambda artifact: search.match(artifact.rating.name) is not None, artifacts))
+        with Session(self.engine) as session:
+            query = select(ArtifactDataDB) \
+                .where(ArtifactDataDB.name)
 
     def get_by_query(self, query: ArtifactQuery, offset: str) -> list[ArtifactMetadata]|None: # return NONE if there are TOO MANY artifacts. If no matches return empty list. This endpoint does not call for not found errors
         if query.types is None:

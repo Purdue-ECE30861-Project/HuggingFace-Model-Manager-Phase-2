@@ -39,7 +39,7 @@ class GlobalConfig(BaseModel):
             db_url=os.environ.get("DB_URL", "mysql+pymysql://test_user:newpassword@localhost:3307/test_db"),
             audit_db_url=os.environ.get("AUDIT_DB_URL", "mysql+pymysql://test_user:newpassword@localhost:3307/test_audit_db"),
             s3_config=S3Config(
-                s3_url=f"http://{os.environ.get("S3_URL", "127.0.0.1")}:{os.environ.get("S3_HOST_PORT", "9000")}",
+                s3_url=f'http://{os.environ.get("S3_URL", "127.0.0.1")}:{os.environ.get("S3_HOST_PORT", "9000")}',
                 s3_access_key_id=os.environ.get("S3_ACCESS_KEY_ID", "minio_access_key_123"),
                 s3_secret_access_key=os.environ.get("S3_SECRET_ACCESS_KEY", "minio_secret_key_password_456"),
                 s3_bucket_name=os.environ.get("S3_BUCKET_NAME", "hfmm-artifact-storage"),
