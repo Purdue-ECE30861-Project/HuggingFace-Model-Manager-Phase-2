@@ -5,10 +5,14 @@ from starlette.responses import Response
 from starlette.requests import Request
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
+from src.frontend_server import BACKEND_CONFIG # type: ignore
 import os
 
 from src.frontend_server.controller.health import health_router
-
+from src.frontend_server.controller.webpage import webpage_router
+from fastapi.staticfiles import StaticFiles
+from os import getenv
+from dotenv import load_dotenv
 cache_router = FastAPI()
 
 
@@ -20,6 +24,12 @@ def generate_400_error_return():
     )
 
 api_core = FastAPI()
+load_dotenv()
+is_devel = getenv("DEVEL_TEST")
+if is_devel is None:
+    is_devel = "true"
+if is_devel.lower() == "true":
+    api_core.mount("/static", StaticFiles(directory="src/frontend_server/view/static"), name="static")
 
 # Global config for backend server
 BACKEND_CONFIG = {
@@ -127,4 +137,5 @@ class CacheMiddleware(BaseHTTPMiddleware):
 # Add the middleware to api_core
 api_core.add_middleware(CacheMiddleware)
 api_core.include_router(health_router)
+api_core.include_router(webpage_router)
 

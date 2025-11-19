@@ -11,4 +11,7 @@ boto3
 botocore
 mysql-connector-python
 pytest
+jinja2
+uvicorn
+python-multipart
 pymysql
