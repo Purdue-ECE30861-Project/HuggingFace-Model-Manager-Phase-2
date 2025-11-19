@@ -1,8 +1,7 @@
-import os
 import unittest
 import logging
 
-from src.backend_server.model.data_store.audit_database import SQLAuditAccessor
+from src.backend_server.model.data_store.database_connectors.audit_database import SQLAuditAccessor
 from src.contracts.artifact_contracts import ArtifactMetadata, ArtifactType, ArtifactID
 from src.contracts.auth_contracts import User, AuditAction
 from mock_infrastructure import docker_init

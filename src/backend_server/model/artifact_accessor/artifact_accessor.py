@@ -11,8 +11,8 @@ from src.contracts.artifact_contracts import ArtifactQuery, ArtifactMetadata, Ar
     ArtifactRegEx, ArtifactData
 from .enums import *
 from .register_direct import generate_unique_id, register_data_store, artifact_and_rating_direct
-from ..data_store.audit_database import SQLAuditAccessor
-from ..data_store.artifact_database import SQLMetadataAccessor
+from src.backend_server.model.data_store.database_connectors.audit_database import SQLAuditAccessor
+from src.backend_server.model.data_store.database_connectors.artifact_database import SQLMetadataAccessor
 from ..data_store.downloaders.hf_downloader import HFArtifactDownloader
 from ..data_store.s3_manager import S3BucketManager
 

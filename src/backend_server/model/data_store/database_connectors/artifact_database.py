@@ -18,98 +18,53 @@ from typing_extensions import Literal
 
 from src.contracts.artifact_contracts import Artifact, ArtifactMetadata, ArtifactQuery, ArtifactType, ArtifactData
 from src.contracts.model_rating import ModelRating
-from .db_utils import *
+from src.backend_server.model.data_store.db_utils import *
+from .serializers import HttpUrlSerializer
+from .database_schemas import DBModelSchema, DBCodeSchema, DBDSetSchema, DBArtifactSchema, ModelLinkedArtifactNames
+from .base_database import DBAccessorBase
 import logging
 
 
 logger = logging.getLogger(__name__)
 
 
-class HttpUrlSerializer(TypeDecorator[HttpUrl|None]):
-    impl = String(2083)
-    cache_ok = True
-    
-    @override
-    def process_bind_param(self, value: HttpUrl | None, dialect: Dialect) -> str:
-        return str(value)
+class DBAccessorArtifact(DBAccessorBase): # I assume we use separate tables for cost, lineage, etc
+    def model_insert(self, model: DBModelSchema, linked_names: ModelLinkedArtifactNames):
+        pass
 
-    def process_result_value(self, value: str | None, dialect: Dialect) -> HttpUrl|None:
-        if value is None:
-            return None
-        try:
-            return HttpUrl(url=value)
-        except ValidationError:
-            return None
+    def model_delete(self):
+        pass
 
-    def process_literal_param(self, value: HttpUrl | None, dialect: Dialect) -> str:
-        return str(value)
+    def model_update(self):
+        pass
 
+    def artifact_insert(self):
+        pass
 
-class ModelRatingSerializer(TypeDecorator[ModelRating]):
-    impl = JSON
-    cache_ok = True
+    def artifact_delete(self):
+        pass
 
-    @override
-    def process_bind_param(self, value: ModelRating | None, dialect: Dialect) -> Dict[str, Any] | None:
-        if value is None:
-            return None
-        return value.model_dump()
+    def artifact_update(self):
+        pass
 
-    def process_result_value(self, value: Dict[str, Any] | None, dialect: Dialect) -> ModelRating | None:
-        if value is None:
-            return None
-        return ModelRating.model_validate(value)
+    def artifact_get_name(self):
+        pass
 
-    def process_literal_param(self, value: ModelRating | None, dialect: Dialect) -> str:
-        if value is None:
-            return ""
-        return json.dumps(value.model_dump())
+    def artifact_get_regex(self):
+        pass
 
+    def artifact_get_id(self):
+        pass
 
-class ArtifactDataDB(SQLModel, table=True): # what about for storage of datasets? Do they themselves have 'ModelRating?' Must consider this for future iteration
-    id: str = Field(default="BoatyMcBoatFace", primary_key=True)
-    url: HttpUrl = Field(sa_type=HttpUrlSerializer)
-    rating: ModelRating = Field(sa_type=ModelRatingSerializer)
+    def artifact_get_query(self):
+        pass
 
-    @staticmethod
-    def create_db_artifact(id: str, url: HttpUrl, rating: ModelRating):
-        return ArtifactDataDB(id=id, url=url, rating=rating)
+    def artifact_exists(self):
+        pass
 
-    @staticmethod
-    def create_from_artifact(artifact: Artifact, rating: Optional[ModelRating]):
-        return ArtifactDataDB(
-            id=artifact.metadata.id,
-            url=artifact.data.url,
-            rating=rating
-        )
+    def database_reset(self):
+        pass
 
-    def update_from_artifact(self, artifact: Artifact):
-        self.rating.name = artifact.metadata.name
-        flag_modified(self, "rating")
-        self.url = HttpUrl(artifact.data.url)
-
-    def generate_metadata(self) -> ArtifactMetadata:
-        return ArtifactMetadata(
-            name=self.rating.name,
-            id=str(self.id),
-            type=ArtifactType(self.rating.category)
-        )
-
-   # def generate_artifact_data(self) -> ArtifactDataDB:
-
-
-
-class SQLMetadataAccessor: # I assume we use separate tables for cost, lineage, etc
-    db_url: str | Literal["sqlite+pysqlite:///:memory:"] = "sqlite+pysqlite:///:memory:"
-    schema: ArtifactDataDB
-    engine: Engine
-    
-    def __init__(self, db_url: str|None = None) -> None:
-        if db_url is not None:
-            self.db_url = db_url
-        self.engine = create_engine(self.db_url)
-        SQLModel.metadata.create_all(self.engine)
-    
     def add_to_db(self, artifact: ArtifactDataDB) -> bool: # return false if in DB already
         try:
             if self.is_in_db(artifact.rating.name, ArtifactType(artifact.rating.category)):
@@ -120,29 +75,6 @@ class SQLMetadataAccessor: # I assume we use separate tables for cost, lineage, 
             return True
         except Exception as e:
             logger.error(e)
-            return False
-
-    def reset_db(self) -> bool:
-        """
-        Reset the database by deleting all data from all tables.
-        Returns True if successful, False if an error occurred.
-        """
-        try:
-            with Session(self.engine) as session:
-                # Get all table objects from SQLModel metadata
-                tables = SQLModel.metadata.tables.values()
-                
-                # Delete all data from each table in reverse dependency order
-                # This helps avoid foreign key constraint issues
-                for table in reversed(list(tables)):
-                    session.exec(table.delete())
-                
-                session.commit()
-                return True
-                
-        except Exception as e:
-            # Log the error if you have logging set up
-            # logger.error(f"Failed to reset database: {e}")
             return False
     
     def get_by_name(self, name: str) -> list[ArtifactDataDB]:

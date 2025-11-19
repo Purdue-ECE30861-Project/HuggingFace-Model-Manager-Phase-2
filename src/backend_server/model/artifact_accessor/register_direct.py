@@ -4,7 +4,7 @@ import botocore.exceptions as botoexc
 import hashlib
 
 from .enums import *
-from src.backend_server.model.data_store.artifact_database import SQLMetadataAccessor, ArtifactDataDB
+from src.backend_server.model.data_store.database_connectors.artifact_database import SQLMetadataAccessor, ArtifactDataDB
 from src.backend_server.model.data_store.s3_manager import S3BucketManager
 from src.contracts.artifact_contracts import Artifact, ArtifactMetadata, ArtifactData, ArtifactType
 from src.contracts.model_rating import ModelRating

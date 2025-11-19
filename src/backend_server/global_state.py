@@ -3,10 +3,10 @@ import os
 
 from src.backend_server.model.artifact_accessor.artifact_accessor import ArtifactAccessor
 from src.backend_server.model.artifact_accessor.register_deferred import RaterTaskManager
-from src.backend_server.model.data_store.artifact_database import create_engine, SQLModel, SQLMetadataAccessor
+from src.backend_server.model.data_store.database_connectors.artifact_database import SQLMetadataAccessor
 from src.backend_server.model.data_store.s3_manager import S3BucketManager
 from src.backend_server.model.model_rater import ModelRater
-from src.backend_server.model.data_store.audit_database import SQLAuditAccessor
+from src.backend_server.model.data_store.database_connectors.audit_database import SQLAuditAccessor
 
 
 class S3Config(BaseModel):

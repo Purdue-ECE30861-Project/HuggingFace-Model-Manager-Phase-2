@@ -7,7 +7,7 @@ from botocore.exceptions import ClientError
 
 from src.backend_server.model.artifact_accessor.artifact_accessor import ArtifactAccessor
 from src.backend_server.model.artifact_accessor.register_direct import *
-from src.backend_server.model.data_store.audit_database import SQLAuditAccessor
+from src.backend_server.model.data_store.database_connectors.audit_database import SQLAuditAccessor
 from src.contracts.artifact_contracts import (
     ArtifactQuery, ArtifactID, ArtifactName, ArtifactRegEx,
 )
