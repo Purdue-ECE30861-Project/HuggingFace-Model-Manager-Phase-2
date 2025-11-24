@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+from enum import Enum
 import json
 from datetime import datetime
 from typing import override, Dict, Any
@@ -8,9 +9,9 @@ from typing import override, Dict, Any
 from pydantic import HttpUrl
 from pydantic.v1 import BaseModel
 from pydantic_core import ValidationError
-from sqlalchemy import Dialect, JSON
+from sqlalchemy import Dialect, JSON, Engine, select, Text
 from sqlalchemy.types import TypeDecorator, String
-from sqlmodel import Field, SQLModel  # pyright: ignore[reportUnknownVariableType]
+from sqlmodel import Field, SQLModel, Session  # pyright: ignore[reportUnknownVariableType]
 
 from src.contracts.artifact_contracts import ArtifactMetadata, ArtifactType
 from src.contracts.auth_contracts import User, AuditAction, ArtifactAuditEntry
@@ -59,34 +60,40 @@ class ArtifactAuditSchemaDB(SQLModel, table=True):
         )
 
 
+class DBConnectiveRelation(Enum):
+    MODEL_DATASET=0
+    MODEL_CODEBASE=1
+    MODEL_PARENT_MODEL=2
+class DBConnectiveSchema(SQLModel, table=True):
+    relation_id: int | None = Field(default=None, primary_key=True)
+    src_name: str
+    src_id: str | None
+    dst_name: str
+    dst_id: str | None
+    relationship: DBConnectiveRelation
+    relationship_desc: str = ""
+
 class DBArtifactSchema(SQLModel):
     id: str = Field(default="BoatyMcBoatFace", primary_key=True)
     url: HttpUrl = Field(sa_type=HttpUrlSerializer)
     name: str
     size_mb: float
+    type: ArtifactType
 
 class DBDSetSchema(DBArtifactSchema, table=True):
-    pass
+    type: ArtifactType = ArtifactType.dataset
 
 class DBCodeSchema(DBArtifactSchema, table=True):
-    pass
+    type: ArtifactType = ArtifactType.code
 
 class ModelLinkedArtifactNames(BaseModel):
-    linked_dset_name: str | None
-    linked_code_name: str | None
+    linked_dset_names: list[str]
+    linked_code_names: list[str]
+    linked_parent_model_name: str | None
+    linked_parent_model_relation: str | None
 
 class DBModelSchema(DBArtifactSchema, table=True):
-    linked_dset_id: str | None
-    linked_dset_name: str | None
-    linked_code_id: str | None
-    linked_code_name: str | None
-
-    @staticmethod
-    def from_model_linked_names(names: ModelLinkedArtifactNames, artifact_schema: DBArtifactSchema) -> "DBModelSchema":
-        return DBModelSchema(
-            **artifact_schema.__dict__,
-            **names.__dict__
-        )
+    type: ArtifactType = ArtifactType.model
 
 
 class DBModelRatingSchema(SQLModel, table=True):
@@ -94,6 +101,11 @@ class DBModelRatingSchema(SQLModel, table=True):
     name: str
     rating: ModelRating = Field(sa_type=ModelRatingSerializer)
 
+
+class DBArtifactReadmeSchema(SQLModel, table=True):
+    id: str = Field(default="BoatyMcBoatFace", primary_key=True)
+    artifact_type: ArtifactType
+    readme_content: str = Field(sa_type=Text)
 
 """
 ingest algorithms:
