@@ -63,3 +63,4 @@ class SQLAuditAccessor(DBAccessorBase): # I assume we use separate tables for co
                 return None
             return result_reformatted
 
+
