@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import hashlib
-import json
 import logging
-from typing import Optional, Tuple
+from typing import Optional
 
 import redis
 from pydantic import BaseModel

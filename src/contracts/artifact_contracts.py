@@ -99,13 +99,14 @@ class ArtifactCostDetails(BaseModel):
         )
 
 
-class ArtifactCost(RootModel[Dict[str, ArtifactCostDetails]]):
+class ArtifactCost(BaseModel):
     """Artifact Cost aggregates the total download size (in MB)."""
-    pass
+    standalone_cost: float
+    total_cost: float
 
     @staticmethod
     def test_value() -> "ArtifactCost":
-        return ArtifactCost({"48472749248": ArtifactCostDetails.test_value()})
+        return ArtifactCost(standalone_cost=100.5, total_cost=250.75)
 
 
 class ArtifactRegEx(BaseModel):

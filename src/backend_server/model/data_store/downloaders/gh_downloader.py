@@ -1,15 +1,15 @@
 import os
 from pathlib import Path
+from typing import override
+
 from git import Repo
-from git.exc import GitCommandError, InvalidGitRepositoryError
+from git.exc import GitCommandError
 
 from src.contracts.artifact_contracts import ArtifactType
+from .base_downloader import BaseArtifactDownloader
 
 
-class GHArtifactDownloader:
-    def __init__(self, timeout: int = 30):
-        self.timeout = timeout
-
+class GHArtifactDownloader(BaseArtifactDownloader):
     def _validate_url(self, url: str) -> bool:
         """Internal method to validate URL format"""
         return url.startswith(('http://github.com', 'https://github.com'))
@@ -61,7 +61,8 @@ class GHArtifactDownloader:
         except Exception as e:
             raise FileNotFoundError(f"Failed to clone repository: {e}")
 
-    def download_artifact(self, url: str, artifact_type: ArtifactType, tempdir: Path) -> int:
+    @override
+    def download_artifact(self, url: str, artifact_type: ArtifactType, tempdir: Path) -> float:
         """Download GitHub repository and return the size of the downloaded artifact"""
         size: int = 0
 
@@ -69,16 +70,7 @@ class GHArtifactDownloader:
 
         self._github_clone(repo_id, tempdir, artifact_type)
 
-        # Calculate total size of downloaded repository
-        for root, dirs, files in os.walk(tempdir):
-            # Skip .git directory to match actual content size
-            dirs[:] = [d for d in dirs if d != '.git']
-            for file in files:
-                file_path = os.path.join(root, file)
-                try:
-                    size += os.path.getsize(file_path)
-                except (OSError, FileNotFoundError):
-                    # Skip files that can't be accessed
-                    pass
+        for ele in os.scandir(tempdir):
+            size += os.stat(ele).st_size
 
-        return size
+        return size / 10e6

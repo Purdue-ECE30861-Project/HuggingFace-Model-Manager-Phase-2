@@ -1,6 +1,5 @@
-from sqlalchemy import Engine, create_engine
+from sqlalchemy import Engine
 from sqlmodel import SQLModel, Session
-from typing_extensions import Literal
 
 
 def db_reset(engine: Engine) -> bool:

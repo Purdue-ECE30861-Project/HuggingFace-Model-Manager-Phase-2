@@ -53,7 +53,7 @@ class AuditAction(str, Enum):
 
     @staticmethod
     def test_value() -> "AuditAction":
-        return AuditAction.CREATE
+        return AuditAction.UPDATE
 
 
 class ArtifactAuditEntry(BaseModel):

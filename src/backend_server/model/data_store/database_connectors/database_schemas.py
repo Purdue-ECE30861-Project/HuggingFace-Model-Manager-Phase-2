@@ -1,21 +1,15 @@
 from __future__ import annotations
 
 import hashlib
-from enum import Enum
-import json
 from datetime import datetime
-from typing import override, Dict, Any
+from enum import Enum
 
-from pydantic import HttpUrl
 from pydantic.v1 import BaseModel
-from pydantic_core import ValidationError
-from sqlalchemy import Dialect, JSON, Engine, select, Text
-from sqlalchemy.types import TypeDecorator, String
-from sqlmodel import Field, SQLModel, Session  # pyright: ignore[reportUnknownVariableType]
+from sqlalchemy import Text
+from sqlmodel import Field, SQLModel  # pyright: ignore[reportUnknownVariableType]
 
-from src.contracts.artifact_contracts import ArtifactMetadata, ArtifactType
-from src.contracts.auth_contracts import User, AuditAction, ArtifactAuditEntry
-from src.contracts.model_rating import ModelRating
+from src.contracts.artifact_contracts import ArtifactMetadata, ArtifactType, Artifact, ArtifactData, ArtifactLineageEdge
+from src.contracts.auth_contracts import AuditAction, ArtifactAuditEntry
 from .serializers import *
 
 
@@ -64,6 +58,17 @@ class DBConnectiveRelation(Enum):
     MODEL_DATASET=0
     MODEL_CODEBASE=1
     MODEL_PARENT_MODEL=2
+
+    def to_source_type(self) -> ArtifactType:
+        match self:
+            case DBConnectiveRelation.MODEL_DATASET:
+                return ArtifactType.dataset
+            case DBConnectiveRelation.MODEL_CODEBASE:
+                return ArtifactType.code
+            case DBConnectiveRelation.MODEL_PARENT_MODEL:
+                return ArtifactType.model
+        return ArtifactType.model
+
 class DBConnectiveSchema(SQLModel, table=True):
     relation_id: int | None = Field(default=None, primary_key=True)
     src_name: str
@@ -72,6 +77,14 @@ class DBConnectiveSchema(SQLModel, table=True):
     dst_id: str | None
     relationship: DBConnectiveRelation
     relationship_desc: str = ""
+    source_desc: str = ""
+
+    def to_lineage_edge(self) -> ArtifactLineageEdge:
+        return ArtifactLineageEdge(
+            from_node_artifact_id=self.src_id,
+            to_node_artifact_id=self.dst_id,
+            relationship=self.relationship_desc
+        )
 
 class DBArtifactSchema(SQLModel):
     id: str = Field(default="BoatyMcBoatFace", primary_key=True)
@@ -79,6 +92,32 @@ class DBArtifactSchema(SQLModel):
     name: str
     size_mb: float
     type: ArtifactType
+
+    def to_artifact_metadata(self) -> ArtifactMetadata:
+        return ArtifactMetadata(
+            id=self.id,
+            type=self.type,
+            name=self.name
+        )
+
+    def to_artifact(self) -> Artifact:
+        return Artifact(
+            metadata=self.to_artifact_metadata(),
+            data=ArtifactData(
+                url=str(self.url),
+                download_url=""
+            )
+        )
+
+    @staticmethod
+    def from_artifact(artifact: Artifact, size_mb: float) -> "DBArtifactSchema":
+        return DBArtifactSchema(
+            id=artifact.metadata.id,
+            type=artifact.metadata.type,
+            name=artifact.metadata.name,
+            size_mb=size_mb,
+            url=artifact.data.url
+        )
 
 class DBDSetSchema(DBArtifactSchema, table=True):
     type: ArtifactType = ArtifactType.dataset
@@ -95,17 +134,35 @@ class ModelLinkedArtifactNames(BaseModel):
 class DBModelSchema(DBArtifactSchema, table=True):
     type: ArtifactType = ArtifactType.model
 
-
 class DBModelRatingSchema(SQLModel, table=True):
     id: str = Field(default="BoatyMcBoatFace", primary_key=True)
-    name: str
     rating: ModelRating = Field(sa_type=ModelRatingSerializer)
+
+    def to_model_rating(self) -> ModelRating:
+        return self.rating
 
 
 class DBArtifactReadmeSchema(SQLModel, table=True):
     id: str = Field(default="BoatyMcBoatFace", primary_key=True)
     artifact_type: ArtifactType
+    name: str
     readme_content: str = Field(sa_type=Text)
+
+    def to_artifiact_metadata(self) -> ArtifactMetadata:
+        return ArtifactMetadata(
+            id=self.id,
+            name=self.name,
+            type=self.artifact_type
+        )
+
+    @staticmethod
+    def from_artifact(artifact: Artifact, readme: str) -> "DBArtifactReadmeSchema":
+        return DBArtifactReadmeSchema(
+            id=artifact.metadata.id,
+            artifact_type=artifact.metadata.type,
+            name=artifact.metadata.name,
+            readme_content=readme
+        )
 
 """
 ingest algorithms:
