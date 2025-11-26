@@ -248,7 +248,7 @@ class DBArtifactAccessor: # I assume we use separate tables for cost, lineage, e
             table = get_table_from_type(artifact.type)
             query = select(table).where(
                 table.id == artifact.id,
-                table.url == artifact.data.url,
+                table.url == artifact.url,
                 table.name == artifact.name
             )
             result: DBArtifactSchema = session.exec(query).first()
@@ -356,18 +356,3 @@ class DBArtifactAccessor: # I assume we use separate tables for cost, lineage, e
             if not results:
                 return None
             return results
-
-    # def update_artifact(self, id: str, updated: Artifact, artifact_type: ArtifactType) -> bool: # should return false if the artifact is not found
-    #     with Session(self.engine) as session:
-    #         sanity_query = select(ArtifactDataDB).where(
-    #             ArtifactDataDB.id == id,
-    #                         JsonExtract(ArtifactDataDB.rating, "$.category") == artifact_type)
-    #         artifact = session.exec(sanity_query).first()
-    #         if not artifact:
-    #             return False
-    #         artifact.update_from_artifact(updated)
-    #         session.add(artifact)
-    #         session.commit()
-    #         session.refresh(artifact)
-    #
-    #     return True

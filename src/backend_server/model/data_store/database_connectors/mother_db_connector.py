@@ -1,6 +1,7 @@
 import logging
 
 from sqlalchemy import Engine
+from sqlmodel import Session, select
 
 from src.contracts.artifact_contracts import ArtifactQuery, ArtifactName, ArtifactRegEx, ArtifactID, \
     ArtifactLineageGraph, ArtifactCost, ArtifactLineageNode
@@ -110,10 +111,10 @@ class DBRouterArtifact(DBRouterBase):
         query_model: DBModelSchema = DBModelSchema.from_artifact(model, new_size_mb).to_concrete()
         if not DBArtifactAccessor.artifact_update(self.engine, query_model): return False
 
-        DBConnectionAccessor.connections_delete_by_artifact_id(self.engine, model.id)
+        DBConnectionAccessor.connections_delete_by_artifact_id(self.engine, query_model.id)
         DBConnectionAccessor.model_insert(self.engine, query_model, new_connections)
 
-        DBReadmeAccessor.artifact_delete_readme(self.engine, model.id, ArtifactType.model)
+        DBReadmeAccessor.artifact_delete_readme(self.engine, query_model.id, ArtifactType.model)
         if new_readme:
             DBReadmeAccessor.artifact_insert_readme(self.engine, model, new_readme)
 
@@ -138,10 +139,10 @@ class DBRouterArtifact(DBRouterBase):
         query_artifact: DBArtifactSchema = DBModelSchema.from_artifact(artifact, new_size_mb).to_concrete()
         if not DBArtifactAccessor.artifact_update(self.engine, query_artifact): return False
 
-        DBConnectionAccessor.connections_delete_by_artifact_id(self.engine, artifact.id)
+        DBConnectionAccessor.connections_delete_by_artifact_id(self.engine, query_artifact.id)
         DBConnectionAccessor.non_model_insert(self.engine, query_artifact)
 
-        DBReadmeAccessor.artifact_delete_readme(self.engine, artifact.id, ArtifactType.model)
+        DBReadmeAccessor.artifact_delete_readme(self.engine, query_artifact.id, query_artifact.type)
         if new_readme:
             DBReadmeAccessor.artifact_insert_readme(self.engine, artifact, new_readme)
 
