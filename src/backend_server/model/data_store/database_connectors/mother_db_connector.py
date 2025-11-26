@@ -3,7 +3,7 @@ import logging
 from sqlalchemy import Engine
 
 from src.contracts.artifact_contracts import ArtifactQuery, ArtifactName, ArtifactRegEx, ArtifactID, \
-    ArtifactLineageGraph, ArtifactCost
+    ArtifactLineageGraph, ArtifactCost, ArtifactLineageNode
 from .database_schemas import *
 from .audit_database import DBAuditAccessor
 from .artifact_database import DBArtifactAccessor, DBConnectionAccessor, DBReadmeAccessor
@@ -84,8 +84,8 @@ class DBRouterArtifact(DBRouterBase):
             metadata=selected_artifact.metadata
         ): return False
 
-        if not DBArtifactAccessor.artifact_delete(self.engine, selected_artifact.id, artifact_type): return False
-        DBConnectionAccessor.connections_delete_by_artifact_id(self.engine, selected_artifact.id)
+        if not DBArtifactAccessor.artifact_delete(self.engine, selected_artifact.metadata.id, artifact_type): return False
+        DBConnectionAccessor.connections_delete_by_artifact_id(self.engine, selected_artifact.metadata.id)
 
         DBReadmeAccessor.artifact_delete_readme(self.engine, artifact_id, artifact_type)
 
@@ -133,11 +133,20 @@ class DBRouterArtifact(DBRouterBase):
         return [result.to_artifact_metadata() for result in results]
 
     def db_artifact_get_regex(self, regex: ArtifactRegEx) -> list[ArtifactMetadata]|None:
-        result, result_readme = DBArtifactAccessor.artifact_get_by_regex(self.engine, regex)
+        result, result_readme = DBArtifactAccessor.artifact_get_by_regex(self.engine, regex.regex)
 
-        result_translated = set([result_artifact.to_artifact_metadata() for result_artifact in result])
-        result_readme_translated = set([readme.to_metadata() for readme in result_readme])
-        result = list(result_translated.union(result_readme_translated))
+        result_translated: list[ArtifactMetadata] = [result_artifact.to_artifact_metadata() for result_artifact in result]
+        result_readme_translated: list[ArtifactMetadata] = [readme.to_artifact_metadata() for readme in result_readme]
+
+        result_translated += result_readme_translated
+
+        id_list: list[str] = []
+        result: list[ArtifactMetadata] = []
+
+        for result_val in result_translated:
+            if result_val.id not in id_list:
+                id_list.append(result_val.id)
+                result.append(result_val)
 
         if not result:
             return None
@@ -185,7 +194,26 @@ class DBRouterLineage(DBRouterBase):
             edges=[]
         )
 
-        raise NotImplementedError()
+        selected_model: DBModelSchema|None = artifact.to_concrete()
+        while selected_model:
+            lineage_graph.nodes.append(ArtifactLineageNode(
+                artifact_id=selected_model.id,
+                name=selected_model.name,
+                source="this_model",
+                metadata={"url": str(artifact.url)}
+            ))
+            parent_model_relation = DBConnectionAccessor.model_get_parent_model(self.engine, selected_model)
+            if parent_model_relation:
+                print(selected_model.id, parent_model_relation)
+                lineage_graph.edges.append(ArtifactLineageEdge(
+                    from_node_artifact_id=parent_model_relation.src_id,
+                    to_node_artifact_id=parent_model_relation.dst_id,
+                    relationship=parent_model_relation.relationship_desc,
+                ))
+                selected_model = DBArtifactAccessor.artifact_get_by_id(self.engine, parent_model_relation.src_id,
+                                                                       ArtifactType.model).to_concrete()
+            else:
+                selected_model = None
 
         return lineage_graph
 
@@ -205,7 +233,7 @@ class DBRouterCost(DBRouterBase):
         if not dependency or artifact_type != ArtifactType.model:
             return cost
 
-        selected_model: DBModelSchema|None = artifact
+        selected_model: DBModelSchema|None = artifact.to_concrete()
 
         while selected_model is not None:
             connections: list[DBConnectiveSchema] =  DBConnectionAccessor.model_get_associated_dset_and_code(self.engine, selected_model)
@@ -214,19 +242,42 @@ class DBRouterCost(DBRouterBase):
                     self.engine, connection.src_id, connection.relationship.to_source_type())
                 cost.total_cost += artifact.size_mb
             parent_model_relation = DBConnectionAccessor.model_get_parent_model(self.engine, selected_model)
-            selected_model = DBArtifactAccessor.artifact_get_by_id(self.engine, parent_model_relation.src_id, ArtifactType.model)
+            if parent_model_relation:
+                selected_model = DBArtifactAccessor.artifact_get_by_id(self.engine, parent_model_relation.src_id,
+                                                                       ArtifactType.model)
+                cost.total_cost += selected_model.size_mb
+            else:
+                selected_model = None
 
-        return selected_model
+        return cost
 
 class DBRouterRating(DBRouterBase):
     def db_rating_add(self,
         model_id: str,
-        rating: ModelRating
+        rating: ModelRating,
     ) -> bool:
         if not DBArtifactAccessor.artifact_get_by_id(self.engine, model_id, ArtifactType(rating.category)):
             return False
 
         return DBModelRatingAccessor.add_rating(self.engine, model_id, rating)
+
+    def db_rating_get(self,
+        model_id: str,
+        user: User=User(name="GoonerMcGoon", is_admin=False)
+    ) -> ModelRating|None:
+        model_result: None|DBModelSchema = DBArtifactAccessor.artifact_get_by_id(self.engine, model_id, ArtifactType.model)
+        if not model_result:
+            return None
+
+        rating_result: DBModelRatingSchema = DBModelRatingAccessor.get_rating(self.engine, model_id)
+        if not DBAuditAccessor.append_audit(
+            self.engine,
+            action=AuditAction.RATE,
+            user=user,
+            metadata=model_result.to_artifact_metadata(),
+        ): logger.error("Failed to append audit logs for get rating")
+
+        return rating_result.to_model_rating()
 
 class DBManager:
     def __init__(self, engine: Engine):

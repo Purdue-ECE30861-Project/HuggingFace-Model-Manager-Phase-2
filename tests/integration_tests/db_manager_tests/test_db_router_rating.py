@@ -3,7 +3,9 @@ import logging
 from sqlalchemy import create_engine, Engine
 from sqlmodel import SQLModel
 
-from src.contracts.artifact_contracts import ArtifactType, Artifact, ArtifactData, ArtifactMetadata
+from src.backend_server.model.data_store.database_connectors.audit_database import DBAuditAccessor
+from src.contracts.artifact_contracts import ArtifactType, Artifact, ArtifactData, ArtifactMetadata, ArtifactID
+from src.contracts.auth_contracts import AuditAction
 from src.contracts.model_rating import ModelRating
 from src.backend_server.model.data_store.database_connectors.mother_db_connector import DBRouterRating, DBRouterArtifact
 from src.backend_server.model.data_store.database_connectors.database_schemas import ModelLinkedArtifactNames
@@ -60,6 +62,14 @@ class TestDBRouterRating(unittest.TestCase):
         
         result = self.router_rating.db_rating_add("rating-router-id-1", rating)
         self.assertTrue(result, "Failed to add rating")
+
+        # try to get the rating back
+        rating_result = self.router_rating.db_rating_get("rating-router-id-1")
+        self.assertEqual(rating_result.name, "rating-router-model")
+
+        audit_result = DBAuditAccessor.get_by_id(self.engine, ArtifactID(id="rating-router-id-1"), ArtifactType.model)
+        self.assertEqual(len(audit_result), 2)
+        self.assertEqual(audit_result[1].action, AuditAction.RATE)
 
     def test_db_rating_add_nonexistent(self):
         """Test adding rating to non-existent artifact returns False."""

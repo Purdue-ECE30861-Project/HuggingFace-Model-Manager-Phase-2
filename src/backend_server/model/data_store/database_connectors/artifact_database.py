@@ -4,6 +4,7 @@ import logging
 from typing import Type
 
 from sqlalchemy import Engine
+from sqlalchemy.orm import relationship
 from sqlmodel import Session, select  # pyright: ignore[reportUnknownVariableType]
 
 from src.backend_server.model.data_store.db_utils import *
@@ -111,7 +112,9 @@ class DBConnectionAccessor:
                 src_id=None,
                 dst_name=model.name,
                 dst_id=model.id,
-                relationship=DBConnectiveRelation.MODEL_PARENT_MODEL
+                relationship=DBConnectiveRelation.MODEL_PARENT_MODEL,
+                relationship_description=linked_names.linked_parent_model_relation,
+                source_desc=linked_names.linked_parent_model_rel_source,
             )
             if parent_model is not None:
                 connection.src_id = parent_model.id

@@ -110,6 +110,74 @@ class TestDBRouterCost(unittest.TestCase):
         # Total cost should include model + dataset + code = 100 + 30 + 10 = 140
         self.assertGreater(cost.total_cost, cost.standalone_cost, "Total cost should be greater than standalone when dependencies exist")
 
+    def test_db_artifact_cost_model_with_dependencies_nested(self):
+        """Test cost calculation for model with dependencies."""
+        # Create dataset
+
+        dataset_artifact2 = Artifact(
+            metadata=ArtifactMetadata(name="cost-dset2", id="cost-dset-id-2", type=ArtifactType.dataset),
+            data=ArtifactData(url="https://example.com/dataset2", download_url="")
+        )
+        self.router_artifact.db_artifact_ingest(dataset_artifact2, size_mb=30.0, readme=None)
+
+        # Create code
+        code_artifact2 = Artifact(
+            metadata=ArtifactMetadata(name="cost-code2", id="cost-code-id-2", type=ArtifactType.code),
+            data=ArtifactData(url="https://example.com/code2", download_url="")
+        )
+        self.router_artifact.db_artifact_ingest(code_artifact2, size_mb=10.0, readme=None)
+
+        parent_model = Artifact(
+            metadata=ArtifactMetadata(name="cost-model-2", id="cost-model-id-2", type=ArtifactType.model),
+            data=ArtifactData(url="https://example.com/model/2", download_url="")
+        )
+
+        linked_names = ModelLinkedArtifactNames(
+            linked_dset_names=["cost-dset2"],
+            linked_code_names=["cost-code2"],
+            linked_parent_model_name=None,
+            linked_parent_model_relation=None
+        )
+
+        self.router_artifact.db_model_ingest(parent_model, linked_names, size_mb=100.0, readme=None)
+        cost = self.router_cost.db_artifact_cost("cost-model-id-2", ArtifactType.model, dependency=True)
+        self.assertEqual(cost.total_cost, 140.0, "Root Total cost does not match expected value")
+        # THE CURRENT MODEL
+
+        dataset_artifact = Artifact(
+            metadata=ArtifactMetadata(name="cost-dset", id="cost-dset-id-1", type=ArtifactType.dataset),
+            data=ArtifactData(url="https://example.com/dataset", download_url="")
+        )
+        self.router_artifact.db_artifact_ingest(dataset_artifact, size_mb=30.0, readme=None)
+
+        # Create code
+        code_artifact = Artifact(
+            metadata=ArtifactMetadata(name="cost-code", id="cost-code-id-1", type=ArtifactType.code),
+            data=ArtifactData(url="https://example.com/code", download_url="")
+        )
+        self.router_artifact.db_artifact_ingest(code_artifact, size_mb=10.0, readme=None)
+
+        model_artifact = Artifact(
+            metadata=ArtifactMetadata(name="cost-model-dep", id="cost-model-dep-id-1", type=ArtifactType.model),
+            data=ArtifactData(url="https://example.com/model", download_url="")
+        )
+        linked_names = ModelLinkedArtifactNames(
+            linked_dset_names=["cost-dset"],
+            linked_code_names=["cost-code"],
+            linked_parent_model_name="cost-model-2",
+            linked_parent_model_relation="fine tune"
+        )
+        self.router_artifact.db_model_ingest(model_artifact, linked_names, size_mb=100.0, readme=None)
+
+        # Calculate cost with dependencies
+        cost = self.router_cost.db_artifact_cost("cost-model-dep-id-1", ArtifactType.model, dependency=True)
+        self.assertIsNotNone(cost, "Cost should not be None")
+        self.assertEqual(cost.standalone_cost, 100.0, "Standalone cost should equal model size")
+        # Total cost should include model + dataset + code = 100 + 30 + 10 = 140
+        self.assertGreater(cost.total_cost, cost.standalone_cost,
+                           "Total cost should be greater than standalone when dependencies exist")
+        self.assertEqual(cost.total_cost, 280.0, "Total cost does not match expected value")
+
 
 if __name__ == '__main__':
     unittest.main()

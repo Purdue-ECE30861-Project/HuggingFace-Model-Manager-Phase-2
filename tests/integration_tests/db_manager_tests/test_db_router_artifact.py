@@ -3,6 +3,7 @@ import logging
 from sqlalchemy import create_engine, Engine
 from sqlmodel import SQLModel
 
+from src.backend_server.model.data_store.database_connectors.artifact_database import DBArtifactAccessor
 from src.contracts.artifact_contracts import (
     ArtifactType, Artifact, ArtifactData, ArtifactMetadata, 
     ArtifactQuery, ArtifactName, ArtifactRegEx
@@ -264,9 +265,13 @@ class TestDBRouterArtifact(unittest.TestCase):
             linked_parent_model_name=None, linked_parent_model_relation=None
         )
         self.router.db_model_ingest(model_artifact, linked_names, size_mb=100.0, readme="# regex-router-test content")
-        
+
+        self.assertTrue(len(DBArtifactAccessor.get_all(self.router.engine)) > 0, "Must be at least one artifact")
+        self.assertTrue(len(DBArtifactAccessor.artifact_get_by_regex(self.router.engine, "regex-router.*")[0]) > 0, "Must be at least one artifact")
+
         regex = ArtifactRegEx(regex="regex-router.*")
         results = self.router.db_artifact_get_regex(regex)
+        print(results)
         self.assertIsNotNone(results, "Results should not be None")
         self.assertGreaterEqual(len(results), 1, "Should find at least 1 artifact matching regex")
 

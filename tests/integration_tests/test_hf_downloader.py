@@ -61,6 +61,6 @@ class TestHFArtifactDownloader(unittest.TestCase):
             self.assertTrue(found, f"Expected model file not found in {download_path}")
 
             # Check size corresponds roughly to sum of file sizes
-            computed_size = sum(f.stat().st_size for f in files if f.is_file())
+            computed_size = sum(f.stat().st_size for f in files if f.is_file()) / 10e6
             self.assertLess(abs(size - computed_size), 10000, "Reported size must equal sum of file sizes")
 

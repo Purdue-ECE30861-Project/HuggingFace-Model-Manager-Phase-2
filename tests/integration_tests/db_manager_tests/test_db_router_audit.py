@@ -110,7 +110,19 @@ class TestDBRouterAudit(unittest.TestCase):
         actions = [log.action for log in audit_logs]
         self.assertIn(AuditAction.CREATE, actions)
         self.assertIn(AuditAction.DOWNLOAD, actions)
-        # AUDIT action should also be present from the db_artifact_audit call itself
+
+        audit_logs = self.router_audit.db_artifact_audit(
+            ArtifactType.model,
+            "multi-audit-id-1",
+            user
+        )
+
+        self.assertIsNotNone(audit_logs, "Audit logs should not be None")
+        self.assertGreaterEqual(len(audit_logs), 2, "Should have at least 2 audit entries (CREATE and DOWNLOAD)")
+
+        actions = [log.action for log in audit_logs]
+        self.assertIn(AuditAction.CREATE, actions)
+        self.assertIn(AuditAction.DOWNLOAD, actions)
         self.assertIn(AuditAction.AUDIT, actions)
 
 

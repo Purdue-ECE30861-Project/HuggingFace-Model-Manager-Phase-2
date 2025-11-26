@@ -3,7 +3,10 @@ import logging
 from sqlalchemy import create_engine, Engine
 from sqlmodel import SQLModel
 
-from src.contracts.artifact_contracts import ArtifactType, Artifact, ArtifactData, ArtifactMetadata
+from src.backend_server.model.data_store.database_connectors.artifact_database import DBConnectionAccessor, \
+    DBArtifactAccessor
+from src.contracts.artifact_contracts import ArtifactType, Artifact, ArtifactData, ArtifactMetadata, \
+    ArtifactLineageGraph
 from src.backend_server.model.data_store.database_connectors.mother_db_connector import DBRouterLineage, DBRouterArtifact
 from src.backend_server.model.data_store.database_connectors.database_schemas import ModelLinkedArtifactNames
 from src.backend_server.model.data_store.database_connectors.base_database import db_reset
@@ -57,22 +60,60 @@ class TestDBRouterLineage(unittest.TestCase):
         result = self.router_lineage.db_artifact_lineage("lineage-dataset-id-1")
         self.assertIsNone(result, "Non-model artifact should return None")
 
-    def test_db_artifact_lineage_not_implemented(self):
-        """Test that lineage raises NotImplementedError for existing model."""
-        # Create a model artifact
-        model_artifact = Artifact(
-            metadata=ArtifactMetadata(name="lineage-model", id="lineage-model-id-1", type=ArtifactType.model),
+    def test_triple_lineage(self):
+        """Test lineage for triple artifact"""
+
+        model_1 = Artifact(
+            metadata=ArtifactMetadata(name="lineage-model-1", id="lineage-model-id-1", type=ArtifactType.model),
             data=ArtifactData(url="https://example.com/model", download_url="")
         )
-        linked_names = ModelLinkedArtifactNames(
-            linked_dset_names=[], linked_code_names=[],
-            linked_parent_model_name=None, linked_parent_model_relation=None
+        model_2 = Artifact(
+            metadata=ArtifactMetadata(name="lineage-model-2", id="lineage-model-id-2", type=ArtifactType.model),
+            data=ArtifactData(url="https://example.com/model", download_url="")
         )
-        self.router_artifact.db_model_ingest(model_artifact, linked_names, size_mb=100.0, readme=None)
-        
-        # Should raise NotImplementedError
-        with self.assertRaises(NotImplementedError):
-            self.router_lineage.db_artifact_lineage("lineage-model-id-1")
+        model_3 = Artifact(
+            metadata=ArtifactMetadata(name="lineage-model-3", id="lineage-model-id-3", type=ArtifactType.model),
+            data=ArtifactData(url="https://example.com/model", download_url="")
+        )
+        names_1 = ModelLinkedArtifactNames(
+            linked_code_names=[],
+            linked_dset_names=[],
+            linked_parent_model_name=None,
+            linked_parent_model_relation=None
+        )
+        names_2 = ModelLinkedArtifactNames(
+            linked_code_names=[],
+            linked_dset_names=[],
+            linked_parent_model_name="lineage-model-1",
+            linked_parent_model_relation="quantization",
+            linked_parent_model_rel_source="readme"
+        )
+        names_3 = ModelLinkedArtifactNames(
+            linked_code_names=[],
+            linked_dset_names=[],
+            linked_parent_model_name="lineage-model-2",
+            linked_parent_model_relation="fine_tune",
+            linked_parent_model_rel_source="config_json"
+        )
+
+        self.router_artifact.db_model_ingest(model_1, names_1, 100.0, None)
+        self.router_artifact.db_model_ingest(model_2, names_2, 200.0, None)
+        self.router_artifact.db_model_ingest(model_3, names_3, 300.0, None)
+
+        self.assertEqual(len(DBConnectionAccessor.connections_get_all(self.engine)), 2)
+        self.assertEqual(len(DBArtifactAccessor.get_all(self.engine)), 3)
+
+        lineage: ArtifactLineageGraph = self.router_lineage.db_artifact_lineage("lineage-model-id-3")
+        self.assertEqual(len(lineage.nodes), 3)
+        self.assertEqual(len(lineage.edges), 2)
+
+        from_to_relations = [("lineage-model-id-1", "lineage-model-id-2"),("lineage-model-id-2", "lineage-model-id-3")]
+        for relation in lineage.edges:
+            self.assertIn((relation.from_node_artifact_id, relation.to_node_artifact_id), from_to_relations)
+
+        node_ids = ["lineage-model-id-1", "lineage-model-id-2", "lineage-model-id-3"]
+        for node in lineage.nodes:
+            self.assertIn(node.artifact_id, node_ids)
 
 
 if __name__ == '__main__':

@@ -141,6 +141,7 @@ class ModelLinkedArtifactNames(BaseModel):
     linked_code_names: list[str]
     linked_parent_model_name: str | None
     linked_parent_model_relation: str | None
+    linked_parent_model_rel_source: str | None = None
 
 class DBModelSchema(DBArtifactSchema, table=True):
     type: ArtifactType = ArtifactType.model
@@ -159,7 +160,7 @@ class DBArtifactReadmeSchema(SQLModel, table=True):
     name: str
     readme_content: str = Field(sa_type=Text)
 
-    def to_artifiact_metadata(self) -> ArtifactMetadata:
+    def to_artifact_metadata(self) -> ArtifactMetadata:
         return ArtifactMetadata(
             id=self.id,
             name=self.name,

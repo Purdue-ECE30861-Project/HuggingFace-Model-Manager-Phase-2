@@ -13,13 +13,15 @@ logger = logging.getLogger(__name__)
 
 class DBModelRatingAccessor:
     @staticmethod
-    def get_rating(engine: Engine, model_id: str) -> None|ModelRating:
+    def get_rating(engine: Engine, model_id: str) -> None|DBModelRatingSchema:
+        result: DBModelRatingSchema|None = None
         with Session(engine) as session:
-            query = select(ModelRating).where(ModelRating.model_id == model_id)
+            query = select(DBModelRatingSchema).where(DBModelRatingSchema.id == model_id)
             result: DBModelRatingSchema = session.exec(query).first()
         if not result:
             return None
-        return result.to_model_rating()
+
+        return result[0]
 
     @staticmethod
     def add_rating(engine: Engine, model_id: str, rating: ModelRating) -> bool:

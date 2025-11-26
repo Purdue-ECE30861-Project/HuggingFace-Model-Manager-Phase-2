@@ -1,12 +1,14 @@
 from pydantic import BaseModel
 import os
 
+from sqlalchemy import Engine, create_engine
+from sqlmodel import SQLModel
+
 from src.backend_server.model.artifact_accessor.artifact_accessor import ArtifactAccessor
 from src.backend_server.model.artifact_accessor.register_deferred import RaterTaskManager
-from src.backend_server.model.data_store.database_connectors.artifact_database import SQLMetadataAccessor
+from src.backend_server.model.data_store.database_connectors.mother_db_connector import DBManager
 from src.backend_server.model.data_store.s3_manager import S3BucketManager
 from src.backend_server.model.model_rater import ModelRater
-from src.backend_server.model.data_store.database_connectors.audit_database import SQLAuditAccessor
 
 
 class S3Config(BaseModel):
@@ -37,7 +39,6 @@ class GlobalConfig(BaseModel):
     def read_env() -> "GlobalConfig":
         return GlobalConfig(
             db_url=os.environ.get("DB_URL", "mysql+pymysql://test_user:newpassword@localhost:3307/test_db"),
-            audit_db_url=os.environ.get("AUDIT_DB_URL", "mysql+pymysql://test_user:newpassword@localhost:3307/test_audit_db"),
             s3_config=S3Config(
                 s3_url=f'http://{os.environ.get("S3_URL", "127.0.0.1")}:{os.environ.get("S3_HOST_PORT", "9000")}',
                 s3_access_key_id=os.environ.get("S3_ACCESS_KEY_ID", "minio_access_key_123"),
@@ -59,12 +60,15 @@ class GlobalConfig(BaseModel):
 
 global_config: GlobalConfig = GlobalConfig.read_env()
 
-database_accessor: SQLMetadataAccessor = SQLMetadataAccessor(db_url=global_config.db_url)
+mysql_engine: Engine = create_engine(global_config.db_url)
+SQLModel.metadata.create_all(mysql_engine)
+
+database_manager: DBManager = DBManager(mysql_engine)
+
 rater_task_manager: RaterTaskManager = RaterTaskManager(
     max_workers=global_config.rater_task_manager_workers,
     max_processes_per_rater=global_config.rater_processes
 )
-audit_db_accessor: SQLAuditAccessor = SQLAuditAccessor(global_config.audit_db_url)
 s3_accessor: S3BucketManager = S3BucketManager(
     global_config.s3_config.s3_url,
     global_config.s3_config.s3_access_key_id,
@@ -73,11 +77,10 @@ s3_accessor: S3BucketManager = S3BucketManager(
     global_config.s3_config.s3_data_prefix,
     global_config.s3_config.s3_region_name
 )
-artifact_accessor: ArtifactAccessor = ArtifactAccessor(
-    database_accessor,
-    audit_db_accessor,
-    s3_accessor,
-    global_config.rater_processes,
-    global_config.ingest_score_threshold
-)
-rater_accessor: ModelRater = ModelRater(database_accessor)
+# artifact_accessor: ArtifactAccessor = ArtifactAccessor(
+#     database_accessor,
+#     audit_db_accessor,
+#     s3_accessor,
+#     global_config.rater_processes,
+#     global_config.ingest_score_threshold
+# )
