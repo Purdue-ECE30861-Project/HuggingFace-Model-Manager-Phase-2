@@ -3,7 +3,7 @@ import pytest
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from src.classes.Size import Size
+from src.backend_server.classes.size import Size
 
 
 def test_size_small_project():

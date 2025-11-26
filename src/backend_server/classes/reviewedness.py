@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from src.backend_server.classes.Metric import Metric
+from src.contracts.metric_std import MetricStd
 import src.backend_server.utils.get_metadata
 import time
 from dotenv import load_dotenv
@@ -40,7 +40,7 @@ graphql_query_get_merge_additions = """
 
 
 @dataclass
-class Reviewedness(Metric):
+class Reviewedness(MetricStd):
     # TODO: Rebalance weights
     def __init__(self, metricName: str = "License", metricWeighting: float = 0.0):
         super().__init__(metricName, 0, metricWeighting)

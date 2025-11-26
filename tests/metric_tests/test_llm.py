@@ -4,7 +4,7 @@ import unittest
 from unittest.mock import patch, MagicMock
 
 import requests
-from src.utils.llm_api import llmAPI
+from src.backend_server.utils.llm_api import llmAPI
 
 
 class MakePromptTests(unittest.TestCase):

@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import patch
 import json
 
-from src.classes.DatasetQuality import DatasetQuality
+from src.backend_server.classes.dataset_quality import DatasetQuality
 
 # A tiny fake HF API client that returns JSON strings like hfAPI.get_info()
 class FakeHFAPI:

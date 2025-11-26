@@ -1,4 +1,4 @@
-from src.external_contracts import (
+from src.contracts.health_contracts import (
     HealthComponentCollection,
     HealthComponentDetail,
     HealthStatus,

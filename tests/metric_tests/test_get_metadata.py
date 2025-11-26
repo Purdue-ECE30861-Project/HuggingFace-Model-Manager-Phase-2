@@ -4,7 +4,7 @@ import unittest
 from unittest.mock import patch, MagicMock
 import statistics
 # CHANGE THIS IMPORT if your file is named differently:
-from src.utils.get_metadata import (
+from src.backend_server.utils.get_metadata import (
     _repo_id_from_url,
     _normalize_author,
     find_github_links,

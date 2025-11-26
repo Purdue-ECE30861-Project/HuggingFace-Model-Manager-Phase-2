@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import patch
 import json
 
-from src.classes.License import License
+from src.backend_server.classes.license import License
 
 # Minimal fake HF client that mirrors hfAPI().get_info(url, printCLI=False) -> JSON string
 class FakeHF:

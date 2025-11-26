@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import patch
 import json
 
-from src.classes.PerformanceClaims import PerformanceClaims
+from src.backend_server.classes.performance_claims import PerformanceClaims
 
 # Fake HF client that returns the JSON structure evaluate() expects
 class FakeHF:
