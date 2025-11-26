@@ -44,12 +44,6 @@ class DBRouterArtifact(DBRouterBase):
 
         return True
 
-    def db_model_add_rating(self, model_id: str, rating: ModelRating) -> bool:
-        if not DBArtifactAccessor.artifact_exists(self.engine, model_id, ArtifactType.model):
-            return False
-        DBModelRatingAccessor.add_rating(self.engine, model_id, rating)
-        return True
-
     def db_artifact_ingest(self, artifact: Artifact,
                         size_mb: float, readme: str | None,
                         user: User=User(name="GoonerMcGoon", is_admin=False)
