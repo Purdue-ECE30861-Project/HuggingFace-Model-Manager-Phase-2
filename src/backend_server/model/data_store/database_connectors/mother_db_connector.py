@@ -6,7 +6,7 @@ from src.contracts.artifact_contracts import ArtifactQuery, ArtifactName, Artifa
     ArtifactLineageGraph, ArtifactCost
 from .database_schemas import *
 from .audit_database import DBAuditAccessor
-from .artifact_database import DBAccessorArtifact, DBConnectionAccessor, DBReadmeAccessor
+from .artifact_database import DBArtifactAccessor, DBConnectionAccessor, DBReadmeAccessor
 from .model_rating_database import DBModelRatingAccessor
 from .base_database import db_reset
 
@@ -36,7 +36,7 @@ class DBRouterArtifact(DBRouterBase):
         ): return False
 
         db_model: DBModelSchema = DBArtifactSchema.from_artifact(model_artifact, size_mb)
-        if not DBAccessorArtifact.artifact_insert(self.engine, db_model): return False
+        if not DBArtifactAccessor.artifact_insert(self.engine, db_model): return False
         DBConnectionAccessor.model_insert(self.engine, db_model, attached_names)
 
         if readme is not None:
@@ -45,7 +45,7 @@ class DBRouterArtifact(DBRouterBase):
         return True
 
     def db_model_add_rating(self, model_id: str, rating: ModelRating) -> bool:
-        if not DBAccessorArtifact.artifact_exists(self.engine, model_id, ArtifactType.model):
+        if not DBArtifactAccessor.artifact_exists(self.engine, model_id, ArtifactType.model):
             return False
         DBModelRatingAccessor.add_rating(self.engine, model_id, rating)
         return True
@@ -65,7 +65,7 @@ class DBRouterArtifact(DBRouterBase):
         ): return False
 
         db_model: DBArtifactSchema = DBArtifactSchema.from_artifact(artifact, size_mb)
-        if not DBAccessorArtifact.artifact_insert(self.engine, db_model): return False
+        if not DBArtifactAccessor.artifact_insert(self.engine, db_model): return False
         DBConnectionAccessor.non_model_insert(self.engine, db_model)
 
         if readme is not None:
@@ -78,7 +78,7 @@ class DBRouterArtifact(DBRouterBase):
                            artifact_type: ArtifactType,
                            user: User=User(name="GoonerMcGoon", is_admin=False)
     ):
-        selected_artifact: DBArtifactSchema = DBAccessorArtifact.artifact_get_by_id(self.engine, artifact_id, artifact_type)
+        selected_artifact: DBArtifactSchema = DBArtifactAccessor.artifact_get_by_id(self.engine, artifact_id, artifact_type)
         if not selected_artifact:
             return False
         selected_artifact: Artifact = selected_artifact.to_artifact()
@@ -90,7 +90,7 @@ class DBRouterArtifact(DBRouterBase):
             metadata=selected_artifact.metadata
         ): return False
 
-        if not DBAccessorArtifact.artifact_delete(self.engine, selected_artifact.id, artifact_type): return False
+        if not DBArtifactAccessor.artifact_delete(self.engine, selected_artifact.id, artifact_type): return False
         DBConnectionAccessor.connections_delete_by_artifact_id(self.engine, selected_artifact.id)
 
         DBReadmeAccessor.artifact_delete_readme(self.engine, artifact_id, artifact_type)
@@ -106,7 +106,7 @@ class DBRouterArtifact(DBRouterBase):
         raise NotImplementedError()
 
     def db_artifact_get_query(self, query: ArtifactQuery, offset: str) -> list[ArtifactMetadata]|None:
-        results: list[DBArtifactSchema]|None = DBAccessorArtifact.artifact_get_by_query(self.engine, query, offset)
+        results: list[DBArtifactSchema]|None = DBArtifactAccessor.artifact_get_by_query(self.engine, query, offset)
         if not results:
             return None
 
@@ -117,7 +117,7 @@ class DBRouterArtifact(DBRouterBase):
                            artifact_type: ArtifactType,
                            user: User=User(name="GoonerMcGoon", is_admin=False)
     ) -> Artifact|None:
-        result: None|DBArtifactSchema = DBAccessorArtifact.artifact_get_by_id(self.engine, artifact_id, artifact_type)
+        result: None|DBArtifactSchema = DBArtifactAccessor.artifact_get_by_id(self.engine, artifact_id, artifact_type)
         if not result:
             return None
 
@@ -133,14 +133,14 @@ class DBRouterArtifact(DBRouterBase):
         return result
 
     def db_artifact_get_name(self, artifact_name: ArtifactName) -> list[ArtifactMetadata]|None:
-        results: None|list[DBArtifactSchema] = DBAccessorArtifact.artifact_get_by_name(self.engine, artifact_name)
+        results: None|list[DBArtifactSchema] = DBArtifactAccessor.artifact_get_by_name(self.engine, artifact_name)
         if not results:
             return None
 
         return [result.to_artifact_metadata() for result in results]
 
     def db_artifact_get_regex(self, regex: ArtifactRegEx) -> list[ArtifactMetadata]|None:
-        result, result_readme = DBAccessorArtifact.artifact_get_by_regex(self.engine, regex)
+        result, result_readme = DBArtifactAccessor.artifact_get_by_regex(self.engine, regex)
 
         result_translated = set([result_artifact.to_artifact_metadata() for result_artifact in result])
         result_readme_translated = set([readme.to_metadata() for readme in result_readme])
@@ -152,7 +152,7 @@ class DBRouterArtifact(DBRouterBase):
         return result
 
     def db_artifact_exists(self, artifact_id: str, artifact_type: ArtifactType) -> bool:
-        return DBAccessorArtifact.artifact_exists(self.engine, artifact_id, artifact_type)
+        return DBArtifactAccessor.artifact_exists(self.engine, artifact_id, artifact_type)
     
     
 class DBRouterAudit(DBRouterBase):
@@ -161,7 +161,7 @@ class DBRouterAudit(DBRouterBase):
         artifact_id: str,
         user: User=User(name="GoonerMcGoon", is_admin=False)
     ) -> None|list[ArtifactAuditEntry]:
-        artifact: DBArtifactSchema|None = DBAccessorArtifact.artifact_get_by_id(self.engine, artifact_id, artifact_type)
+        artifact: DBArtifactSchema|None = DBArtifactAccessor.artifact_get_by_id(self.engine, artifact_id, artifact_type)
         if not artifact:
             return None
 
@@ -183,7 +183,7 @@ class DBRouterLineage(DBRouterBase):
     def db_artifact_lineage(self,
         artifact_id: str
     ) -> ArtifactLineageGraph|None:
-        artifact: DBArtifactSchema | None = DBAccessorArtifact.artifact_get_by_id(self.engine, artifact_id, ArtifactType.model)
+        artifact: DBArtifactSchema | None = DBArtifactAccessor.artifact_get_by_id(self.engine, artifact_id, ArtifactType.model)
         if not artifact:
             return None
 
@@ -204,7 +204,7 @@ class DBRouterCost(DBRouterBase):
         dependency: bool
     ) -> ArtifactCost|None:
 
-        artifact: DBArtifactSchema | None = DBAccessorArtifact.artifact_get_by_id(self.engine, artifact_id, artifact_type)
+        artifact: DBArtifactSchema | None = DBArtifactAccessor.artifact_get_by_id(self.engine, artifact_id, artifact_type)
         if not artifact:
             return None
 
@@ -217,11 +217,11 @@ class DBRouterCost(DBRouterBase):
         while selected_model is not None:
             connections: list[DBConnectiveSchema] =  DBConnectionAccessor.model_get_associated_dset_and_code(self.engine, selected_model)
             for connection in connections:
-                artifact: DBArtifactSchema = DBAccessorArtifact.artifact_get_by_id(
+                artifact: DBArtifactSchema = DBArtifactAccessor.artifact_get_by_id(
                     self.engine, connection.src_id, connection.relationship.to_source_type())
                 cost.total_cost += artifact.size_mb
             parent_model_relation = DBConnectionAccessor.model_get_parent_model(self.engine, selected_model)
-            selected_model = DBAccessorArtifact.artifact_get_by_id(self.engine, parent_model_relation.src_id, ArtifactType.model)
+            selected_model = DBArtifactAccessor.artifact_get_by_id(self.engine, parent_model_relation.src_id, ArtifactType.model)
 
         return selected_model
 
@@ -230,7 +230,7 @@ class DBRouterRating(DBRouterBase):
         model_id: str,
         rating: ModelRating
     ) -> bool:
-        if not DBAccessorArtifact.artifact_get_by_id(self.engine, model_id, ArtifactType(rating.category)):
+        if not DBArtifactAccessor.artifact_get_by_id(self.engine, model_id, ArtifactType(rating.category)):
             return False
 
         return DBModelRatingAccessor.add_rating(self.engine, model_id, rating)

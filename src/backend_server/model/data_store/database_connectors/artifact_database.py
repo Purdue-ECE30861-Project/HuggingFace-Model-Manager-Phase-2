@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Type
 
 from sqlalchemy import Engine
 from sqlmodel import Session, select  # pyright: ignore[reportUnknownVariableType]
@@ -24,6 +25,10 @@ def get_table_from_type(artifact_type: ArtifactType):
     raise Exception("Somehow didnt match any table...")
 
 
+def get_tables() -> tuple[type[DBModelSchema], type[DBDSetSchema], type[DBCodeSchema]]:
+    return DBModelSchema, DBDSetSchema, DBCodeSchema
+
+
 class DBReadmeAccessor:
     @staticmethod
     def artifact_insert_readme(engine: Engine, artifact: Artifact, readme_content: str):
@@ -33,13 +38,19 @@ class DBReadmeAccessor:
             session.commit()
 
     @staticmethod
-    def artifact_delete_readme(engine: Engine, artifact_id: str, artifact_type: ArtifactType):
+    def artifact_delete_readme(engine: Engine, artifact_id: str, artifact_type: ArtifactType) -> bool:
         with Session(engine) as session:
             query = select(DBArtifactReadmeSchema).where(
-                DBArtifactReadmeSchema.artifact_id == artifact_id,
+                DBArtifactReadmeSchema.id == artifact_id,
                 DBArtifactReadmeSchema.artifact_type == artifact_type
             )
             result = session.exec(query).first()
+
+            if not result:
+                return False
+            session.delete(result)
+            session.commit()
+            return True
 
 class DBConnectionAccessor:
     @staticmethod
@@ -78,7 +89,7 @@ class DBConnectionAccessor:
                     src_id=None,
                     dst_name=model.name,
                     dst_id=model.id,
-                    relationship=DBConnectiveRelation.MODEL_DATASET
+                    relationship=DBConnectiveRelation.MODEL_CODEBASE
                 )
                 if associated_code is not None:
                     connection.src_id = associated_code.id
@@ -100,7 +111,7 @@ class DBConnectionAccessor:
                 src_id=None,
                 dst_name=model.name,
                 dst_id=model.id,
-                relationship=DBConnectiveRelation.MODEL_DATASET
+                relationship=DBConnectiveRelation.MODEL_PARENT_MODEL
             )
             if parent_model is not None:
                 connection.src_id = parent_model.id
@@ -109,9 +120,9 @@ class DBConnectionAccessor:
 
     @staticmethod
     def model_insert(engine: Engine, model: DBModelSchema, linked_names: ModelLinkedArtifactNames):
-        DBConnectionAccessor._model_insert_dset_connections(engine, model, linked_names)
-        DBConnectionAccessor._model_insert_code_connections(engine, model, linked_names)
-        DBConnectionAccessor._model_add_parent_model_connection(engine, model, linked_names)
+        if linked_names.linked_dset_names: DBConnectionAccessor._model_insert_dset_connections(engine, model, linked_names)
+        if linked_names.linked_code_names: DBConnectionAccessor._model_insert_code_connections(engine, model, linked_names)
+        if linked_names.linked_parent_model_name: DBConnectionAccessor._model_add_parent_model_connection(engine, model, linked_names)
         DBConnectionAccessor._ingest_connection_children_insertion(engine, model)
 
     @staticmethod
@@ -173,8 +184,8 @@ class DBConnectionAccessor:
             query = select(DBConnectiveSchema).where(
                 DBConnectiveSchema.dst_name == model.name,
                 DBConnectiveSchema.dst_id == model.id,
-                DBConnectiveSchema.relationship == DBConnectiveRelation.MODEL_DATASET or
-                    DBConnectiveSchema.relationship == DBConnectiveRelation.MODEL_CODEBASE
+                (DBConnectiveSchema.relationship == DBConnectiveRelation.MODEL_DATASET) |
+                (DBConnectiveSchema.relationship == DBConnectiveRelation.MODEL_CODEBASE)
             )
             return session.exec(query).fetchall()
 
@@ -188,15 +199,25 @@ class DBConnectionAccessor:
             )
             return session.exec(query).first()
 
+    @staticmethod
+    def connections_get_all(engine: Engine) -> list[DBConnectiveSchema]|None:
+        with Session(engine) as session:
+            query = select(DBConnectiveSchema)
+            results = session.exec(query).fetchall()
 
-class DBAccessorArtifact: # I assume we use separate tables for cost, lineage, etc
+            if not results:
+                return None
+            return results
+
+
+class DBArtifactAccessor: # I assume we use separate tables for cost, lineage, etc
     @staticmethod
     def artifact_insert(engine: Engine, artifact: DBArtifactSchema):
         try:
-            if DBAccessorArtifact.artifact_exists(engine, artifact.id, artifact.type):
+            if DBArtifactAccessor.artifact_exists(engine, artifact.id, artifact.type):
                 return False
             with Session(engine) as session:
-                session.add(artifact)
+                session.add(artifact.to_concrete())
                 session.commit()
             return True
         except Exception as e:
@@ -226,29 +247,39 @@ class DBAccessorArtifact: # I assume we use separate tables for cost, lineage, e
     def artifact_get_by_name(engine: Engine, artifact_name: ArtifactName) -> None|list[DBArtifactSchema]:
         with Session(engine) as session:
             # Use our database-agnostic JSON extraction
-            query = select(DBModelSchema, DBDSetSchema, DBCodeSchema) \
-            .where((DBModelSchema.name == artifact_name.name)
-                | (DBDSetSchema.name == artifact_name.name)
-                | (DBCodeSchema.name == artifact_name.name))
-            results: list[DBArtifactSchema] = session.exec(query).all()
+            results: list[DBArtifactSchema] = []
+
+            for table in get_tables():
+                query = select(table) \
+                .where(table.name == artifact_name.name)
+                result = session.exec(query).all()
+
+                if result:
+                    results += result
+
+            if not results:
+                return None
             return results
 
     @staticmethod
     def artifact_get_by_regex(engine: Engine, regex: str) -> tuple[list[DBArtifactSchema], list[DBArtifactReadmeSchema]]:
         with Session(engine) as session:
-            query = select(DBModelSchema, DBDSetSchema, DBCodeSchema) \
-                .where(
-                    DBModelSchema.name.regexp_match(regex)
-                    | DBDSetSchema.name.regexp_match(regex)
-                    | DBCodeSchema.name.regexp_match(regex)
+            results: list[DBArtifactSchema] = []
+
+            for table in get_tables():
+                query = select(table).where(
+                    table.name.regexp_match(regex)
                 )
+                result = session.exec(query).all()
+                if result:
+                    results += result
+
             query_readme = select(DBArtifactReadmeSchema).where(
                 DBArtifactReadmeSchema.readme_content.regexp_match(regex)
             )
-            result = session.exec(query).fetchall()
-            result_readme = session.exec(query_readme).fetchall()
+            results_readme = session.exec(query_readme).fetchall()
 
-            return result, result_readme
+            return results, results_readme
 
     @staticmethod
     def artifact_get_by_id(engine: Engine, id: str, artifact_type: ArtifactType) -> None|DBArtifactSchema:
@@ -272,8 +303,11 @@ class DBAccessorArtifact: # I assume we use separate tables for cost, lineage, e
         with Session(engine) as session:
             artifact_results: list[DBArtifactSchema] = []
             if query.name == "*":
-                sql_query = select(*tables)
-                artifact_results = session.exec(sql_query).fetchall()
+                for table in tables:
+                    sql_query = select(table)
+                    artifact_result = session.exec(sql_query).fetchall()
+                    if artifact_result:
+                        artifact_results += artifact_result
             else:
                 for table in tables:
                     sql_query = select(table).where(
@@ -295,23 +329,28 @@ class DBAccessorArtifact: # I assume we use separate tables for cost, lineage, e
     @staticmethod
     def get_all(engine: Engine) -> None|list[DBArtifactSchema]:
         with Session(engine) as session:
-            selection = select(DBCodeSchema, DBModelSchema, DBDSetSchema)
-            artifacts = session.exec(selection).fetchall()
-            if not artifacts:
+            results: list[DBArtifactSchema] = []
+            for table in get_tables():
+                query = select(table)
+                result: list[DBArtifactSchema] = session.exec(query).fetchall()
+                if result:
+                    results += result
+
+            if not results:
                 return None
-            return artifacts
+            return results
 
-    def update_artifact(self, id: str, updated: Artifact, artifact_type: ArtifactType) -> bool: # should return false if the artifact is not found
-        with Session(self.engine) as session:
-            sanity_query = select(ArtifactDataDB).where(
-                ArtifactDataDB.id == id,
-                            JsonExtract(ArtifactDataDB.rating, "$.category") == artifact_type)
-            artifact = session.exec(sanity_query).first()
-            if not artifact:
-                return False
-            artifact.update_from_artifact(updated)
-            session.add(artifact)
-            session.commit()
-            session.refresh(artifact)
-
-        return True
+    # def update_artifact(self, id: str, updated: Artifact, artifact_type: ArtifactType) -> bool: # should return false if the artifact is not found
+    #     with Session(self.engine) as session:
+    #         sanity_query = select(ArtifactDataDB).where(
+    #             ArtifactDataDB.id == id,
+    #                         JsonExtract(ArtifactDataDB.rating, "$.category") == artifact_type)
+    #         artifact = session.exec(sanity_query).first()
+    #         if not artifact:
+    #             return False
+    #         artifact.update_from_artifact(updated)
+    #         session.add(artifact)
+    #         session.commit()
+    #         session.refresh(artifact)
+    #
+    #     return True

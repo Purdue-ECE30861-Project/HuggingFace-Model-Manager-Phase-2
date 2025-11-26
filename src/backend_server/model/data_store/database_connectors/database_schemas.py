@@ -93,6 +93,17 @@ class DBArtifactSchema(SQLModel):
     size_mb: float
     type: ArtifactType
 
+    def to_concrete(self) -> DBDSetSchema | DBModelSchema | DBArtifactSchema:
+        match self.type:
+            case ArtifactType.model:
+                return DBModelSchema(**self.__dict__)
+            case ArtifactType.code:
+                return DBCodeSchema(**self.__dict__)
+            case ArtifactType.dataset:
+                return DBDSetSchema(**self.__dict__)
+
+        return DBModelSchema(**self.__dict__)
+
     def to_artifact_metadata(self) -> ArtifactMetadata:
         return ArtifactMetadata(
             id=self.id,
