@@ -97,13 +97,12 @@ class DBRouterArtifact(DBRouterBase):
 
         return True
 
-    def db_artifact_update(self):
-        # if not DBAuditAccessor.append_audit(
-        #     engine=self.engine,
-        #     action=AuditAction.UPDATE,
-        # 
-        # )
-        raise NotImplementedError()
+    # def db_model_update(self, artifact: Artifact, new_size_mb: float, new_connections: ):
+    #     if not DBAuditAccessor.append_audit(
+    #         engine=self.engine,
+    #         action=AuditAction.UPDATE,
+    #     )
+    #     raise NotImplementedError()
 
     def db_artifact_get_query(self, query: ArtifactQuery, offset: str) -> list[ArtifactMetadata]|None:
         results: list[DBArtifactSchema]|None = DBArtifactAccessor.artifact_get_by_query(self.engine, query, offset)
@@ -249,3 +248,6 @@ class DBManager:
 
     def db_reset(self):
         self.db_reset()
+
+
+# TODO MUST ADD UPDATE
