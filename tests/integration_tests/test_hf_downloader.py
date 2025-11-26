@@ -37,7 +37,7 @@ class TestHFArtifactDownloader(unittest.TestCase):
             self.downloader._get_repo_id_from_url(self.valid_model_url, ArtifactType.code)
 
     def test_download_artifact_integration(self):
-        """Integration test: download a small HF model, check contents and size."""
+        """Integration test: download a small HF model, check contents and size """
         # Download
         model_url = "https://huggingface.co/prajjwal1/bert-tiny"
         artifact_type = ArtifactType.model
