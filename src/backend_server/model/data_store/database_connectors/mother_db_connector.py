@@ -91,12 +91,61 @@ class DBRouterArtifact(DBRouterBase):
 
         return True
 
-    # def db_model_update(self, artifact: Artifact, new_size_mb: float, new_connections: ):
-    #     if not DBAuditAccessor.append_audit(
-    #         engine=self.engine,
-    #         action=AuditAction.UPDATE,
-    #     )
-    #     raise NotImplementedError()
+    def db_model_update(self,
+        model: Artifact,
+        new_size_mb: float, new_connections: ModelLinkedArtifactNames,
+        new_readme: str | None,
+        user: User=User(name="GoonerMcGoon", is_admin=False)
+    ) -> bool:
+        if model.metadata.type != ArtifactType.model:
+            return False
+
+        if not DBAuditAccessor.append_audit(
+            engine=self.engine,
+            action=AuditAction.UPDATE,
+            user=user,
+            metadata=model.metadata,
+        ): return False
+
+        query_model: DBModelSchema = DBModelSchema.from_artifact(model, new_size_mb).to_concrete()
+        if not DBArtifactAccessor.artifact_update(self.engine, query_model): return False
+
+        DBConnectionAccessor.connections_delete_by_artifact_id(self.engine, model.id)
+        DBConnectionAccessor.model_insert(self.engine, query_model, new_connections)
+
+        DBReadmeAccessor.artifact_delete_readme(self.engine, model.id, ArtifactType.model)
+        if new_readme:
+            DBReadmeAccessor.artifact_insert_readme(self.engine, model, new_readme)
+
+        return True
+
+    def db_artifact_update(self,
+       artifact: Artifact,
+       new_size_mb: float,
+       new_readme: str | None,
+       user: User = User(name="GoonerMcGoon", is_admin=False)
+    ) -> bool:
+        if artifact.metadata.type == ArtifactType.model:
+            return False
+
+        if not DBAuditAccessor.append_audit(
+                engine=self.engine,
+                action=AuditAction.UPDATE,
+                user=user,
+                metadata=artifact.metadata,
+        ): return False
+
+        query_artifact: DBArtifactSchema = DBModelSchema.from_artifact(artifact, new_size_mb).to_concrete()
+        if not DBArtifactAccessor.artifact_update(self.engine, query_artifact): return False
+
+        DBConnectionAccessor.connections_delete_by_artifact_id(self.engine, artifact.id)
+        DBConnectionAccessor.non_model_insert(self.engine, query_artifact)
+
+        DBReadmeAccessor.artifact_delete_readme(self.engine, artifact.id, ArtifactType.model)
+        if new_readme:
+            DBReadmeAccessor.artifact_insert_readme(self.engine, artifact, new_readme)
+
+        return True
 
     def db_artifact_get_query(self, query: ArtifactQuery, offset: str) -> list[ArtifactMetadata]|None:
         results: list[DBArtifactSchema]|None = DBArtifactAccessor.artifact_get_by_query(self.engine, query, offset)

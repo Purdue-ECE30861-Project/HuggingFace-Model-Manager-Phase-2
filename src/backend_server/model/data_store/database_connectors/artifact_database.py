@@ -243,18 +243,18 @@ class DBArtifactAccessor: # I assume we use separate tables for cost, lineage, e
         return True
 
     @staticmethod
-    def artifact_update(engine: Engine, artifact: Artifact, new_size: float) -> bool:
+    def artifact_update(engine: Engine, artifact: DBArtifactSchema) -> bool:
         with Session(engine) as session:
-            table = get_table_from_type(artifact.metadata.type)
+            table = get_table_from_type(artifact.type)
             query = select(table).where(
-                table.id == artifact.metadata.id,
+                table.id == artifact.id,
                 table.url == artifact.data.url,
-                table.name == artifact.metadata.name
+                table.name == artifact.name
             )
             result: DBArtifactSchema = session.exec(query).first()
             if not result:
                 return False
-            result.size_mb = new_size
+            result.size_mb = artifact.size_mb
             session.add(result)
             session.commit()
 
