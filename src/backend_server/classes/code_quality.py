@@ -1,25 +1,23 @@
 from __future__ import annotations
 
 import pathlib
-from dataclasses import dataclass
+from pathlib import Path
 from typing import override
 
 from pylint.lint import Run
 from pylint.reporters import CollectingReporter
 
-from ..model.data_store.database_connectors.mother_db_connector import DBManager
-from ..utils.llm_api import llmAPI
-from ..utils.get_metadata import find_github_links
-import re
-from pathlib import Path
 from src.contracts.artifact_contracts import Artifact
 from src.contracts.metric_std import MetricStd
+from ..utils.llm_api import llmAPI
 
 _PROMPT = """You are evaluating CODE QUALITY (style & maintainability).
 Consider consistency, naming, modularity, comments/docstrings, type hints, tests/CI hints, and readability.
 Rate on this discrete scale and reply with ONLY one number: 1.0, 0.5, or 0.0. The link to the github repository for the code is here:"""
 
 
+class DBManager:
+    pass
 class CodeQuality(MetricStd[float]):
     metric_name = "code_quality"
 

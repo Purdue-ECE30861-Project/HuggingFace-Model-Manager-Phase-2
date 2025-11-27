@@ -1,16 +1,15 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from pathlib import Path
 from typing import override
 
-from src.backend_server.model.data_store.database_connectors.mother_db_connector import DBManager
 from src.backend_server.utils.llm_api import llmAPI
-from pathlib import Path
 from src.contracts.artifact_contracts import Artifact
 from src.contracts.metric_std import MetricStd
-import time
 
 
+class DBManager:
+    pass
 class RampUpTime(MetricStd[float]):
     metric_name = "ramp_up_time"
 

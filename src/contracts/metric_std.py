@@ -1,17 +1,16 @@
 import time
-
-from .artifact_contracts import Artifact
-from pydantic import BaseModel, Field, RootModel, model_validator
-from typing import List, Optional, Dict, Any, TypeVar, Generic
-from enum import Enum
 from abc import ABC, abstractmethod
 from pathlib import Path
+from typing import TypeVar, Generic
 
-from ..backend_server.model.data_store.database_connectors.mother_db_connector import DBManager
+from .artifact_contracts import Artifact
+#from ..backend_server.model.data_store.database_connectors.mother_db_connector import DBManager
 
 T = TypeVar("T")
 
 
+class DBManager: # dummy
+    pass
 class MetricStd(ABC, Generic[T]):
     metric_name: str = "NoName"
     def __init__(self, metric_weight=0.1):

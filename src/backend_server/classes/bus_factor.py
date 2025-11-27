@@ -1,18 +1,18 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import override
-
-from ..model.data_store.database_connectors.mother_db_connector import DBManager
-from ..utils.get_metadata import get_collaborators_github, find_github_links
-from ..utils.llm_api import llmAPI
 import math
 import re
 from pathlib import Path
+from typing import override
+
 from src.contracts.artifact_contracts import Artifact
 from src.contracts.metric_std import MetricStd
+from ..utils.get_metadata import get_collaborators_github, find_github_links
+from ..utils.llm_api import llmAPI
 
 
+class DBManager:
+    pass
 class BusFactor(MetricStd[float]):
     metric_name = "bus_factor"
 

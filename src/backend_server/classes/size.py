@@ -1,23 +1,17 @@
 #from __future__ import annotations
 import logging
-from dataclasses import dataclass
+from pathlib import Path
 
 from typing_extensions import override
 
-from src.backend_server.model.data_store.database_connectors.mother_db_connector import DBManager
-from src.backend_server.utils.llm_api import llmAPI
-from src.backend_server.utils.hf_api import hfAPI
-from pathlib import Path
 from src.contracts.artifact_contracts import Artifact, SizeScore, ArtifactCost
 from src.contracts.metric_std import MetricStd
-import json
-import time
-import re
-
 
 logger = logging.getLogger(__name__)
 
 
+class DBManager:
+    pass
 class Size(MetricStd[SizeScore]):
     metric_name = "size_score"
 

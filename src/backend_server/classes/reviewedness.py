@@ -1,19 +1,21 @@
+import json
 import logging
-from dataclasses import dataclass
+import os
+import re
+import time
 from pathlib import Path
 from typing import override
 
-from src.backend_server.model.data_store.database_connectors.mother_db_connector import DBManager
+import requests
+from dotenv import load_dotenv
+
+import src.backend_server.utils.get_metadata
 from src.contracts.artifact_contracts import Artifact
 from src.contracts.metric_std import MetricStd
-import src.backend_server.utils.get_metadata
-import time
-from dotenv import load_dotenv
-import requests
-import re
-import os
-import json
 
+
+class DBManager:
+    pass
 github_pattern = re.compile(r"^(.*)?github.com\/([^\/]+)\/([^\/]+)\/?(.*)$")
 
 logger = logging.getLogger(__name__)

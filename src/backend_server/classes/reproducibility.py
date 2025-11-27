@@ -1,20 +1,18 @@
-import subprocess
-import tempfile
 import json
-import time
+import logging
 import os
 import re
+import subprocess
+import tempfile
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple, override
 from pathlib import Path
-from src.contracts.metric_std import MetricStd
-from src.contracts.artifact_contracts import Artifact
+from typing import List, Optional, override
+
 from src.backend_server.utils.hf_api import hfAPI
 from src.backend_server.utils.llm_api import llmAPI
-from .static_analysis import StaticAnalysisResult, LLMAnalysisResult, AIDebugResult, StaticAnalyzer
-import logging
-
-from ..model.data_store.database_connectors.mother_db_connector import DBManager
+from src.contracts.artifact_contracts import Artifact
+from src.contracts.metric_std import MetricStd
+from .static_analysis import StaticAnalyzer
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +23,9 @@ class ReproducibilityResult:
     error_message: Optional[str]
     fixability_assessment: Optional[str]
 
+
+class DBManager:
+    pass
 class Reproducibility(MetricStd[float]):
     metric_name = "Reproducibility"
 

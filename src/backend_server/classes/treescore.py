@@ -1,17 +1,17 @@
+import logging
 from pathlib import Path
 
 from typing_extensions import override
 
-from src.backend_server.model.data_store.database_connectors.mother_db_connector import DBManager
 from src.contracts.artifact_contracts import Artifact, ArtifactLineageGraph
 from src.contracts.metric_std import MetricStd
-import logging
-
 from src.contracts.model_rating import ModelRating
 
 logger = logging.getLogger(__name__)
 
 
+class DBManager:
+    pass
 class TreeScore(MetricStd[float]):
     metric_name = "tree_score"
 

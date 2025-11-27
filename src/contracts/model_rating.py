@@ -7,7 +7,10 @@ from multiprocessing import Pool
 from .metric_std import MetricStd
 from .artifact_contracts import Artifact, SizeScore
 from ..backend_server.classes import available_datasets_and_code, bus_factor, code_quality, dataset_quality, license, performance_claims, ramp_up_time
-from ..backend_server.model.data_store.database_connectors.mother_db_connector import DBManager
+
+
+class DBManager:
+    pass
 
 
 class Reproducibility(MetricStd[float]):
