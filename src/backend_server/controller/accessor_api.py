@@ -6,7 +6,7 @@ from typing import Annotated, List
 from src.contracts.artifact_contracts import ArtifactID, ArtifactType, ArtifactQuery, Artifact, ArtifactMetadata, ArtifactName, ArtifactRegEx, ArtifactData
 from ..model.artifact_accessor.enums import GetArtifactsEnum, GetArtifactEnum, RegisterArtifactEnum
 from ...contracts.auth_contracts import ArtifactAuditEntry
-from ..global_state import database_manager, artifact_accessor, global_config
+from ..global_state import database_manager, artifact_accessor, global_config, cache_accessor
 
 accessor_router = APIRouter()
 
@@ -85,6 +85,7 @@ async def get_artifact(
 
     match return_code:
         case GetArtifactEnum.SUCCESS:
+            cache_accessor.insert(id, )
             return return_content
         case GetArtifactEnum.DOES_NOT_EXIST:
             raise HTTPException(status_code=return_code.value, detail="Artifact does not exist.")

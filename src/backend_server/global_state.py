@@ -6,6 +6,7 @@ from sqlmodel import SQLModel
 
 from src.backend_server.model.artifact_accessor.artifact_accessor import ArtifactAccessor
 from src.backend_server.model.artifact_accessor.register_deferred import RaterTaskManager
+from src.backend_server.model.data_store.cache_accessor import CacheAccessor
 from src.backend_server.model.data_store.database_connectors.mother_db_connector import DBManager
 from src.backend_server.model.data_store.s3_manager import S3BucketManager
 
@@ -23,6 +24,8 @@ class RedisConfig(BaseModel):
     redis_image: str
     redis_host: str
     redis_port: int
+    redis_password: str
+    redis_ttl_seconds: int
 
 
 class GlobalConfig(BaseModel):
@@ -56,6 +59,8 @@ class GlobalConfig(BaseModel):
                 redis_host=os.environ.get("REDIS_HOST", "127.0.0.1"),
                 redis_port=int(os.environ.get("REDIS_PORT", 6379)),
                 redis_image=os.environ.get("REDIS_IMAGE", "redis:7.2"),
+                redis_password=os.environ.get("REDIS_PASSWORD", "TestPassword"),
+                redis_ttl_seconds=int(os.environ.get("REDIS_TTL_SECONDS", 180)),
             )
         )
 
@@ -67,11 +72,6 @@ SQLModel.metadata.create_all(mysql_engine)
 
 database_manager: DBManager = DBManager(mysql_engine)
 
-rater_task_manager: RaterTaskManager = RaterTaskManager(
-    max_workers=global_config.rater_task_manager_workers,
-    max_processes_per_rater=global_config.rater_processes,
-    max_queue_size=global_config.max_ingest_queue_size,
-)
 s3_accessor: S3BucketManager = S3BucketManager(
     global_config.s3_config.s3_url,
     global_config.s3_config.s3_access_key_id,
@@ -79,6 +79,22 @@ s3_accessor: S3BucketManager = S3BucketManager(
     global_config.s3_config.s3_bucket_name,
     global_config.s3_config.s3_data_prefix,
     global_config.s3_config.s3_region_name
+)
+
+rater_task_manager: RaterTaskManager = RaterTaskManager(
+    global_config.ingest_score_threshold,
+    s3_accessor,
+    database_manager,
+    max_workers=global_config.rater_task_manager_workers,
+    max_processes_per_rater=global_config.rater_processes,
+    max_queue_size=global_config.max_ingest_queue_size,
+)
+cache_accessor = CacheAccessor(
+    host=global_config.redis_config.redis_host,
+    port=global_config.redis_config.redis_port,
+    db=global_config.redis_config.redis_database,
+    password=global_config.redis_config.redis_password,
+    ttl_seconds=global_config.redis_config.redis_ttl_seconds,
 )
 artifact_accessor: ArtifactAccessor = ArtifactAccessor(
     database_manager,

@@ -7,6 +7,8 @@ from typing import Optional
 import redis
 from pydantic import BaseModel
 
+from src.contracts.artifact_contracts import ArtifactType
+
 logger = logging.getLogger(__name__)
 
 
@@ -24,7 +26,8 @@ class CacheAccessor:
         port: int = 6379,
         password: Optional[str] = None,
         db: int = 0,
-        decode_responses: bool = True
+        decode_responses: bool = True,
+        ttl_seconds: int = 180
     ):
         try:
             self.redis_client = redis.Redis(
@@ -34,6 +37,7 @@ class CacheAccessor:
                 decode_responses=decode_responses,
                 password=password
             )
+            self.ttl_seconds = ttl_seconds
 
             self.redis_client.ping()
             logger.info(f"Connected to Redis at {host}:{port}")
@@ -44,7 +48,7 @@ class CacheAccessor:
             logger.error(f"Failed to connect to Redis at {host}:{port}: {e}")
             raise
     
-    def _format_key(self, artifact_id: str, request_hash: str) -> str:
+    def _format_key(self, artifact_id: str, artifact_type: ArtifactType, request_hash: str) -> str:
         """
         Format cache key from artifact ID and request hash.
         
@@ -55,9 +59,9 @@ class CacheAccessor:
         Returns:
             Formatted Redis key string
         """
-        return f"artifact:{artifact_id}:{request_hash}"
+        return f"artifact:{artifact_id}:{artifact_type.name}:{request_hash}"
     
-    def _get_pattern_for_artifact(self, artifact_id: str) -> str:
+    def _get_pattern_for_artifact(self, artifact_id: str, artifact_type: ArtifactType) -> str:
         """
         Get Redis key pattern for all entries of an artifact.
         
@@ -67,14 +71,14 @@ class CacheAccessor:
         Returns:
             Redis key pattern string
         """
-        return f"artifact:{artifact_id}:*"
+        return f"artifact:{artifact_type.name}:{artifact_id}:*"
     
     def insert(
         self,
         artifact_id: str,
-        request: str,
-        response: BaseModel,
-        ttl: Optional[int] = None
+        artifact_type: ArtifactType,
+        request_hash: str,
+        response_content: bytes,
     ) -> bool:
         """
         Insert a cache entry.
@@ -87,14 +91,10 @@ class CacheAccessor:
         Returns:
             True if successful, False otherwise
         """
-        request_hash = hashlib.sha256(request.encode('utf-8')).hexdigest()
         try:
-            key = self._format_key(artifact_id, request_hash)
-            
-            if ttl is not None:
-                self.redis_client.setex(key, ttl, response.to_json())
-            else:
-                self.redis_client.set(key, response.to_json())
+            key = self._format_key(artifact_id, artifact_type, request_hash)
+
+            self.redis_client.setex(key, self.ttl_seconds, response_content)
             
             logger.debug(f"Inserted cache entry for artifact {artifact_id} with hash {request_hash[:8]}...{request_hash[-8:]}")
             return True
@@ -169,3 +169,16 @@ class CacheAccessor:
             logger.info("Closed Redis connection")
         except Exception as e:
             logger.error(f"Error closing Redis connection: {e}")
+
+    def reset(self) -> bool:
+        """
+        Clear the entire Redis database (DB index selected for this client).
+        Returns True on success.
+        """
+        try:
+            self.redis_client.flushdb()
+            logger.info("Flushed entire Redis DB")
+            return True
+        except redis.RedisError as e:
+            logger.error(f"Failed to flush Redis DB: {e}")
+            return False
