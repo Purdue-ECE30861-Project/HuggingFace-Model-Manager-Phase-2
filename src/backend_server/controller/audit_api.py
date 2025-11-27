@@ -7,6 +7,7 @@ from src.contracts.artifact_contracts import ArtifactID, ArtifactType, ArtifactQ
 from ..model.artifact_accessor.artifact_accessor import ArtifactAccessor, GetArtifactsEnum, GetArtifactEnum, RegisterArtifactEnum
 from ..model.artifact_accessor.register_deferred import RaterTaskManager
 from ..global_state import artifact_accessor as accessor
+from ..global_state import database_manager
 from ...contracts.auth_contracts import ArtifactAuditEntry
 
 audit_router = APIRouter()
@@ -22,3 +23,10 @@ async def get_audit_history(
     except ValidationError:
         raise RequestValidationError(errors=["invalid artifact type"])
 
+    if not database_manager.router_artifact.db_artifact_exists(id, artifact_type_model):
+        raise HTTPException(status_code=404, detail="artifact not found")
+
+    audit_results = database_manager.router_audit.db_artifact_audit(artifact_type_model, id)
+    if not audit_results:
+        return []
+    return audit_results

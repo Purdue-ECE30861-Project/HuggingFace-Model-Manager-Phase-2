@@ -8,7 +8,6 @@ from src.backend_server.model.artifact_accessor.artifact_accessor import Artifac
 from src.backend_server.model.artifact_accessor.register_deferred import RaterTaskManager
 from src.backend_server.model.data_store.database_connectors.mother_db_connector import DBManager
 from src.backend_server.model.data_store.s3_manager import S3BucketManager
-from src.backend_server.model.model_rater import ModelRater
 
 
 class S3Config(BaseModel):
@@ -27,17 +26,19 @@ class RedisConfig(BaseModel):
 
 
 class GlobalConfig(BaseModel):
+    ingest_asynchronous: bool
     db_url: str
-    audit_db_url: str
     s3_config: S3Config
     rater_task_manager_workers: int
     rater_processes: int
     ingest_score_threshold: float
     redis_config: RedisConfig
+    max_ingest_queue_size: int
 
     @staticmethod
     def read_env() -> "GlobalConfig":
         return GlobalConfig(
+            ingest_asynchronous=bool(os.environ.get("INGEST_ASYNCHRONOUS", "True")),
             db_url=os.environ.get("DB_URL", "mysql+pymysql://test_user:newpassword@localhost:3307/test_db"),
             s3_config=S3Config(
                 s3_url=f'http://{os.environ.get("S3_URL", "127.0.0.1")}:{os.environ.get("S3_HOST_PORT", "9000")}',
@@ -50,6 +51,7 @@ class GlobalConfig(BaseModel):
             rater_task_manager_workers=int(os.environ.get("RATER_TASK_MANAGER_WORKERS", 1)),
             rater_processes=int(os.environ.get("RATER_PROCESSES", 1)),
             ingest_score_threshold=float(os.environ.get("INGEST_SCORE_THRESHOLD", 0.5)),
+            max_ingest_queue_size=int(os.environ.get("MAX_INGEST_QUEUE_SIZE", 100)),
             redis_config=RedisConfig(
                 redis_host=os.environ.get("REDIS_HOST", "127.0.0.1"),
                 redis_port=int(os.environ.get("REDIS_PORT", 6379)),
@@ -67,7 +69,8 @@ database_manager: DBManager = DBManager(mysql_engine)
 
 rater_task_manager: RaterTaskManager = RaterTaskManager(
     max_workers=global_config.rater_task_manager_workers,
-    max_processes_per_rater=global_config.rater_processes
+    max_processes_per_rater=global_config.rater_processes,
+    max_queue_size=global_config.max_ingest_queue_size,
 )
 s3_accessor: S3BucketManager = S3BucketManager(
     global_config.s3_config.s3_url,
@@ -77,10 +80,9 @@ s3_accessor: S3BucketManager = S3BucketManager(
     global_config.s3_config.s3_data_prefix,
     global_config.s3_config.s3_region_name
 )
-# artifact_accessor: ArtifactAccessor = ArtifactAccessor(
-#     database_accessor,
-#     audit_db_accessor,
-#     s3_accessor,
-#     global_config.rater_processes,
-#     global_config.ingest_score_threshold
-# )
+artifact_accessor: ArtifactAccessor = ArtifactAccessor(
+    database_manager,
+    s3_accessor,
+    global_config.rater_processes,
+    global_config.ingest_score_threshold,
+)

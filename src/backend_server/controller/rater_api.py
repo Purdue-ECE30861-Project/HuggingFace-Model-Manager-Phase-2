@@ -3,10 +3,9 @@ from fastapi.exceptions import RequestValidationError
 from typing import Annotated
 from pydantic import ValidationError
 
+from src.backend_server.global_state import database_manager
 from src.contracts.artifact_contracts import ArtifactID
 from src.contracts.model_rating import ModelRating
-from ..model.model_rater import ModelRater, ModelRaterEnum
-from src.backend_server.global_state import rater_accessor
 
 
 rater_router = APIRouter()
@@ -21,15 +20,11 @@ async def rate_model(
     except ValidationError:
         raise RequestValidationError(errors=["invalid artifact id"])
 
-    return_code: ModelRaterEnum
-    return_content: ModelRating
+    if not database_manager.router_artifact.db_artifact_exists(id):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="artifact not found")
 
-    return_code, return_content = await rater_accessor.rate_model(id_model)
+    return_content: None|ModelRating = database_manager.router_rating.db_rating_get(id)
+    if not return_content:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="rating internal error")
 
-    match return_code:
-        case return_code.SUCCESS:
-            return return_content
-        case return_code.NOT_FOUND:
-            raise HTTPException(status_code=return_code.value, detail="Artifact does not exist.")
-        case return_code.INTERNAL_ERROR:
-            raise HTTPException(status_code=return_code.value, detail="The artifact rating system encountered an error while computing at least one metric.")
+    return return_content

@@ -3,6 +3,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import List
 import logging
+from xmlrpc.client import INTERNAL_ERROR
 
 from pydantic import validate_call
 
@@ -16,7 +17,7 @@ from ..data_store.downloaders.base_downloader import BaseArtifactDownloader
 from ..data_store.downloaders.gh_downloader import GHArtifactDownloader
 from ..data_store.downloaders.hf_downloader import HFArtifactDownloader
 from ..data_store.s3_manager import S3BucketManager
-
+from ...global_state import rater_task_manager
 
 logger = logging.getLogger(__name__)
 
@@ -77,12 +78,20 @@ class ArtifactAccessor:
         return GetArtifactEnum.SUCCESS, results_reformatted
 
     @validate_call
-    def register_artifact_deferred(self, artifact_type: ArtifactType, body: ArtifactType):
-        pass
+    async def register_artifact_deferred(self, artifact_type: ArtifactType, body: ArtifactData) -> RegisterArtifactEnum:
+        artifact_id: str = generate_unique_id(body.url)
+
+        if self.db.router_artifact.db_artifact_exists(artifact_id, artifact_type):
+            logger.error(f"FAILED: url: {body.url} artifact_id {artifact_id} type {artifact_type.name} already exists")
+            return RegisterArtifactEnum.ALREADY_EXISTS
+
+        push_result: bool = await rater_task_manager.submit(artifact_type, body)
+        if not push_result:
+            return RegisterArtifactEnum.INTERNAL_ERROR
+        return RegisterArtifactEnum.DEFERRED
 
     @validate_call
     def register_artifact(self, artifact_type: ArtifactType, body: ArtifactData) -> tuple[RegisterArtifactEnum, Artifact | None]:
-        # NEEDS LOGS
         artifact_id: str = generate_unique_id(body.url)
 
         if self.db.router_artifact.db_artifact_exists(artifact_id, artifact_type):
@@ -98,7 +107,6 @@ class ArtifactAccessor:
             temp_path: Path = Path(tempdir)
             try:
                 size = temporary_downloader.download_artifact(body.url, artifact_type, temp_path)
-
             except FileNotFoundError:
                 logger.error(f"FAILED: model not found for {body.url}")
                 return RegisterArtifactEnum.BAD_REQUEST, None
@@ -117,9 +125,9 @@ class ArtifactAccessor:
 
     @validate_call
     def update_artifact(self, artifact_type: ArtifactType, id: ArtifactID, body: Artifact) -> GetArtifactEnum:
-        raise NotImplementedError()
-        if not self.db.update_artifact(id.id, body, artifact_type):
-            return GetArtifactEnum.DOES_NOT_EXIST
+        if artifact_type == ArtifactType.model:
+            if not self.db.router_artifact.update_artifact(id.id, body, artifact_type):
+                return GetArtifactEnum.DOES_NOT_EXIST
 
         temporary_downloader: HFArtifactDownloader = HFArtifactDownloader()
         with TemporaryDirectory() as tempdir:
