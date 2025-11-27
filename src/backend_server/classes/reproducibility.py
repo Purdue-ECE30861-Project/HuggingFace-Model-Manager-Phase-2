@@ -5,14 +5,16 @@ import time
 import os
 import re
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, override
 from pathlib import Path
 from src.contracts.metric_std import MetricStd
 from src.contracts.artifact_contracts import Artifact
 from src.backend_server.utils.hf_api import hfAPI
 from src.backend_server.utils.llm_api import llmAPI
-from .staticAnalysis import StaticAnalysisResult, LLMAnalysisResult, AIDebugResult, StaticAnalyzer
+from .static_analysis import StaticAnalysisResult, LLMAnalysisResult, AIDebugResult, StaticAnalyzer
 import logging
+
+from ..model.data_store.database_connectors.mother_db_connector import DBManager
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +26,6 @@ class ReproducibilityResult:
     fixability_assessment: Optional[str]
 
 class Reproducibility(MetricStd[float]):
-
     metric_name = "Reproducibility"
 
     def __init__(self,  metric_weight = 0.1):
@@ -52,7 +53,8 @@ class Reproducibility(MetricStd[float]):
             "TypeError": 0.3,        # Less likely to be fixable
         }
 
-    def calculate_metric_score(self, ingested_path: Path, artifact_data: Artifact, *args, **kwargs) -> float:  # ← NEW METHOD
+    @override
+    def calculate_metric_score(self, ingested_path: Path, artifact_data: Artifact, database_manager: DBManager, *args, **kwargs) -> float:  # ← NEW METHOD
         """                                                # ← ADDED: docstring
         Calculate reproducibility score for a model.
         

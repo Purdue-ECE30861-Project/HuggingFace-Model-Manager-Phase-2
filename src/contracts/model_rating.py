@@ -1,12 +1,13 @@
 import time
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field
 from typing import Any
 from pathlib import Path
 from multiprocessing import Pool
-from .metric_std import MetricStd, T
+from .metric_std import MetricStd
 from .artifact_contracts import Artifact, SizeScore
-from ..backend_server.classes import available_datasets_and_code, bus_factor, code_quality, dataset_quality, license, performance_claims, ramp_up_time, size, threading
+from ..backend_server.classes import available_datasets_and_code, bus_factor, code_quality, dataset_quality, license, performance_claims, ramp_up_time
+from ..backend_server.model.data_store.database_connectors.mother_db_connector import DBManager
 
 
 class Reproducibility(MetricStd[float]):
@@ -79,11 +80,11 @@ class ModelRating(BaseModel):
         return metric.run_score_calculation()
 
     @staticmethod
-    def generate_rating(ingested_path: Path, artifact: Artifact, processes: int) -> "ModelRating":
+    def generate_rating(ingested_path: Path, artifact: Artifact, database_manager: DBManager, processes: int) -> "ModelRating":
         metrics: list[MetricStd] = []
         for name, field in ModelRating.model_fields.items():
             if field.json_schema_extra and "calc" in field.json_schema_extra:
-                metrics.append(field.json_schema_extra["calc"].set_params(ingested_path, artifact))
+                metrics.append(field.json_schema_extra["calc"].set_params(ingested_path, artifact, database_manager))
 
         start = time.time()
 

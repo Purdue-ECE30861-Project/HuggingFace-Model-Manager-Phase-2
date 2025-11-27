@@ -24,6 +24,7 @@ class RedisConfig(BaseModel):
     redis_image: str
     redis_host: str
     redis_port: int
+    redis_user: str
     redis_password: str
     redis_ttl_seconds: int
 
@@ -59,6 +60,7 @@ class GlobalConfig(BaseModel):
                 redis_host=os.environ.get("REDIS_HOST", "127.0.0.1"),
                 redis_port=int(os.environ.get("REDIS_PORT", 6379)),
                 redis_image=os.environ.get("REDIS_IMAGE", "redis:7.2"),
+                redis_user=os.environ.get("REDIS_USER", "TestUser"),
                 redis_password=os.environ.get("REDIS_PASSWORD", "TestPassword"),
                 redis_ttl_seconds=int(os.environ.get("REDIS_TTL_SECONDS", 180)),
             )
@@ -99,6 +101,7 @@ cache_accessor = CacheAccessor(
 artifact_accessor: ArtifactAccessor = ArtifactAccessor(
     database_manager,
     s3_accessor,
+    rater_task_manager,
     global_config.rater_processes,
     global_config.ingest_score_threshold,
 )

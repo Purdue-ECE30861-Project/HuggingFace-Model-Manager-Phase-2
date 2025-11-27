@@ -3,7 +3,7 @@ import unittest
 from unittest.mock import patch
 
 # Import the module to test
-from src.backend_server.classes.lineage_graph import LineageGraph, ModelNode
+from deprecated.lineage_graph import LineageGraph, ModelNode
 
 class TestModelNode(unittest.TestCase):
     

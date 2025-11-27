@@ -3,7 +3,7 @@
 # • Dataset URL: (e.g. https://huggingface.co/datasets/xlangai/AgentNet)
 # • Code URL: ( e.g. https://github.com/SkyworkAI/Matrix-Game)
 
-from src.utils.hf_api import hfAPI
+from .hf_api import hfAPI
 
 def checkURL(url):
     if "github" in url or "datasets" in url:

@@ -1,8 +1,10 @@
 #from __future__ import annotations
 from dataclasses import dataclass
+
+from src.backend_server.model.data_store.database_connectors.mother_db_connector import DBManager
 from src.backend_server.utils.hf_api import hfAPI
 import math
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, override
 from src.backend_server.utils.llm_api import llmAPI
 import json
 from pathlib import Path
@@ -203,7 +205,8 @@ class PerformanceClaims(MetricStd[float]):
         
         return round(overall, 4)
 
-    def calculate_metric_score(self, ingested_path: Path, artifact_data: Artifact, *args, **kwargs) -> float:
+    @override
+    def calculate_metric_score(self, ingested_path: Path, artifact_data: Artifact, database_manager: DBManager, *args, **kwargs) -> float:
         #return self.evaluate(artifact_data.url)
         return 0.5
 

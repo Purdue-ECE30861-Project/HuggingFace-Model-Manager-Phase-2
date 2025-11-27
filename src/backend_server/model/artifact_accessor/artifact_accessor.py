@@ -11,13 +11,13 @@ from src.contracts.artifact_contracts import ArtifactQuery, ArtifactMetadata, Ar
     ArtifactName, \
     ArtifactRegEx, ArtifactData
 from .enums import *
+from .register_deferred import RaterTaskManager
 from .register_direct import generate_unique_id, register_data_store, artifact_and_rating_direct
 from ..data_store.database_connectors.mother_db_connector import DBManager
 from ..data_store.downloaders.base_downloader import BaseArtifactDownloader
 from ..data_store.downloaders.gh_downloader import GHArtifactDownloader
 from ..data_store.downloaders.hf_downloader import HFArtifactDownloader
 from ..data_store.s3_manager import S3BucketManager
-from ...global_state import rater_task_manager
 
 logger = logging.getLogger(__name__)
 
@@ -25,12 +25,14 @@ logger = logging.getLogger(__name__)
 class ArtifactAccessor:
     def __init__(self, db: DBManager,
                  s3: S3BucketManager,
+                 rater_task_manager: RaterTaskManager,
                  num_processors: int = 1,
-                 ingest_score_threshold: float = 0.5
+                 ingest_score_threshold: float = 0.5,
                  ):
         logger.info("Artifact Accessor is Started")
         self.db: DBManager = db
         self.s3_manager = s3
+        self.rater_task_manager = rater_task_manager
         self.num_processors: int = num_processors
         self.ingest_score_threshold: float = ingest_score_threshold
 
@@ -85,7 +87,7 @@ class ArtifactAccessor:
             logger.error(f"FAILED: url: {body.url} artifact_id {artifact_id} type {artifact_type.name} already exists")
             return RegisterArtifactEnum.ALREADY_EXISTS
 
-        push_result: bool = await rater_task_manager.submit(artifact_type, body)
+        push_result: bool = await self.rater_task_manager.submit(artifact_type, body)
         if not push_result:
             return RegisterArtifactEnum.INTERNAL_ERROR
         return RegisterArtifactEnum.DEFERRED
@@ -125,6 +127,7 @@ class ArtifactAccessor:
 
     @validate_call
     def update_artifact(self, artifact_type: ArtifactType, id: ArtifactID, body: Artifact) -> GetArtifactEnum:
+        raise NotImplementedError()
         if artifact_type == ArtifactType.model:
             if not self.db.router_artifact.update_artifact(id.id, body, artifact_type):
                 return GetArtifactEnum.DOES_NOT_EXIST

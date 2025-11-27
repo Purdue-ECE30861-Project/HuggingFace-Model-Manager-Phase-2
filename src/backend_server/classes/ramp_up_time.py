@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import override
+
+from src.backend_server.model.data_store.database_connectors.mother_db_connector import DBManager
 from src.backend_server.utils.llm_api import llmAPI
 from pathlib import Path
 from src.contracts.artifact_contracts import Artifact
@@ -17,6 +20,7 @@ class RampUpTime(MetricStd[float]):
 
     def _score_readme_with_llm(self, readme_text: str) -> float:
         """Send README text to Purdue’s LLM and return 0.0, 0.5, or 1.0."""
+        # PLEASE NO MORE STUPID FUCKING AI PLEASE
         prompt = f"""
         Evaluate the documentation quality of an open-source machine learning project.
         The goal is to rate how quickly a new engineer could understand and use the project based on its README.
@@ -57,7 +61,8 @@ class RampUpTime(MetricStd[float]):
     def getRampUpTime(self) -> float:
         return self.metricScore
 
-    def calculate_metric_score(self, ingested_path: Path, artifact_data: Artifact, *args, **kwargs) -> float:
+    @override
+    def calculate_metric_score(self, ingested_path: Path, artifact_data: Artifact, database_manager: DBManager, *args, **kwargs) -> float:
         # readme_files = [p for p in Path.rglob('*') if p.is_file() and p.name.lower().startswith("readme")]
         # contents = []
         # for f in readme_files:

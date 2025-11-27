@@ -71,14 +71,14 @@ class CacheAccessor:
         Returns:
             Redis key pattern string
         """
-        return f"artifact:{artifact_type.name}:{artifact_id}:*"
+        return f"artifact:{artifact_id}:{artifact_type.name}:*"
     
     def insert(
         self,
         artifact_id: str,
         artifact_type: ArtifactType,
         request_hash: str,
-        response_content: bytes,
+        response_content: str,
     ) -> bool:
         """
         Insert a cache entry.
@@ -96,13 +96,13 @@ class CacheAccessor:
 
             self.redis_client.setex(key, self.ttl_seconds, response_content)
             
-            logger.debug(f"Inserted cache entry for artifact {artifact_id} with hash {request_hash[:8]}...{request_hash[-8:]}")
+            logger.info(f"Inserted cache entry for artifact {artifact_id} with hash {request_hash[:8]}...{request_hash[-8:]}")
             return True
         except redis.RedisError as e:
             logger.error(f"Failed to insert cache entry: {e}")
             return False
     
-    def delete_by_artifact_id(self, artifact_id: str) -> int:
+    def delete_by_artifact_id(self, artifact_id: str, artifact_type: ArtifactType) -> int:
         """
         Delete all cache entries for a specific artifact ID.
         
@@ -116,7 +116,7 @@ class CacheAccessor:
             Number of keys deleted
         """
         try:
-            pattern = self._get_pattern_for_artifact(artifact_id)
+            pattern = self._get_pattern_for_artifact(artifact_id, artifact_type)
             
             # Find all keys matching the pattern
             keys = list(self.redis_client.scan_iter(match=pattern))
@@ -126,7 +126,8 @@ class CacheAccessor:
                 return 0
             
             # Delete all matching keys
-            deleted_count = self.redis_client.delete(*keys)
+            deleted_count: int = self.redis_client.delete(*keys)
+
             logger.info(f"Deleted {deleted_count} cache entries for artifact {artifact_id}")
             return deleted_count
         except redis.RedisError as e:
@@ -136,6 +137,7 @@ class CacheAccessor:
     def delete(
         self,
         artifact_id: str,
+        artifact_type: ArtifactType,
         request_hash: str
     ) -> bool:
         """
@@ -149,7 +151,7 @@ class CacheAccessor:
             True if key was deleted, False if key didn't exist or error occurred
         """
         try:
-            key = self._format_key(artifact_id, request_hash)
+            key = self._format_key(artifact_id, artifact_type, request_hash)
             deleted = self.redis_client.delete(key)
             
             if deleted:

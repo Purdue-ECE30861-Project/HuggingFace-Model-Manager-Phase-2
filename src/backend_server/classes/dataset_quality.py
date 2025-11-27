@@ -1,5 +1,10 @@
 from __future__ import annotations
 from dataclasses import dataclass
+from typing import override
+
+from huggingface_hub import HfApi
+
+from ..model.data_store.database_connectors.mother_db_connector import DBManager
 from ..utils.hf_api import hfAPI
 from ..utils.get_metadata import find_dataset_links
 import math
@@ -11,76 +16,27 @@ from src.contracts.metric_std import MetricStd
 
 class DatasetQuality(MetricStd[float]):
     metric_name = "dataset_quality"
-    
-    def _score_single_dataset(self, dataset_info: dict) -> float:
-        """
-        Compute a dataset quality score for one dataset.
-        Uses likes, downloads, license, and optional test/dimension metadata.
-        """
-        likes = dataset_info.get("likes", 0)
-        downloads = dataset_info.get("downloads", 0)
-        license_str = dataset_info.get("license", None)
-        dimensions = dataset_info.get("cardData", {}).get("task_categories", [])  # heuristic
-        num_dimensions = len(dimensions)
 
-        # Popularity proxy
-        likes_score = math.log(likes + 1) / math.log(5000 + 1)
+    def __init__(self, half_score_point_likes: float, half_score_point_downloads: float, half_score_point_dimensions: float, metric_weight=0.1):
+        super().__init__(metric_weight)
+        self.api = HfApi()
+        self.half_score_point_likes = half_score_point_likes
+        self.half_score_point_downloads = half_score_point_downloads
+        self.half_score_point_dimensions = half_score_point_dimensions
 
-        # Adoption proxy
-        downloads_score = math.log(downloads + 1) / math.log(1_000_000 + 1)
+    def get_exp_coefficient(self, half_magnitude_point: float):
+        return -math.log2(0.5) / half_magnitude_point
 
-        # License quality
-        if license_str is None:
-            license_score = 0.2
-        elif any(x in license_str.lower() for x in ["mit", "apache", "cc0", "cc-by"]):
-            license_score = 1.0
-        elif "research" in license_str.lower():
-            license_score = 0.8
-        else:
-            license_score = 0.5
+    @override
+    def calculate_metric_score(self, ingested_path: Path, artifact_data: Artifact, database_manager: DBManager, *args, **kwargs) -> float:
+        repo_id = artifact_data.data.url.rstrip("/").split("datasets/")[-1]
 
-        # Extra signal: more dimensions/tests = more robust dataset
-        dimension_score = min(num_dimensions / 10.0, 1.0)  # cap at 1
+        info = self.api.dataset_info(repo_id, printCLI=False)
 
-        # Weighted combination
-        total_score = (
-            0.3 * likes_score
-            + 0.3 * downloads_score
-            + 0.3 * license_score
-            + 0.1 * dimension_score
-        )
+        num_likes_score: float = 2 ** (-info.likes * self.get_exp_coefficient(self.half_score_point_likes))
+        num_downloads_score: float = 2 ** (-info.downloads * self.get_exp_coefficient(self.half_score_point_downloads))
+        num_dimensions_score: float = (
+                2 ** (-len(info.cardData.get("task_categories", [])) * self.get_exp_coefficient(self.half_score_point_dimensions)))
 
-        return round(min(total_score, 1.0), 3)
-
-    def computeDatasetQuality(self, url: str, datasetURL: str) -> float:
-        """
-        For a Hugging Face model URL:
-        - Find dataset links mentioned in the model card
-        - Compute quality scores for each dataset
-        - Return an aggregated score (average across datasets)
-        """
-        if datasetURL:
-            dataset_links = [datasetURL]
-        else:
-            dataset_links = find_dataset_links(url)
-        if not dataset_links:
-            return 0.0
-
-        scores = []
-        api = hfAPI()
-        for link in dataset_links:
-            dataset_info_str = api.get_info(link, printCLI=False)
-            dataset_info = json.loads(dataset_info_str).get("data", {})
-            score = self._score_single_dataset(dataset_info)
-            scores.append(score)
-
-        if not scores:
-            return 0.0
-
-        # Aggregate: average across datasets
-        return round(sum(scores) / len(scores), 3)
-
-    def calculate_metric_score(self, ingested_path: Path, artifact_data: Artifact, *args, **kwargs) -> float:
-        #return self.computeDatasetQuality(artifact_data.url, "BoneheadDataset")
-        return 0.5
+        return (num_likes_score + num_downloads_score + num_dimensions_score) / 3
 

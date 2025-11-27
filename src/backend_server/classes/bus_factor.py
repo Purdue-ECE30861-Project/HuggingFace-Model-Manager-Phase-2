@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import override
+
+from ..model.data_store.database_connectors.mother_db_connector import DBManager
 from ..utils.get_metadata import get_collaborators_github, find_github_links
 from ..utils.llm_api import llmAPI
 import math
@@ -43,6 +46,7 @@ class BusFactor(MetricStd[float]):
                 return round(bus_factor, 3)
         return 0.0
 
-    def calculate_metric_score(self, ingested_path: Path, artifact_data: Artifact, *args, **kwargs) -> float:
+    @override
+    def calculate_metric_score(self, ingested_path: Path, artifact_data: Artifact, database_manager: DBManager, *args, **kwargs) -> float:
         #return self.setNumContributors(artifact_data.url, "BoneheadRepo")
         return 0.5

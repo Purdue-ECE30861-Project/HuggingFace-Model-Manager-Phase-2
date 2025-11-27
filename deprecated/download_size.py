@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, override
 from src.contracts.metric_std import MetricStd
 from src.contracts.artifact_contracts import Artifact
 from src.backend_server.utils.hf_api import hfAPI
@@ -44,8 +44,9 @@ class DownloadSize(MetricStd[float]):
             'code': ['.py', '.ipynb', '.sh'],
             'other': []
         }
-        
-    def calculate_metric_score(self, ingested_path: Path, artifact_data: Artifact, *args, **kwargs) -> float:
+
+    @override
+    def calculate_metric_score(self, ingested_path: Path, artifact_data: Artifact, database_manager: DBManager, *args, **kwargs) -> float:
         """
         Calculate download size score for a model.
         

@@ -1,4 +1,10 @@
+import logging
 from dataclasses import dataclass
+from pathlib import Path
+from typing import override
+
+from src.backend_server.model.data_store.database_connectors.mother_db_connector import DBManager
+from src.contracts.artifact_contracts import Artifact
 from src.contracts.metric_std import MetricStd
 import src.backend_server.utils.get_metadata
 import time
@@ -9,6 +15,8 @@ import os
 import json
 
 github_pattern = re.compile(r"^(.*)?github.com\/([^\/]+)\/([^\/]+)\/?(.*)$")
+
+logger = logging.getLogger(__name__)
 
 graphql_query_get_merge_additions = """
 {
@@ -39,13 +47,26 @@ graphql_query_get_merge_additions = """
 """
 
 
-@dataclass
 class Reviewedness(MetricStd):
     # TODO: Rebalance weights
     def __init__(self, metricName: str = "License", metricWeighting: float = 0.0):
         super().__init__(metricName, 0, metricWeighting)
 
-    def evaluate(self, url: str, githubURL: str | None) -> tuple[float, int]:
+    @override
+    def calculate_metric_score(self, ingested_path: Path, artifact_data: Artifact, database_manager: DBManager, *args, **kwargs) -> float:
+        attached_codebase_info: None|list[Artifact] = database_manager.router_lineage.db_artifact_get_attached_codebases(artifact_data.metadata.id)
+        if attached_codebase_info is None:
+            logger.error("No datasets attached for metric score")
+            return 0.0
+        max_score: float = float(len(attached_codebase_info))
+        current_score: float = 0.0
+
+        for codebase in attached_codebase_info:
+            current_score += self.evaluate(artifact_data.data.url, codebase.data.url)
+
+        return current_score / max_score
+
+    def evaluate(self, url: str, githubURL: str | None) -> tuple[float, int]: # POSSIBLE DIVIDE BY 0!?
         """
         Evaluates the percentage of code which was introduced through pull
         request and the time it took to run the evaluation.

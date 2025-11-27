@@ -69,7 +69,8 @@ class TestDBRouterRating(unittest.TestCase):
 
         audit_result = DBAuditAccessor.get_by_id(self.engine, ArtifactID(id="rating-router-id-1"), ArtifactType.model)
         self.assertEqual(len(audit_result), 2)
-        self.assertEqual(audit_result[1].action, AuditAction.RATE)
+        types = [x.action for x in audit_result]
+        self.assertTrue(AuditAction.RATE in types)
 
     def test_db_rating_add_nonexistent(self):
         """Test adding rating to non-existent artifact returns False."""

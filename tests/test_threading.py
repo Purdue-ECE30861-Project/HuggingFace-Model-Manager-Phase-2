@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import unittest
 import time
-from src.backend_server.classes.threading import MetricRunner, MetricTask, run_metric_task, MetricBatch
+from deprecated.threading import MetricRunner, MetricTask, run_metric_task, MetricBatch
 
 
 class MockMetric:

@@ -232,6 +232,48 @@ class DBRouterAudit(DBRouterBase):
 
 
 class DBRouterLineage(DBRouterBase):
+    def db_artifact_get_attached_datasets(self, model_id: str) -> list[Artifact]|None:
+        model: DBArtifactSchema|None = DBArtifactAccessor.artifact_get_by_id(self.engine, model_id, ArtifactType.model)
+        if not model:
+            return None
+
+        model: DBModelSchema = model.to_concrete()
+        attached_artifacts = DBConnectionAccessor.model_get_associated_dset_and_code(self.engine, model)
+        if not attached_artifacts:
+            return None
+
+        datasets: list[Artifact] = []
+        for artifact_connection in attached_artifacts:
+            if artifact_connection.relationship == DBConnectiveRelation.MODEL_DATASET:
+                datasets.append(DBArtifactAccessor.artifact_get_by_id(self.engine, artifact_connection.src_id, ArtifactType.dataset).to_artifact())
+
+        if not datasets:
+            return None
+
+        return datasets
+
+    def db_artifact_get_attached_codebases(self, model_id: str) -> list[Artifact] | None:
+        model: DBArtifactSchema | None = DBArtifactAccessor.artifact_get_by_id(self.engine, model_id,
+                                                                               ArtifactType.model)
+        if not model:
+            return None
+
+        model: DBModelSchema = model.to_concrete()
+        attached_artifacts = DBConnectionAccessor.model_get_associated_dset_and_code(self.engine, model)
+        if not attached_artifacts:
+            return None
+
+        codebases: list[Artifact] = []
+        for artifact_connection in attached_artifacts:
+            if artifact_connection.relationship == DBConnectiveRelation.MODEL_CODEBASE:
+                codebases.append(DBArtifactAccessor.artifact_get_by_id(self.engine, artifact_connection.src_id,
+                                                                      ArtifactType.code).to_artifact())
+
+        if not codebases:
+            return None
+
+        return codebases
+
     def db_artifact_lineage(self,
         artifact_id: str
     ) -> ArtifactLineageGraph|None:
