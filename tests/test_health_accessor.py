@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 from botocore.exceptions import ClientError
 
 from src.frontend_server.model.health_accessor import HealthAccessor
-from src.external_contracts import (
+from src.contracts.health_contracts import (
     HealthStatus,
     HealthComponentCollection,
     HealthComponentDetail,

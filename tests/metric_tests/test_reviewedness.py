@@ -1,4 +1,4 @@
-from src.classes.Reviewedness import Reviewedness
+from src.backend_server.classes.reviewedness import Reviewedness
 from unittest import TestCase
 from unittest.mock import patch, Mock
 from typing import Any

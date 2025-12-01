@@ -3,14 +3,15 @@ import tempfile
 import unittest
 
 import boto3
+from botocore.exceptions import ClientError
 
-from src.backend_server.model.artifact_accessor.artifact_accessor import RegisterArtifactEnum, GetArtifactEnum, \
-    GetArtifactsEnum, ArtifactAccessor
+from src.backend_server.model.artifact_accessor.artifact_accessor import ArtifactAccessor
 from src.backend_server.model.artifact_accessor.register_direct import *
+from src.backend_server.model.data_store.database_connectors.audit_database import SQLAuditAccessor
 from src.contracts.artifact_contracts import (
     ArtifactQuery, ArtifactID, ArtifactName, ArtifactRegEx,
 )
-from tests.integration_tests.helpers import docker_init
+from mock_infrastructure import docker_init
 
 logger = logging.getLogger(__name__)
 
@@ -28,23 +29,22 @@ class TestAccessor(unittest.TestCase):
     def setUpClass(cls):
         """Set up test fixtures using docker_init helper."""
         logger.info("Starting MySQL container via docker_init helper...")
-        cls.mysql_container = docker_init.start_mysql_container()
-        docker_init.wait_for_mysql(port=MYSQL_PORT)
         
         # Initialize database connection
         db_url = f"mysql+pymysql://{MYSQL_USER}:{MYSQL_PASSWORD}@127.0.0.1:{MYSQL_PORT}/{MYSQL_DATABASE}"
         cls.db = SQLMetadataAccessor(db_url)
+        cls.audit_db = SQLAuditAccessor(db_url)
         
         # Create S3 client and bucket manager
-        cls.s3bucket_container = docker_init.start_minio_container()
-        docker_init.wait_for_minio()
         s3_client = boto3.client(
             "s3",
             endpoint_url=f"http://127.0.0.1:{docker_init.MINIO_HOST_PORT}",
             aws_access_key_id=docker_init.MINIO_ROOT_USER,
             aws_secret_access_key=docker_init.MINIO_ROOT_PASSWORD,
         )
-        s3_client.create_bucket(Bucket=docker_init.MINIO_BUCKET)
+        try: s3_client.create_bucket(Bucket=docker_init.MINIO_BUCKET)
+        except ClientError:
+            logger.info("S3 bucket already started")
         s3_client.close()
         cls.s3_manager = S3BucketManager(
             f"http://127.0.0.1:{docker_init.MINIO_HOST_PORT}",
@@ -55,6 +55,7 @@ class TestAccessor(unittest.TestCase):
         )
         cls.accessor: ArtifactAccessor = ArtifactAccessor(
             cls.db,
+            cls.audit_db,
             cls.s3_manager
         )
 
@@ -62,10 +63,6 @@ class TestAccessor(unittest.TestCase):
     def tearDownClass(cls):
         """Clean up test fixtures using docker_init helper."""
         logger.info("Cleaning up MySQL container via docker_init helper...")
-        try:
-            docker_init.cleanup_test_containers()
-        except Exception:
-            logger.exception("Error cleaning up test containers")
 
     def tearDown(self):
         self.db.reset_db()

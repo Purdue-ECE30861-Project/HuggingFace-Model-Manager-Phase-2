@@ -1,34 +1,65 @@
+import hashlib
 import shutil
 from pathlib import Path
-import botocore.exceptions as botoexc
-import hashlib
 
-from .enums import *
-from src.backend_server.model.data_store.database import SQLMetadataAccessor, ArtifactDataDB
+import botocore.exceptions as botoexc
+
 from src.backend_server.model.data_store.s3_manager import S3BucketManager
 from src.contracts.artifact_contracts import Artifact, ArtifactMetadata, ArtifactData, ArtifactType
 from src.contracts.model_rating import ModelRating
+from .enums import *
+from ..data_store.database_connectors.database_schemas import ModelLinkedArtifactNames
+from ..data_store.database_connectors.mother_db_connector import DBManager
+from ..data_store.downloaders.base_downloader import extract_name_from_url, generate_unique_id
+from ..data_store.downloaders.hf_downloader import model_get_related_artifacts
 
 
-def extract_name_from_url(url: str) -> str:
-    return "GoobyGoober" # implement me later
+def collect_readmes(root: Path) -> str:
+    # case-insensitive match for names starting with "readme"
+    results = []
+    for path in root.rglob("*"):
+        if path.is_file() and path.stem.lower() == "readme":
+            try:
+                results.append(path.read_text(encoding="utf-8"))
+            except Exception:
+                pass  # ignore unreadable files
+    return "\n".join(results)
 
-def generate_unique_id(url: str) -> str:
-    return hashlib.md5(url.encode()).hexdigest()
-
+def register_database(
+        db: DBManager,
+        new_artifact: Artifact,
+        tempdir: Path,
+        size: float
+) -> bool:
+    if new_artifact.type == ArtifactType.model:
+        associated_artifacts: ModelLinkedArtifactNames = model_get_related_artifacts(tempdir)
+        return db.router_artifact.db_model_ingest(
+            new_artifact,
+            associated_artifacts,
+            size,
+            collect_readmes(tempdir),
+        )
+    return db.router_artifact.db_artifact_ingest(
+        new_artifact,
+        size,
+        collect_readmes(tempdir)
+    )
 
 def register_data_store(
         s3_manager: S3BucketManager,
-        db: SQLMetadataAccessor,
+        db: DBManager,
         new_artifact: Artifact,
+        size: float,
         rating: ModelRating,
         tempdir: Path
 ) -> tuple[RegisterArtifactEnum, Artifact | None]:
     archive_path = shutil.make_archive(str(tempdir.resolve()), "xztar", root_dir=tempdir)
     try:
         s3_manager.s3_artifact_upload(new_artifact.metadata.id, Path(archive_path))
-        if not db.add_to_db(ArtifactDataDB.create_from_artifact(new_artifact, rating)):
+        if not register_database(db, new_artifact, tempdir, size):
             raise IOError("Database Failure")
+        if not db.router_rating.db_rating_add(new_artifact.metadata.id, rating):
+            raise IOError("Failed to ingest rating due to database problem")
     except botoexc.ClientError as e:
         return RegisterArtifactEnum.DISQUALIFIED, None
     except IOError as e:
@@ -45,9 +76,9 @@ def artifact_and_rating_direct(
 ) -> tuple[Artifact, ModelRating]:
     new_artifact: Artifact = Artifact(
         metadata=ArtifactMetadata(
-            name=extract_name_from_url(data.url),
+            name=extract_name_from_url(data.url, artifact_type),
             id=generate_unique_id(data.url),
-            type=artifact_type  # replace later with actual code
+            type=artifact_type
         ),
         data=data
     )

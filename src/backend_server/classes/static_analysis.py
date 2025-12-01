@@ -9,6 +9,7 @@ import os
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass
 class StaticAnalysisResult:
     has_fixable_issues: bool

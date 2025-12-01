@@ -33,6 +33,8 @@ MINIO_BUCKET = os.environ.get("S3_BUCKET", "hfmm-artifact-storage")
 REDIS_HOST = os.environ.get("REDIS_HOST", "127.0.0.1")
 REDIS_HOST_PORT=(int(os.environ.get("REDIS_PORT", 6399)))
 REDIS_IMAGE=os.environ.get("REDIS_IMAGE", "redis:7.2")
+REDIS_PASSWORD=os.environ.get("REDIS_PASSWORD", "TestPassword")
+REDIS_USER=os.environ.get("REDIS_USER", "TestUser")
 
 
 def _client() -> docker.DockerClient:
@@ -65,6 +67,7 @@ def start_mysql_container(
         remove=False,  # keep container for debugging; caller may remove
         name=name
     )
+    logger.info("MySQL Container started")
     return container
 
 
@@ -80,6 +83,7 @@ def wait_for_mysql(
     database = database or MYSQL_DATABASE
     for attempt in range(retries):
         try:
+            logger.info("Attempting MySQL Connection")
             conn = pymysql.connect(
                 host=host,
                 port=port,

@@ -1,7 +1,7 @@
 # tests/test_busfactor.py
 import unittest
 from unittest.mock import patch
-from src.classes.BusFactor import BusFactor
+from src.backend_server.classes.bus_factor import BusFactor
 
 class FakeLLM:
     def __init__(self, text="0.5"):

@@ -1,12 +1,16 @@
 import time
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field
 from typing import Any
 from pathlib import Path
 from multiprocessing import Pool
-from .metric_std import MetricStd, T
+from .metric_std import MetricStd
 from .artifact_contracts import Artifact, SizeScore
-from ..backend_server.classes import available_datasets_and_code, bus_factor, code_quality, dataset_quality, license, performance_claims, ramp_up_time, size, threading
+from ..backend_server.classes import available_datasets_and_code, bus_factor, code_quality, dataset_quality, license, performance_claims, ramp_up_time
+
+
+class DBManager:
+    pass
 
 
 class Reproducibility(MetricStd[float]):
@@ -49,7 +53,7 @@ class ModelRating(BaseModel):
     dataset_and_code_score: float = Field(..., description="Availability and quality of accompanying datasets and code", json_schema_extra={"calc":available_datasets_and_code.AvailableDatasetAndCode(metric_weight=0.1)})
     dataset_and_code_score_latency: float = Field(...,
                                                   description="Time (seconds) required to compute dataset_and_code_score")
-    dataset_quality: float = Field(..., description="Quality rating for associated datasets", json_schema_extra={"calc":dataset_quality.DatasetQuality(metric_weight=0.1)})
+    dataset_quality: float = Field(..., description="Quality rating for associated datasets", json_schema_extra={"calc":dataset_quality.DatasetQuality(metric_weight=0.1, half_score_point_likes=100, half_score_point_dimensions=5, half_score_point_downloads=100)}) # this is done wrong. Need to have inerted exponential direction
     dataset_quality_latency: float = Field(..., description="Time (seconds) required to compute dataset_quality")
     code_quality: float = Field(..., description="Quality rating for provided code artifacts", json_schema_extra={"calc":code_quality.CodeQuality(metric_weight=0.1)})
     code_quality_latency: float = Field(..., description="Time (seconds) required to compute code_quality")
@@ -59,7 +63,7 @@ class ModelRating(BaseModel):
     reviewedness_latency: float = Field(..., description="Time (seconds) required to compute reviewedness")
     tree_score: float = Field(..., description="Supply-chain health score for model dependencies", json_schema_extra={"calc":TreeScore(metric_weight=0.05)})
     tree_score_latency: float = Field(..., description="Time (seconds) required to compute tree_score")
-    size_score: SizeScore = Field(..., description="Size suitability scores for common deployment targets", json_schema_extra={"calc":Size(metric_weight=0.05)})
+    size_score: SizeScore = Field(..., description="Size suitability scores for common deployment targets", json_schema_extra={"calc":Size(metric_weight=0.05, )})
     size_score_latency: float = Field(..., description="Time (seconds) required to compute size_score")
 
     @staticmethod
@@ -79,11 +83,11 @@ class ModelRating(BaseModel):
         return metric.run_score_calculation()
 
     @staticmethod
-    def generate_rating(ingested_path: Path, artifact: Artifact, processes: int) -> "ModelRating":
+    def generate_rating(ingested_path: Path, artifact: Artifact, database_manager: DBManager, processes: int) -> "ModelRating":
         metrics: list[MetricStd] = []
         for name, field in ModelRating.model_fields.items():
             if field.json_schema_extra and "calc" in field.json_schema_extra:
-                metrics.append(field.json_schema_extra["calc"].set_params(ingested_path, artifact))
+                metrics.append(field.json_schema_extra["calc"].set_params(ingested_path, artifact, database_manager))
 
         start = time.time()
 

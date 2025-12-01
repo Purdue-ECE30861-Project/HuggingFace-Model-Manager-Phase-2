@@ -1,16 +1,16 @@
+import os
+from pathlib import Path
+from typing import override
+
 import huggingface_hub.utils
 from huggingface_hub import snapshot_download
-import os
-import tempfile
-from pathlib import Path
 
+from src.backend_server.model.data_store.database_connectors.database_schemas import ModelLinkedArtifactNames
+from src.backend_server.model.data_store.downloaders.base_downloader import BaseArtifactDownloader
 from src.contracts.artifact_contracts import ArtifactType
 
 
-class HFArtifactDownloader:
-    def __init__(self, timeout: int = 30):
-        self.timeout = timeout
-
+class HFArtifactDownloader(BaseArtifactDownloader):
     def _validate_url(self, url: str) -> bool:
         """Internal method to validate URL format"""
         return url.startswith(('http://huggingface.co', 'https://huggingface.co'))
@@ -41,7 +41,8 @@ class HFArtifactDownloader:
         except (huggingface_hub.utils.RepositoryNotFoundError, huggingface_hub.utils.RevisionNotFoundError):
             raise FileNotFoundError("Requested repository doesnt exist")
 
-    def download_artifact(self, url: str, artifact_type: ArtifactType, tempdir: Path) -> int: # returns the size of the downloaded huggingface artifact
+    @override
+    def download_artifact(self, url: str, artifact_type: ArtifactType, tempdir: Path) -> float: # returns the size of the downloaded huggingface artifact
         size: int = 0
 
         repo_id: str = self._get_repo_id_from_url(url, artifact_type)
@@ -51,4 +52,8 @@ class HFArtifactDownloader:
         for ele in os.scandir(tempdir):
             size += os.stat(ele).st_size
 
-        return size
+        return size / 10e6
+
+
+def model_get_related_artifacts(tempdir: Path) -> ModelLinkedArtifactNames:
+    raise NotImplementedError()

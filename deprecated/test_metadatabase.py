@@ -1,13 +1,11 @@
 import unittest
-import time
 import logging
 import pymysql
 from pydantic import HttpUrl
 from src.contracts.artifact_contracts import ArtifactType, Artifact, ArtifactData, ArtifactMetadata, ArtifactQuery
-from src.backend_server.model.data_store.database import SQLMetadataAccessor
-from tests.integration_tests.helpers import docker_init
+from mock_infrastructure import docker_init
 from src.contracts.model_rating import ModelRating
-from src.backend_server.model.data_store.database import SQLMetadataAccessor, ArtifactDataDB
+from src.backend_server.model.data_store.database_connectors.artifact_database import SQLMetadataAccessor, ArtifactDataDB
 
 
 # configure logging
@@ -27,10 +25,6 @@ class TestMySQLInfrastructure(unittest.TestCase):
     def setUpClass(cls):
         """Set up MySQL container and initialize database accessor."""
         logger.info("Starting MySQL container via docker_init helper...")
-        # start and wait are handled by helper which will raise if something fails
-        cls.container = docker_init.start_mysql_container()
-        docker_init.wait_for_mysql(port=MYSQL_PORT)
-
         # Initialize database accessor
         db_url = f"mysql+pymysql://{MYSQL_USER}:{MYSQL_PASSWORD}@127.0.0.1:{MYSQL_PORT}/{MYSQL_DATABASE}"
         cls.db_accessor = SQLMetadataAccessor(db_url)
@@ -43,16 +37,6 @@ class TestMySQLInfrastructure(unittest.TestCase):
         """Clean up after each test."""
         if hasattr(cls, 'db_accessor'):
             cls.db_accessor.reset_db()
-        # use docker_init helper to remove any test containers
-        try:
-            docker_init.cleanup_test_containers(("mysql_test_",))
-        except Exception:
-            logger.exception("Error cleaning up mysql test containers")
-
-    def _wait_for_mysql(self, max_attempts: int = 20, delay: int = 2):
-        """Wait for MySQL to be ready to accept connections."""
-        # Keep this helper for tests that call it directly; delegate to docker_init.wait_for_mysql
-        docker_init.wait_for_mysql(port=MYSQL_PORT, retries=max_attempts, delay=delay)
 
     def test_mysql_connection(self):
         try:

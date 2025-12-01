@@ -1,81 +1,27 @@
 from __future__ import annotations
-from ..utils.get_metadata import find_dataset_links, find_github_links
+
 from pathlib import Path
+
+from typing_extensions import override
+
 from src.contracts.artifact_contracts import Artifact
 from src.contracts.metric_std import MetricStd
-import time
 
 
+class DBManager:
+    pass
 class AvailableDatasetAndCode(MetricStd[float]):
     metric_name = "dataset_and_code_score"
 
-    def calculate_metric_score(self, ingested_path: Path, artifact_data: Artifact, *args, **kwargs) -> float:
-        #need way to get actual codebase url, probably from the filepath
-        #return self.score_dataset_and_code_availability(artifact_data.data.url, "BoneheadRepo", "BoneheadUrl"),
-        return 0.5
+    @override
+    def calculate_metric_score(self, ingested_path: Path, artifact_data: Artifact, database_manager: DBManager, *args, **kwargs) -> float:
+        attached_datasets = database_manager.router_lineage.db_artifact_get_attached_datasets(artifact_data.metadata.id)
+        attached_codebases = database_manager.router_lineage.db_artifact_get_attached_codebases(artifact_data.metadata.id)
 
-    def score_dataset_availability(self, url: str, datasetURL) -> float:
-        """
-        Returns a score between 0 and 1 for dataset availability in a Hugging Face model.
-        0 = no datasets mentioned
-        0.5 = at least one dataset mentioned, but unclear (non-HF or weak link)
-        1.0 = at least one Hugging Face dataset explicitly linked
-        """
-        if datasetURL:
-            dataset_links = [datasetURL]
-        else:
-            dataset_links = find_dataset_links(url)
+        score: float = 0.0
+        if attached_datasets:
+            score += 0.5
+        if attached_codebases:
+            score += 0.5
 
-        if not dataset_links:
-            return 0.0
-
-        # Score higher if HF dataset links are explicitly present
-        hf_links = [ds for ds in dataset_links if "huggingface.co/datasets" in ds]
-        if hf_links:
-            return 1.0
-
-        # If datasets mentioned but not on HF, partial score
-        return 0.5
-    
-    def score_code_availability(self, url: str, githubURL) -> float:
-        """
-        Returns a score between 0 and 1 for code availability in a Hugging Face model.
-        0   = no GitHub (or external code) links
-        0.5 = some GitHub links present, but repo might be unrelated / unclear
-        1.0 = at least one clear GitHub repo link (likely the model's codebase)
-        """
-        if githubURL:
-            github_links = [githubURL]
-        else:
-            github_links = find_github_links(url)
-
-        if not github_links:
-            return 0.0
-
-        # Heuristic: If there's a GitHub link, assume at least partial code availability
-        # We could strengthen this by checking for keywords in the repo name like "model",
-        # "training", "code", etc.
-        for link in github_links:
-            repo_name = link.split("/")[-1].lower()
-            if any(keyword in repo_name for keyword in ["model", "train", "code", "repo"]):
-                return 1.0
-
-        # Otherwise just give partial credit for mentioning GitHub
-        return 0.5
-
-
-    def score_dataset_and_code_availability(self, url: str, datasetURL, githubURL) -> float:
-        """
-        Combine dataset and code availability scores into a single score (0–1).
-        
-        Strategy:
-        - Equal weighting of dataset availability (50%) and code availability (50%)
-        - If both are fully available, score = 1.0
-        - If neither available, score = 0.0
-        - Otherwise returns a value in between
-        """
-        dataset_score = self.score_dataset_availability(url, datasetURL)
-        code_score = self.score_code_availability(url, githubURL)
-
-        total_score = 0.5 * dataset_score + 0.5 * code_score
-        return round(total_score, 3)
+        return score

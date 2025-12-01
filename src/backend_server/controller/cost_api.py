@@ -2,10 +2,11 @@ from fastapi import Depends, APIRouter, HTTPException, status
 from fastapi.exceptions import RequestValidationError
 from typing import Annotated
 from pydantic import ValidationError
+from sqlalchemy.orm import dependency
 
 from src.contracts.artifact_contracts import ArtifactID, ArtifactType, ArtifactCost
+from ..global_state import database_manager
 from ..model.model_rater import ModelRaterEnum
-from ..model.artifact_cost import ArtifactCostAnalyzer
 
 
 cost_router = APIRouter()
@@ -16,23 +17,18 @@ async def cost_model(
         id: str,
         artifact_type: str,
         dependency: bool,
-        cost_analyzer: Annotated[ArtifactCostAnalyzer, Depends(ArtifactCostAnalyzer)],
-) -> ArtifactCost | None:
+) -> ArtifactCost:
     try:
         id_model: ArtifactID = ArtifactID(id=id)
         artifact_type_model: ArtifactType = ArtifactType(artifact_type)
     except ValidationError:
         raise RequestValidationError(errors=["invalid artifact type or id"])
 
-    return_code: ModelRaterEnum
-    return_content: ArtifactCost
+    if not database_manager.router_artifact.db_artifact_exists(id, artifact_type_model):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="artifact not found")
 
-    return_code, return_content = await cost_analyzer.get_artifact_cost(artifact_type_model, id_model, dependency)
+    return_content: ArtifactCost = database_manager.router_cost.db_artifact_cost(id, artifact_type_model, dependency)
 
-    match return_code:
-        case return_code.SUCCESS:
-            return return_content
-        case return_code.NOT_FOUND:
-            raise HTTPException(status_code=return_code.value, detail="Artifact does not exist.")
-        case return_code.INTERNAL_ERROR:
-            raise HTTPException(status_code=return_code.value, detail="The artifact cost calculator encountered an error.")
+    if not return_content:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="internal cost calculatioin error")
+    return return_content

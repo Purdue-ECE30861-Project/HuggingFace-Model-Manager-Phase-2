@@ -4,10 +4,9 @@ from pydantic import ValidationError
 from typing import Annotated, List
 
 from src.contracts.artifact_contracts import ArtifactID, ArtifactType, ArtifactQuery, Artifact, ArtifactMetadata, ArtifactName, ArtifactRegEx, ArtifactData
-from ..model.artifact_accessor.artifact_accessor import ArtifactAccessor, GetArtifactsEnum, GetArtifactEnum, RegisterArtifactEnum
-from ..model.artifact_accessor.register_deferred import RaterTaskManager
-from ..global_state import artifact_accessor as accessor
+from ..model.artifact_accessor.enums import GetArtifactsEnum, GetArtifactEnum, RegisterArtifactEnum
 from ...contracts.auth_contracts import ArtifactAuditEntry
+from ..global_state import database_manager, artifact_accessor, global_config, cache_accessor
 
 accessor_router = APIRouter()
 
@@ -21,7 +20,7 @@ async def get_artifacts(
     return_code: GetArtifactsEnum
     return_content: list[ArtifactMetadata]
 
-    return_code, return_content = accessor.get_artifacts(body, offset)
+    return_code, return_content = artifact_accessor.get_artifacts(body, offset)
 
     match return_code:
         case return_code.SUCCESS:
@@ -43,7 +42,7 @@ async def get_artifacts_by_name(
     return_code: GetArtifactEnum
     return_content: list[ArtifactMetadata]
 
-    return_code, return_content = accessor.get_artifact_by_name(name_model)
+    return_code, return_content = artifact_accessor.get_artifact_by_name(name_model)
 
     match return_code:
         case GetArtifactEnum.SUCCESS:
@@ -59,7 +58,7 @@ async def get_artifacts_by_regex(
     return_code: GetArtifactEnum
     return_content: list[ArtifactMetadata]
 
-    return_code, return_content = accessor.get_artifact_by_regex(regex)
+    return_code, return_content = artifact_accessor.get_artifact_by_regex(regex)
 
     match return_code:
         case GetArtifactEnum.SUCCESS:
@@ -82,10 +81,11 @@ async def get_artifact(
     return_code: GetArtifactEnum
     return_content: Artifact
 
-    return_code, return_content = accessor.get_artifact(artifact_type_model, id_model)
+    return_code, return_content = artifact_accessor.get_artifact(artifact_type_model, id_model)
 
     match return_code:
         case GetArtifactEnum.SUCCESS:
+            cache_accessor.insert(id, )
             return return_content
         case GetArtifactEnum.DOES_NOT_EXIST:
             raise HTTPException(status_code=return_code.value, detail="Artifact does not exist.")
@@ -107,7 +107,7 @@ async def update_artifact(
     return_code: GetArtifactEnum
     return_content: None
 
-    return_code, return_content = accessor.update_artifact(artifact_type_model, id_model, body)
+    return_code, return_content = artifact_accessor.update_artifact(artifact_type_model, id_model, body)
 
     match return_code:
         case GetArtifactEnum.SUCCESS:
@@ -131,7 +131,7 @@ async def delete_artifact(
     return_code: GetArtifactEnum
     return_content: None
 
-    return_code, return_content = accessor.delete_artifact(artifact_type_model, id_model)
+    return_code, return_content = artifact_accessor.delete_artifact(artifact_type_model, id_model)
 
     match return_code:
         case GetArtifactEnum.SUCCESS:
@@ -152,9 +152,11 @@ async def register_artifact(
         raise RequestValidationError(errors=["invalid artifact type"])
 
     return_code: RegisterArtifactEnum
-    return_content: Artifact
-
-    return_code, return_content = accessor.register_artifact(artifact_type_model, body)
+    return_content: Artifact | None = None
+    if not global_config.ingest_asynchronous:
+        return_code, return_content = artifact_accessor.register_artifact(artifact_type_model, body)
+    else:
+        return_code = await artifact_accessor.register_artifact_deferred(artifact_type_model, body)
 
     match return_code:
         case return_code.SUCCESS:
@@ -169,4 +171,6 @@ async def register_artifact(
             raise HTTPException(status_code=return_code.value)
         case return_code.DEFERRED:
             response.status_code = 202
+        case return_code.INTERNAL_ERROR:
+            raise HTTPException(status_code=return_code.value)
 

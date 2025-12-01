@@ -1,18 +1,18 @@
-import subprocess
-import tempfile
 import json
-import time
+import logging
 import os
 import re
+import subprocess
+import tempfile
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple
 from pathlib import Path
-from src.contracts.metric_std import MetricStd
-from src.contracts.artifact_contracts import Artifact
+from typing import List, Optional, override
+
 from src.backend_server.utils.hf_api import hfAPI
 from src.backend_server.utils.llm_api import llmAPI
-from .staticAnalysis import StaticAnalysisResult, LLMAnalysisResult, AIDebugResult, StaticAnalyzer
-import logging
+from src.contracts.artifact_contracts import Artifact
+from src.contracts.metric_std import MetricStd
+from .static_analysis import StaticAnalyzer
 
 logger = logging.getLogger(__name__)
 
@@ -23,8 +23,10 @@ class ReproducibilityResult:
     error_message: Optional[str]
     fixability_assessment: Optional[str]
 
-class Reproducibility(MetricStd[float]):
 
+class DBManager:
+    pass
+class Reproducibility(MetricStd[float]):
     metric_name = "Reproducibility"
 
     def __init__(self,  metric_weight = 0.1):
@@ -52,7 +54,8 @@ class Reproducibility(MetricStd[float]):
             "TypeError": 0.3,        # Less likely to be fixable
         }
 
-    def calculate_metric_score(self, ingested_path: Path, artifact_data: Artifact, *args, **kwargs) -> float:  # ← NEW METHOD
+    @override
+    def calculate_metric_score(self, ingested_path: Path, artifact_data: Artifact, database_manager: DBManager, *args, **kwargs) -> float:  # ← NEW METHOD
         """                                                # ← ADDED: docstring
         Calculate reproducibility score for a model.
         

@@ -13,5 +13,6 @@ class RegisterArtifactEnum(IntEnum):
     SUCCESS = 201
     ALREADY_EXISTS = 409
     DISQUALIFIED = 424
-    BAD_REQUEST = 400,
+    BAD_REQUEST = 400
     DEFERRED = 202
+    INTERNAL_ERROR = 500

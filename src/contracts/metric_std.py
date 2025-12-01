@@ -1,27 +1,28 @@
 import time
-
-from .artifact_contracts import Artifact
-from pydantic import BaseModel, Field, RootModel, model_validator
-from typing import List, Optional, Dict, Any, TypeVar, Generic
-from enum import Enum
 from abc import ABC, abstractmethod
 from pathlib import Path
+from typing import TypeVar, Generic
 
-
+from .artifact_contracts import Artifact
+#from ..backend_server.model.data_store.database_connectors.mother_db_connector import DBManager
 
 T = TypeVar("T")
 
 
+class DBManager: # dummy
+    pass
 class MetricStd(ABC, Generic[T]):
     metric_name: str = "NoName"
     def __init__(self, metric_weight=0.1):
         self.metric_weight = metric_weight
         self.ingested_path: Path|None = None
         self.artifact_data: Artifact|None = None
+        self.database_manager: DBManager|None = None
 
-    def set_params(self, ingested_path: Path, artifact_data: Artifact) -> "MetricStd":
+    def set_params(self, ingested_path: Path, artifact_data: Artifact, database_manager: DBManager) -> "MetricStd":
         self.ingested_path = ingested_path
         self.artifact_data = artifact_data
+        self.database_manager = database_manager
 
         return self
 
@@ -43,5 +44,5 @@ class MetricStd(ABC, Generic[T]):
         return self.metric_name, end_time - start_time, metric_score, metric_score_weighted
 
     @abstractmethod
-    def calculate_metric_score(self, ingested_path: Path, artifact_data: Artifact, *args, **kwargs) -> T:
+    def calculate_metric_score(self, ingested_path: Path, artifact_data: Artifact, database_manager: DBManager, *args, **kwargs) -> T:
         raise NotImplementedError()

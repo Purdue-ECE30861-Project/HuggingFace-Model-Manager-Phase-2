@@ -1,7 +1,7 @@
 # tests/test_codequality_bulk.py
 import unittest
 from unittest.mock import patch
-from src.classes.CodeQuality import CodeQuality
+from src.backend_server.classes.code_quality import CodeQuality
 
 class FakeLLM:
     def __init__(self, resp): self._resp = resp

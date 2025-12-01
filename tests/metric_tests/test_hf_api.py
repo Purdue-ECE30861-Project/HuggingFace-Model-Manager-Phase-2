@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 import requests
 
-from src.utils.hf_api import hfAPI
+from src.backend_server.utils.hf_api import hfAPI
 
 hf_api = hfAPI()
 
