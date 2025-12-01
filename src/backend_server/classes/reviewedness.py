@@ -1,21 +1,18 @@
 import json
 import logging
-import os
 import re
-import time
 from pathlib import Path
 from typing import override
 
 import requests
-from dotenv import load_dotenv
 
 import src.backend_server.utils.get_metadata
 from src.contracts.artifact_contracts import Artifact
 from src.contracts.metric_std import MetricStd
+from src.backend_server.global_state import DBManager
+from src.backend_server.global_state import global_config
 
 
-class DBManager:
-    pass
 github_pattern = re.compile(r"^(.*)?github.com\/([^\/]+)\/([^\/]+)\/?(.*)$")
 
 logger = logging.getLogger(__name__)
@@ -52,11 +49,22 @@ graphql_query_get_merge_additions = """
 class Reviewedness(MetricStd):
     # TODO: Rebalance weights
     def __init__(self, metricName: str = "License", metricWeighting: float = 0.0):
-        super().__init__(metricName, 0, metricWeighting)
+        super().__init__(metricWeighting)
 
     @override
-    def calculate_metric_score(self, ingested_path: Path, artifact_data: Artifact, database_manager: DBManager, *args, **kwargs) -> float:
-        attached_codebase_info: None|list[Artifact] = database_manager.router_lineage.db_artifact_get_attached_codebases(artifact_data.metadata.id)
+    def calculate_metric_score(
+        self,
+        ingested_path: Path,
+        artifact_data: Artifact,
+        database_manager: DBManager,
+        *args,
+        **kwargs,
+    ) -> float:
+        attached_codebase_info: None | list[Artifact] = (
+            database_manager.router_lineage.db_artifact_get_attached_codebases(
+                artifact_data.metadata.id
+            )
+        )
         if attached_codebase_info is None:
             logger.error("No datasets attached for metric score")
             return 0.0
@@ -68,7 +76,7 @@ class Reviewedness(MetricStd):
 
         return current_score / max_score
 
-    def evaluate(self, url: str, githubURL: str | None) -> tuple[float, int]: # POSSIBLE DIVIDE BY 0!?
+    def evaluate(self, url: str, githubURL: str | None) -> float:
         """
         Evaluates the percentage of code which was introduced through pull
         request and the time it took to run the evaluation.
@@ -76,14 +84,12 @@ class Reviewedness(MetricStd):
         :param url: model URL
         :param githubURL: Associated github URL (if present)
         """
-        load_dotenv()
-        t0 = time.perf_counter_ns()
         if githubURL is None:
             links = list(src.backend_server.utils.get_metadata.find_github_links(url))
         else:
             links = [githubURL]
         if len(links) == 0 or githubURL is None:
-            return -1.0, t0
+            return -1.0
 
         pr_additions = 0
         pr_deletions = 0
@@ -106,7 +112,9 @@ class Reviewedness(MetricStd):
                 if index is None:
                     next_page = False
         total = pr_additions + pr_deletions + commit_additions + commit_deletions
-        return (pr_additions + pr_deletions) / total, time.perf_counter_ns() - t0
+        if total == 0:
+            return 0
+        return (pr_additions + pr_deletions) / total
 
     def _parse_response(
         self, response: requests.Response
@@ -165,5 +173,5 @@ class Reviewedness(MetricStd):
             json = {"query": query % (name, owner, f', after: "{index}"')}
         else:
             json = {"query": query % (name, owner, "")}
-        headers = {"Authorization": f"bearer {os.getenv('GITHUB_TOKEN')}"}
+        headers = {"Authorization": f"bearer {global_config.github_pat}"}
         return requests.post(url=url, json=json, headers=headers)

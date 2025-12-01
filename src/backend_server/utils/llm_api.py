@@ -9,28 +9,23 @@ Usage:
 
 """
 
-import argparse
 import os
-from dotenv import load_dotenv, dotenv_values
 import requests
+from src.backend_server.global_state import global_config
 
-class llmAPI():
+
+class llmAPI:
 
     def make_prompt(self, token, role, content):
         url = "https://genai.rcac.purdue.edu/api/chat/completions"
         headers = {
             "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
         }
         body = {
             "model": "llama3.1:latest",
-            "messages": [
-            {
-                "role": role,
-                "content": content
-            }
-            ],
-            "stream": False
+            "messages": [{"role": role, "content": content}],
+            "stream": False,
         }
         response = requests.post(url, headers=headers, json=body)
         if response.status_code == 200:
@@ -39,15 +34,14 @@ class llmAPI():
             raise Exception(f"Error: {response.status_code}, {response.text}")
 
     def main(self, text):
-        # Get API key from env variable
-        load_dotenv()
-        api_key = os.environ.get("GEN_AI_STUDIO_API_KEY")
+        api_key = global_config.genai_key
         if not api_key:
             raise RuntimeError("Missing GENAI_STUDIO_TOKEN environment variable")
 
         response = self.make_prompt(api_key, role="user", content=text)
 
         return response
+
 
 if __name__ == "__main__":
     apiTester = llmAPI()
@@ -56,7 +50,7 @@ if __name__ == "__main__":
                 and likelihood that the work for developing this model was evenly split but all contributors. \
                 I would like you to return a single value from 0-1 with 1 being perfect bus factor and no risk involved, and 0 being one singular contributor doing all the work. \
                 This response should just be the 0-1 value with no other text given."
-    
+
     print(apiTester.main(f"URL: {hfurl}, instructions: {prompt}"))
-    
+
     # print(apiTester.main("Please give me a list of assessment areas that make good quality code"))

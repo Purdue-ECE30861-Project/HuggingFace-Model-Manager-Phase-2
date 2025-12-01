@@ -4,14 +4,22 @@ import os
 from sqlalchemy import Engine, create_engine
 from sqlmodel import SQLModel
 
-from src.backend_server.model.artifact_accessor.artifact_accessor import ArtifactAccessor
-from src.backend_server.model.artifact_accessor.register_deferred import RaterTaskManager
+from src.backend_server.model.artifact_accessor.artifact_accessor import (
+    ArtifactAccessor,
+)
+from src.backend_server.model.artifact_accessor.register_deferred import (
+    RaterTaskManager,
+)
 from src.backend_server.model.data_store.cache_accessor import CacheAccessor
-from src.backend_server.model.data_store.database_connectors.mother_db_connector import DBManager
+from src.backend_server.model.data_store.database_connectors.mother_db_connector import (
+    DBManager,
+)
 from src.backend_server.model.data_store.s3_manager import S3BucketManager
+from dotenv import load_dotenv
 
 
 class S3Config(BaseModel):
+    is_deploy: bool
     s3_url: str
     s3_access_key_id: str
     s3_secret_access_key: str
@@ -26,6 +34,7 @@ class RedisConfig(BaseModel):
     redis_port: int
     redis_user: str
     redis_password: str
+    redis_database: int
     redis_ttl_seconds: int
 
 
@@ -38,21 +47,35 @@ class GlobalConfig(BaseModel):
     ingest_score_threshold: float
     redis_config: RedisConfig
     max_ingest_queue_size: int
+    genai_key: str
+    github_pat: str
 
     @staticmethod
     def read_env() -> "GlobalConfig":
+        load_dotenv()
         return GlobalConfig(
             ingest_asynchronous=bool(os.environ.get("INGEST_ASYNCHRONOUS", "True")),
-            db_url=os.environ.get("DB_URL", "mysql+pymysql://test_user:newpassword@localhost:3307/test_db"),
+            db_url=os.environ.get(
+                "DB_URL", "mysql+pymysql://test_user:newpassword@localhost:3307/test_db"
+            ),
             s3_config=S3Config(
+                is_deploy=os.environ.get("DEVEL_TEST", "false").lower() != "true",
                 s3_url=f'http://{os.environ.get("S3_URL", "127.0.0.1")}:{os.environ.get("S3_HOST_PORT", "9000")}',
-                s3_access_key_id=os.environ.get("S3_ACCESS_KEY_ID", "minio_access_key_123"),
-                s3_secret_access_key=os.environ.get("S3_SECRET_ACCESS_KEY", "minio_secret_key_password_456"),
-                s3_bucket_name=os.environ.get("S3_BUCKET_NAME", "hfmm-artifact-storage"),
+                s3_access_key_id=os.environ.get(
+                    "S3_ACCESS_KEY_ID", "minio_access_key_123"
+                ),
+                s3_secret_access_key=os.environ.get(
+                    "S3_SECRET_ACCESS_KEY", "minio_secret_key_password_456"
+                ),
+                s3_bucket_name=os.environ.get(
+                    "S3_BUCKET_NAME", "hfmm-artifact-storage"
+                ),
                 s3_data_prefix=os.environ.get("S3_DATA_PREFIX", "artifact"),
                 s3_region_name=os.environ.get("S3_REGION_NAME", ""),
             ),
-            rater_task_manager_workers=int(os.environ.get("RATER_TASK_MANAGER_WORKERS", 1)),
+            rater_task_manager_workers=int(
+                os.environ.get("RATER_TASK_MANAGER_WORKERS", 1)
+            ),
             rater_processes=int(os.environ.get("RATER_PROCESSES", 1)),
             ingest_score_threshold=float(os.environ.get("INGEST_SCORE_THRESHOLD", 0.5)),
             max_ingest_queue_size=int(os.environ.get("MAX_INGEST_QUEUE_SIZE", 100)),
@@ -60,10 +83,13 @@ class GlobalConfig(BaseModel):
                 redis_host=os.environ.get("REDIS_HOST", "127.0.0.1"),
                 redis_port=int(os.environ.get("REDIS_PORT", 6379)),
                 redis_image=os.environ.get("REDIS_IMAGE", "redis:7.2"),
+                redis_database=int(os.environ.get("REDIS_DB", 0)),
                 redis_user=os.environ.get("REDIS_USER", "TestUser"),
                 redis_password=os.environ.get("REDIS_PASSWORD", "TestPassword"),
                 redis_ttl_seconds=int(os.environ.get("REDIS_TTL_SECONDS", 180)),
-            )
+            ),
+            genai_key=os.environ.get("GEN_AI_STUDIO_API_KEY", "sk-12345"),
+            github_pat=os.getenv("GITHUB_TOKEN", "github_pat_12345"),
         )
 
 
@@ -76,11 +102,12 @@ database_manager: DBManager = DBManager(mysql_engine)
 
 s3_accessor: S3BucketManager = S3BucketManager(
     global_config.s3_config.s3_url,
+    global_config.s3_config.is_deploy,
     global_config.s3_config.s3_access_key_id,
     global_config.s3_config.s3_secret_access_key,
     global_config.s3_config.s3_bucket_name,
     global_config.s3_config.s3_data_prefix,
-    global_config.s3_config.s3_region_name
+    global_config.s3_config.s3_region_name,
 )
 
 rater_task_manager: RaterTaskManager = RaterTaskManager(

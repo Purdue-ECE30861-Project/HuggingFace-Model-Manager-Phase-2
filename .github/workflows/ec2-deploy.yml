@@ -38,6 +38,7 @@ jobs:
                 public_ip=$(aws ec2 describe-instances --instance-ids $EC2_INSTANCE | grep "PublicIpAddress" | sed 's/"PublicIpAddress": //g' | sed 's/["|"]//g' | awk '{$1=$1};1')
                 echo "$EC2_PRIVATE_KEY" > ec2_key.pem
                 chmod 600 ec2_key.pem
+                # all following code until ENDSSH runs on ec2 instance
                 ssh -o StrictHostKeyChecking=no -i ec2_key.pem $EC2_USER@$public_ip << 'ENDSSH'
                 mkdir -p ~/.ssh/
                 echo "${{ secrets.REPO_PRIVATE_KEY }}" > ~/.ssh/id_github
