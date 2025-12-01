@@ -18,7 +18,7 @@ from sqlmodel import Field, SQLModel, Session, create_engine, select  # pyright:
 from typing_extensions import Literal
 
 from src.contracts.artifact_contracts import Artifact, ArtifactMetadata, ArtifactQuery, ArtifactType, ArtifactData, \
-    ArtifactName, ArtifactID
+    ArtifactID
 from src.contracts.model_rating import ModelRating
 from src.contracts.auth_contracts import User, AuditAction, ArtifactAuditEntry
 import logging
@@ -57,7 +57,7 @@ def _json_extract_postgres(element: JsonExtract, compiler: Any,
 class ArtifactAuditSchemaDB(SQLModel, table=True):
     id: str = Field(default="Python have me goonin", primary_key=True)
     artifact_type: ArtifactType
-    name: ArtifactName
+    name: str
     user: User
     date: datetime
     action: AuditAction

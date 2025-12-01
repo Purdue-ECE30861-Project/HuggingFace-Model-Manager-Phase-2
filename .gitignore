@@ -9,3 +9,4 @@ __pycache__/
 *.pem
 tmp_ssh
 tmp_ssh.pub
+.env
