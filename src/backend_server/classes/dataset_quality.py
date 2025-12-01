@@ -23,7 +23,7 @@ class DatasetQuality(MetricStd[float]):
         self.half_score_point_dimensions = half_score_point_dimensions
 
     def get_exp_coefficient(self, half_magnitude_point: float):
-        return -math.log2(0.5) / half_magnitude_point
+        return math.log2(0.5) / half_magnitude_point
 
     @override
     def calculate_metric_score(self, ingested_path: Path, artifact_data: Artifact, database_manager: DBManager, *args, **kwargs) -> float:
@@ -31,10 +31,10 @@ class DatasetQuality(MetricStd[float]):
 
         info = self.api.dataset_info(repo_id, printCLI=False)
 
-        num_likes_score: float = 2 ** (-info.likes * self.get_exp_coefficient(self.half_score_point_likes))
-        num_downloads_score: float = 2 ** (-info.downloads * self.get_exp_coefficient(self.half_score_point_downloads))
+        num_likes_score: float = 1 - 2 ** (-info.likes * self.get_exp_coefficient(self.half_score_point_likes))
+        num_downloads_score: float = 1 - 2 ** (-info.downloads * self.get_exp_coefficient(self.half_score_point_downloads))
         num_dimensions_score: float = (
-                2 ** (-len(info.cardData.get("task_categories", [])) * self.get_exp_coefficient(self.half_score_point_dimensions)))
+                1 - 2 ** (-len(info.cardData.get("task_categories", [])) * self.get_exp_coefficient(self.half_score_point_dimensions)))
 
         return (num_likes_score + num_downloads_score + num_dimensions_score) / 3
 
