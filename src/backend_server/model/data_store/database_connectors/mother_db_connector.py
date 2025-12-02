@@ -21,6 +21,18 @@ class DBRouterBase:
 
 
 class DBRouterArtifact(DBRouterBase):
+    def db_artifact_snapshot(self, artifact_id: str,
+                           artifact_type: ArtifactType) -> tuple[DBArtifactSchema|None, str|None]:
+        result: None | DBArtifactSchema = DBArtifactAccessor.artifact_get_by_id(self.engine, artifact_id, artifact_type)
+        if not result:
+            raise IOError("Artifact Not Exist")
+
+        readme: str|None = DBReadmeAccessor.artifact_get_readme(self.engine, artifact_id, artifact_type)
+        if not readme:
+            readme = ""
+
+        return result, readme
+
     def db_model_ingest(self, model_artifact: Artifact,
                         attached_names: ModelLinkedArtifactNames,
                         size_mb: float, readme: str | None,
@@ -36,7 +48,7 @@ class DBRouterArtifact(DBRouterBase):
             metadata=model_artifact.metadata,
         ): return False
 
-        db_model: DBModelSchema = DBArtifactSchema.from_artifact(model_artifact, size_mb)
+        db_model: DBModelSchema = DBArtifactSchema.from_artifact(model_artifact, size_mb).to_concrete()
         if not DBArtifactAccessor.artifact_insert(self.engine, db_model): return False
         DBConnectionAccessor.model_insert(self.engine, db_model, attached_names)
 
@@ -232,6 +244,41 @@ class DBRouterAudit(DBRouterBase):
 
 
 class DBRouterLineage(DBRouterBase):
+    def db_model_connection_snapshot(self, model_id: str) -> ModelLinkedArtifactNames|None:
+        model: DBArtifactSchema | None = DBArtifactAccessor.artifact_get_by_id(self.engine, model_id,
+                                                                               ArtifactType.model)
+        if not model:
+            return None
+
+        linked_names: ModelLinkedArtifactNames = ModelLinkedArtifactNames(
+            linked_dset_names=[],
+            linked_code_names=[],
+            linked_parent_model_name="",
+            linked_parent_model_relation="",
+            linked_parent_model_rel_source=""
+        )
+
+        model: DBModelSchema = model.to_concrete()
+        attached_artifacts = DBConnectionAccessor.model_get_associated_dset_and_code(self.engine, model)
+        if not attached_artifacts:
+            return linked_names
+
+        for connection in attached_artifacts:
+            if connection.relationship == DBConnectiveRelation.MODEL_DATASET:
+                linked_names.linked_dset_names.append(connection.src_name)
+            else:
+                linked_names.linked_code_names.append(connection.src_name)
+
+        parent_connection: DBConnectiveSchema = DBConnectionAccessor.model_get_parent_model(self.engine, model)
+        if not parent_connection:
+            return linked_names
+        linked_names.linked_parent_model_name = parent_connection.src_name
+        linked_names.linked_parent_model_relation = parent_connection.relationship_desc
+        linked_names.linked_parent_model_rel_source = parent_connection.source_desc
+
+        return linked_names
+
+
     def db_artifact_get_attached_datasets(self, model_id: str) -> list[Artifact]|None:
         model: DBArtifactSchema|None = DBArtifactAccessor.artifact_get_by_id(self.engine, model_id, ArtifactType.model)
         if not model:
@@ -353,6 +400,15 @@ class DBRouterRating(DBRouterBase):
 
         return DBModelRatingAccessor.add_rating(self.engine, model_id, rating)
 
+    def db_rating_get_snapshot(self, model_id: str) -> ModelRating|None:
+        model_result: None | DBModelSchema = DBArtifactAccessor.artifact_get_by_id(self.engine, model_id,
+                                                                                   ArtifactType.model)
+        if not model_result:
+            return None
+
+        rating_result: DBModelRatingSchema = DBModelRatingAccessor.get_rating(self.engine, model_id)
+        return rating_result.to_model_rating()
+
     def db_rating_get(self,
         model_id: str,
         user: User=User(name="GoonerMcGoon", is_admin=False)
@@ -385,6 +441,20 @@ class DBManager:
 
     def db_reset(self):
         self.db_reset()
+
+    def db_get_snapshot_model(self, artifact_id: str) -> tuple[DBArtifactSchema, str, ModelLinkedArtifactNames, ModelRating]: # WHAT ABOUT WHEN SOMETHING THAT ANOTHER DEPENDS ON GETS UPDATED?
+        artifact, readme = self.router_artifact.db_artifact_snapshot(artifact_id, ArtifactType.model)
+        return artifact, readme, self.router_lineage.db_model_connection_snapshot(artifact_id), self.router_rating.db_rating_get_snapshot(artifact_id)
+
+    def db_restore_snapshot_model(self, artifact: DBArtifactSchema, readme: str, names: ModelLinkedArtifactNames, rating: ModelRating):
+        DBReadmeAccessor.artifact_insert_readme(self.engine, artifact.to_artifact(), readme)
+        DBArtifactAccessor.artifact_insert(self.engine, artifact)
+        DBConnectionAccessor.model_insert(self.engine, artifact.to_concrete(), names)
+        DBModelRatingAccessor.add_rating(self.engine, artifact.id, rating)
+
+    def db_get_snapshot_artifact(self, artifact_id: str, artifact_type: ArtifactType) -> tuple[DBArtifactSchema, str]:
+        artifact, readme = self.router_artifact.db_artifact_snapshot(artifact_id, artifact_type)
+        return artifact, readme
 
 
 # TODO MUST ADD UPDATE

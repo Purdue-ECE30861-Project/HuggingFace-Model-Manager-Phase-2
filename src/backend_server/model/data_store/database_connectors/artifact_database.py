@@ -39,6 +39,19 @@ class DBReadmeAccessor:
             session.commit()
 
     @staticmethod
+    def artifact_get_readme(engine: Engine, artifact_id: str, artifact_type: ArtifactType) -> str|None:
+        with Session(engine) as session:
+            query = select(DBArtifactReadmeSchema).where(
+                DBArtifactReadmeSchema.id == artifact_id,
+                DBArtifactReadmeSchema.artifact_type == artifact_type
+            )
+            result: DBArtifactReadmeSchema = session.exec(query).first()
+
+            if not result:
+                return None
+            return result.readme_content
+
+    @staticmethod
     def artifact_delete_readme(engine: Engine, artifact_id: str, artifact_type: ArtifactType) -> bool:
         with Session(engine) as session:
             query = select(DBArtifactReadmeSchema).where(

@@ -1,4 +1,5 @@
 import hashlib
+import logging
 import shutil
 from pathlib import Path
 
@@ -7,11 +8,15 @@ import botocore.exceptions as botoexc
 from src.backend_server.model.data_store.s3_manager import S3BucketManager
 from src.contracts.artifact_contracts import Artifact, ArtifactMetadata, ArtifactData, ArtifactType
 from src.contracts.model_rating import ModelRating
+from .dependencies import ArtifactAccessorDependencies
 from .enums import *
 from ..data_store.database_connectors.database_schemas import ModelLinkedArtifactNames
 from ..data_store.database_connectors.mother_db_connector import DBManager
 from ..data_store.downloaders.base_downloader import extract_name_from_url, generate_unique_id
 from ..data_store.downloaders.hf_downloader import model_get_related_artifacts
+
+
+logger = logging.getLogger(__name__)
 
 
 def collect_readmes(root: Path) -> str:
@@ -45,43 +50,126 @@ def register_database(
         collect_readmes(tempdir)
     )
 
-def register_data_store(
-        s3_manager: S3BucketManager,
-        db: DBManager,
-        new_artifact: Artifact,
-        size: float,
-        rating: ModelRating,
-        tempdir: Path
-) -> tuple[RegisterArtifactEnum, Artifact | None]:
-    archive_path = shutil.make_archive(str(tempdir.resolve()), "xztar", root_dir=tempdir)
-    try:
-        s3_manager.s3_artifact_upload(new_artifact.metadata.id, Path(archive_path))
-        if not register_database(db, new_artifact, tempdir, size):
-            raise IOError("Database Failure")
-        if not db.router_rating.db_rating_add(new_artifact.metadata.id, rating):
-            raise IOError("Failed to ingest rating due to database problem")
-    except botoexc.ClientError as e:
-        return RegisterArtifactEnum.DISQUALIFIED, None
-    except IOError as e:
-        return RegisterArtifactEnum.DISQUALIFIED, None
-
-    return RegisterArtifactEnum.SUCCESS, new_artifact
-
-
-def artifact_and_rating_direct(
-        tempdir: Path,
+def model_rate_direct(
+        id: str,
         data: ArtifactData,
-        artifact_type: ArtifactType,
-        num_processors: int
+        size: float,
+        tempdir: Path,
+        dependencies: ArtifactAccessorDependencies
 ) -> tuple[Artifact, ModelRating]:
     new_artifact: Artifact = Artifact(
         metadata=ArtifactMetadata(
-            name=extract_name_from_url(data.url, artifact_type),
-            id=generate_unique_id(data.url),
-            type=artifact_type
+            name=extract_name_from_url(data.url, ArtifactType.model),
+            id=id,
+            type=ArtifactType.model,
         ),
         data=data
     )
-    rating: ModelRating = ModelRating.generate_rating(tempdir, new_artifact, num_processors)
+    if not register_database(dependencies.db, new_artifact, tempdir, size):
+        raise IOError("Database Failure")
+    rating: ModelRating = ModelRating.generate_rating(tempdir, new_artifact, dependencies.db, dependencies.num_processors)
 
     return new_artifact, rating
+
+def register_data_store_model(
+        id: str,
+        data: ArtifactData,
+        size: float,
+        tempdir: Path,
+        dependencies: ArtifactAccessorDependencies
+) -> tuple[RegisterArtifactEnum, Artifact | None]:
+    artifact: Artifact
+    rating: ModelRating
+
+    try:
+        artifact, rating = model_rate_direct(id, data, size, tempdir, dependencies)
+        if rating.net_score < dependencies.ingest_score_threshold:
+            logger.error(f"FAILED: {data.url} id {artifact.metadata.id} failed to ingest due to low score")
+            dependencies.db.router_artifact.db_artifact_delete(artifact.metadata.id, artifact.metadata.type)
+            return RegisterArtifactEnum.DISQUALIFIED, None
+        dependencies.db.router_rating.db_rating_add(artifact.metadata.id, rating)
+
+        archive_path = shutil.make_archive(str(tempdir.resolve()), "xztar", root_dir=tempdir)
+        dependencies.s3_manager.s3_artifact_upload(artifact.metadata.id, Path(archive_path))
+    except botoexc.ClientError as e:
+        logger.error(f"FAILED: {e.response['Error']['Message']}")
+        return RegisterArtifactEnum.INTERNAL_ERROR, None
+    except IOError as e:
+        logger.error(f"FAILED: {e.message}")
+        return RegisterArtifactEnum.INTERNAL_ERROR, None
+    return RegisterArtifactEnum.SUCCESS, artifact
+
+def register_data_store_artifact(
+    id: str,
+    data: ArtifactData,
+    artifact_type: ArtifactType,
+    size: float,
+    tempdir: Path,
+    dependencies: ArtifactAccessorDependencies
+) -> tuple[RegisterArtifactEnum, Artifact | None]:
+    try:
+        artifact: Artifact = Artifact(
+            metadata=ArtifactMetadata(
+                name=extract_name_from_url(data.url, artifact_type),
+                id=id,
+                type=artifact_type,
+            ),
+            data=data
+        )
+        if not register_database(dependencies.db, artifact, tempdir, size):
+            raise IOError("Database Failure")
+
+        archive_path = shutil.make_archive(str(tempdir.resolve()), "xztar", root_dir=tempdir)
+        dependencies.s3_manager.s3_artifact_upload(artifact.metadata.id, Path(archive_path))
+    except botoexc.ClientError as e:
+        logger.error(f"FAILED: {e.response['Error']['Message']}")
+        return RegisterArtifactEnum.INTERNAL_ERROR, None
+    except IOError as e:
+        logger.error(f"FAILED: {e.message}")
+        return RegisterArtifactEnum.INTERNAL_ERROR, None
+    return RegisterArtifactEnum.SUCCESS, artifact
+
+def update_data_store_model(
+    artifact: Artifact,
+    size: float,
+    tempdir: Path,
+    dependencies: ArtifactAccessorDependencies
+) -> UpdateArtifactEnum:
+    try:
+        if not dependencies.db.router_artifact.db_artifact_update(artifact, size, collect_readmes(
+                tempdir)):  # update and resocre models that dpeend on artifact
+            raise IOError("Database Failure")
+
+        rating: ModelRating = ModelRating.generate_rating(tempdir, artifact, dependencies.db,
+                                                          dependencies.num_processors)
+        if rating.net_score < dependencies.ingest_score_threshold:
+            return UpdateArtifactEnum.DISQUALIFIED
+
+        archive_path = shutil.make_archive(str(tempdir.resolve()), "xztar", root_dir=tempdir)
+        dependencies.s3_manager.s3_artifact_upload(artifact.metadata.id, Path(archive_path))
+        return UpdateArtifactEnum.SUCCESS
+    except botoexc.ClientError as e:
+        logger.error(f"FAILED: {e.response['Error']['Message']}")
+        return UpdateArtifactEnum.DISQUALIFIED
+    except IOError as e:
+        logger.error(f"FAILED: {e.message}")
+        return UpdateArtifactEnum.DOES_NOT_EXIST
+
+def update_data_store_artifact(
+    artifact: Artifact,
+    size: float,
+    tempdir: Path,
+    dependencies: ArtifactAccessorDependencies
+) -> UpdateArtifactEnum:
+    try:
+        if not dependencies.db.router_artifact.db_artifact_update(artifact, size, collect_readmes(tempdir)): # update and resocre models that dpeend on artifact
+            raise IOError("Database Failure")
+        archive_path = shutil.make_archive(str(tempdir.resolve()), "xztar", root_dir=tempdir)
+        dependencies.s3_manager.s3_artifact_upload(artifact.metadata.id, Path(archive_path))
+        return UpdateArtifactEnum.SUCCESS
+    except botoexc.ClientError as e:
+        logger.error(f"FAILED: {e.response['Error']['Message']}")
+        return UpdateArtifactEnum.DISQUALIFIED
+    except IOError as e:
+        logger.error(f"FAILED: {e.message}")
+        return UpdateArtifactEnum.DOES_NOT_EXIST

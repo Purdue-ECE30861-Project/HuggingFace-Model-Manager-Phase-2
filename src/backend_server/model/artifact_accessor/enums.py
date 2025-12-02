@@ -9,6 +9,12 @@ class GetArtifactEnum(IntEnum):
     SUCCESS = 200
     DOES_NOT_EXIST = 404
 
+class UpdateArtifactEnum(IntEnum):
+    SUCCESS = 200
+    DOES_NOT_EXIST = 404
+    DEFERRED = 202
+    DISQUALIFIED = 424
+
 class RegisterArtifactEnum(IntEnum):
     SUCCESS = 201
     ALREADY_EXISTS = 409

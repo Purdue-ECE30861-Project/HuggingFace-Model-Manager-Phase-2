@@ -4,7 +4,7 @@ from pydantic import ValidationError
 from typing import Annotated, List
 
 from src.contracts.artifact_contracts import ArtifactID, ArtifactType, ArtifactQuery, Artifact, ArtifactMetadata, ArtifactName, ArtifactRegEx, ArtifactData
-from ..model.artifact_accessor.enums import GetArtifactsEnum, GetArtifactEnum, RegisterArtifactEnum
+from ..model.artifact_accessor.enums import GetArtifactsEnum, GetArtifactEnum, RegisterArtifactEnum, UpdateArtifactEnum
 from ...contracts.auth_contracts import ArtifactAuditEntry
 from ..global_state import database_manager, artifact_accessor, global_config, cache_accessor
 
@@ -104,16 +104,22 @@ async def update_artifact(
     except ValidationError:
         raise RequestValidationError(errors=["invalid artifact type or id"])
 
-    return_code: GetArtifactEnum
-    return_content: None
+    return_code: UpdateArtifactEnum
 
-    return_code, return_content = artifact_accessor.update_artifact(artifact_type_model, id_model, body)
+    if not global_config.ingest_asynchronous:
+        return_code = artifact_accessor.update_artifact(artifact_type_model, id_model, body)
+    else:
+        return_code = await artifact_accessor.update_artifact_deferred(artifact_type_model, id_model, body)
 
     match return_code:
-        case GetArtifactEnum.SUCCESS:
+        case UpdateArtifactEnum.SUCCESS:
             response.content = "version is updated."
-        case GetArtifactEnum.DOES_NOT_EXIST:
+        case UpdateArtifactEnum.DOES_NOT_EXIST:
             raise HTTPException(status_code=return_code.value, detail="Artifact does not exist.")
+        case UpdateArtifactEnum.DISQUALIFIED:
+            raise HTTPException(status_code=return_code.value, detail="Artifact is not updated.")
+        case UpdateArtifactEnum.DEFERRED:
+            raise HTTPException(status_code=return_code.value, detail="Artifact deferred.")
 
 
 @accessor_router.delete("/artifacts/{artifact_type}/{id}", status_code=status.HTTP_200_OK)
