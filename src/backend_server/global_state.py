@@ -16,6 +16,8 @@ from src.backend_server.model.data_store.database_connectors.mother_db_connector
 )
 from src.backend_server.model.data_store.s3_manager import S3BucketManager
 from dotenv import load_dotenv
+import boto3
+from botocore.exceptions import ClientError
 
 
 class S3Config(BaseModel):
@@ -53,13 +55,27 @@ class GlobalConfig(BaseModel):
     @staticmethod
     def read_env() -> "GlobalConfig":
         load_dotenv()
+        is_deploy: bool = os.environ.get("DEVEL_TEST", "false").lower() != "true"
+        genai_key: str = os.environ.get("GEN_AI_STUDIO_API_KEY", "sk-12345")
+        github_pat: str = os.getenv("GITHUB_TOKEN", "github_pat_12345")
+        if is_deploy:
+            secret_manager = boto3.client("secretsmanager")
+            api_key_location = os.environ.get("API_KEY_SECRET", "461/api_secrets")
+            try:
+                api_keys = secret_manager.get_secret_value(SecretId=api_key_location)
+            except ClientError as e:
+                raise e
+
+            genai_key = api_keys["GENAI_STUDIO_KEY"]
+            github_pat = api_keys["GITHUB_PAT"]
+
         return GlobalConfig(
             ingest_asynchronous=bool(os.environ.get("INGEST_ASYNCHRONOUS", "True")),
             db_url=os.environ.get(
                 "DB_URL", "mysql+pymysql://test_user:newpassword@localhost:3307/test_db"
             ),
             s3_config=S3Config(
-                is_deploy=os.environ.get("DEVEL_TEST", "false").lower() != "true",
+                is_deploy=is_deploy,
                 s3_url=f'http://{os.environ.get("S3_URL", "127.0.0.1")}:{os.environ.get("S3_HOST_PORT", "9000")}',
                 s3_access_key_id=os.environ.get(
                     "S3_ACCESS_KEY_ID", "minio_access_key_123"
@@ -88,8 +104,8 @@ class GlobalConfig(BaseModel):
                 redis_password=os.environ.get("REDIS_PASSWORD", "TestPassword"),
                 redis_ttl_seconds=int(os.environ.get("REDIS_TTL_SECONDS", 180)),
             ),
-            genai_key=os.environ.get("GEN_AI_STUDIO_API_KEY", "sk-12345"),
-            github_pat=os.getenv("GITHUB_TOKEN", "github_pat_12345"),
+            genai_key=genai_key,
+            github_pat=github_pat,
         )
 
 
