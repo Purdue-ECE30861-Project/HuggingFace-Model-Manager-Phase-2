@@ -52,6 +52,14 @@ class GlobalConfig(BaseModel):
     github_pat: str
 
     @staticmethod
+    def _str_to_bool(str_value: str) -> bool:
+        if str_value == "True":
+            return True
+        elif str_value == "False":
+            return False
+        raise ValueError(str_value)
+
+    @staticmethod
     def read_env() -> "GlobalConfig":
         load_dotenv()
         is_deploy: bool = os.environ.get("DEVEL_TEST", "false").lower() != "true"
@@ -90,7 +98,7 @@ class GlobalConfig(BaseModel):
             db_url = f"mysql+pymysql://{db_passwds['ARTIFACT_DB_USER']}:{db_passwds['ARTIFACT_DB_PASSWORD']}@{db_location}"
 
         return GlobalConfig(
-            ingest_asynchronous=bool(os.environ.get("INGEST_ASYNCHRONOUS", "True")),
+            ingest_asynchronous=GlobalConfig._str_to_bool(os.environ.get("INGEST_ASYNCHRONOUS", "False")),
             db_url=db_url,
             s3_config=S3Config(
                 is_deploy=is_deploy,
