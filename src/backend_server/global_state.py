@@ -34,7 +34,6 @@ class RedisConfig(BaseModel):
     redis_image: str
     redis_host: str
     redis_port: int
-    redis_user: str
     redis_password: str
     redis_database: int
     redis_ttl_seconds: int
@@ -58,8 +57,15 @@ class GlobalConfig(BaseModel):
         is_deploy: bool = os.environ.get("DEVEL_TEST", "false").lower() != "true"
         genai_key: str = os.environ.get("GEN_AI_STUDIO_API_KEY", "sk-12345")
         github_pat: str = os.getenv("GITHUB_TOKEN", "github_pat_12345")
+
+        redis_password: str = os.environ.get("REDIS_PASSWORD", "TestPassword")
+        db_url = os.environ.get(
+            "DB_URL", "mysql+pymysql://test_user:newpassword@localhost:3307/test_db"
+        )
+
         if is_deploy:
             secret_manager = boto3.client("secretsmanager")
+            # secret for external API connections (genai, github)
             api_key_location = os.environ.get("API_KEY_SECRET", "461/api_secrets")
             try:
                 api_keys = secret_manager.get_secret_value(SecretId=api_key_location)
@@ -69,11 +75,23 @@ class GlobalConfig(BaseModel):
             genai_key = api_keys["GENAI_STUDIO_KEY"]
             github_pat = api_keys["GITHUB_PAT"]
 
+            # secrets for database access
+            db_location = os.environ.get("PROD_DB_LOCATION", "localhost:3307/test_db")
+            db_secrets_location = os.environ.get("DB_SECRET", "461/db_passwords")
+            try:
+                db_passwds = secret_manager.get_secret_value(
+                    SecretId=db_secrets_location
+                )
+            except ClientError as e:
+                raise e
+            # redis credentials
+            redis_password = db_passwds["REDIS_PASSWORD"]
+            # compose mysql credentials url
+            db_url = f"mysql+pymysql://{db_passwds['ARTIFACT_DB_USER']}:{db_passwds['ARTIFACT_DB_PASSWORD']}@{db_location}"
+
         return GlobalConfig(
             ingest_asynchronous=bool(os.environ.get("INGEST_ASYNCHRONOUS", "True")),
-            db_url=os.environ.get(
-                "DB_URL", "mysql+pymysql://test_user:newpassword@localhost:3307/test_db"
-            ),
+            db_url=db_url,
             s3_config=S3Config(
                 is_deploy=is_deploy,
                 s3_url=f'http://{os.environ.get("S3_URL", "127.0.0.1")}:{os.environ.get("S3_HOST_PORT", "9000")}',
@@ -100,8 +118,7 @@ class GlobalConfig(BaseModel):
                 redis_port=int(os.environ.get("REDIS_PORT", 6379)),
                 redis_image=os.environ.get("REDIS_IMAGE", "redis:7.2"),
                 redis_database=int(os.environ.get("REDIS_DB", 0)),
-                redis_user=os.environ.get("REDIS_USER", "TestUser"),
-                redis_password=os.environ.get("REDIS_PASSWORD", "TestPassword"),
+                redis_password=redis_password,
                 redis_ttl_seconds=int(os.environ.get("REDIS_TTL_SECONDS", 180)),
             ),
             genai_key=genai_key,
