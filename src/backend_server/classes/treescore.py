@@ -3,6 +3,7 @@ from pathlib import Path
 
 from typing_extensions import override
 
+from src.backend_server.model.dependencies import DependencyBundle
 from src.contracts.artifact_contracts import Artifact, ArtifactLineageGraph
 from src.contracts.metric_std import MetricStd
 from src.contracts.model_rating import ModelRating
@@ -16,9 +17,9 @@ class TreeScore(MetricStd[float]):
     metric_name = "tree_score"
 
     @override
-    def calculate_metric_score(self, ingested_path: Path, artifact_data: Artifact, database_manager: DBManager, *args, **kwargs) -> float:
+    def calculate_metric_score(self, ingested_path: Path, artifact_data: Artifact, dependency_bundle: DependencyBundle, *args, **kwargs) -> float:
         try:
-            lineage_graph: ArtifactLineageGraph|None = database_manager.router_lineage.db_artifact_lineage(artifact_data.metadata.id)
+            lineage_graph: ArtifactLineageGraph|None = dependency_bundle.db.router_lineage.db_artifact_lineage(artifact_data.metadata.id)
 
             if not lineage_graph:
                 logger.warning("Error retrieving lineage graph")
@@ -32,7 +33,7 @@ class TreeScore(MetricStd[float]):
             net_rating_max: float = 0.0
 
             for node in lineage_graph.nodes:
-                rating: ModelRating|None = database_manager.router_rating.db_rating_get(node.artifact_id)
+                rating: ModelRating|None = dependency_bundle.db.router_rating.db_rating_get(node.artifact_id)
                 if rating:
                     net_rating_max += 1.0
                     net_rating += rating.net_score

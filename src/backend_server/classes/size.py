@@ -4,14 +4,13 @@ from pathlib import Path
 
 from typing_extensions import override
 
+from src.backend_server.model.dependencies import DependencyBundle
 from src.contracts.artifact_contracts import Artifact, SizeScore, ArtifactCost
 from src.contracts.metric_std import MetricStd
 
 logger = logging.getLogger(__name__)
 
 
-class DBManager:
-    pass
 class Size(MetricStd[SizeScore]):
     metric_name = "size_score"
 
@@ -29,14 +28,14 @@ class Size(MetricStd[SizeScore]):
         return adjusted_score / max_size
 
     @override
-    def calculate_metric_score(self, ingested_path: Path, artifact_data: Artifact, database_manager: DBManager, *args, **kwargs) -> SizeScore:
+    def calculate_metric_score(self, ingested_path: Path, artifact_data: Artifact, dependency_bundle: DependencyBundle, *args, **kwargs) -> SizeScore:
         return_value: SizeScore = SizeScore(
             raspberry_pi=0.0,
             jetson_nano=0.0,
             desktop_pc=0.0,
             aws_server=0.0
         )
-        artifact_size: ArtifactCost|None = database_manager.router_cost.db_artifact_cost(artifact_data.metadata.id, artifact_data.metadata.type, False)
+        artifact_size: ArtifactCost|None = dependency_bundle.db.router_cost.db_artifact_cost(artifact_data.metadata.id, artifact_data.metadata.type, False)
         if not artifact_size:
             logger.error(f"Artifact '{artifact_data.metadata.id}' has no size")
             return return_value

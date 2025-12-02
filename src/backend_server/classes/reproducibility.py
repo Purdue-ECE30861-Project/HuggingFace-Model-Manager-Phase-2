@@ -9,10 +9,11 @@ from pathlib import Path
 from typing import List, Optional, override
 
 from src.backend_server.utils.hf_api import hfAPI
-from src.backend_server.utils.llm_api import llmAPI
+from src.backend_server.utils.llm_api import LLMAccessor
 from src.contracts.artifact_contracts import Artifact
 from src.contracts.metric_std import MetricStd
 from .static_analysis import StaticAnalyzer
+from ..model.dependencies import DependencyBundle
 
 logger = logging.getLogger(__name__)
 
@@ -24,15 +25,12 @@ class ReproducibilityResult:
     fixability_assessment: Optional[str]
 
 
-class DBManager:
-    pass
 class Reproducibility(MetricStd[float]):
     metric_name = "Reproducibility"
 
     def __init__(self,  metric_weight = 0.1):
         super().__init__(metric_weight)
-        self.llm = llmAPI()
-        self.static_analyzer = StaticAnalyzer(self.llm)
+        self.static_analyzer = StaticAnalyzer() # we cannot have more dependency injection. Refactor this to make sure static analyzer takes llm as function param
 
         self.last_result: Optional[ReproducibilityResult] = None  # ← ADDED THIS LINE
 
@@ -55,7 +53,7 @@ class Reproducibility(MetricStd[float]):
         }
 
     @override
-    def calculate_metric_score(self, ingested_path: Path, artifact_data: Artifact, database_manager: DBManager, *args, **kwargs) -> float:  # ← NEW METHOD
+    def calculate_metric_score(self, ingested_path: Path, artifact_data: Artifact, dependency_bundle: DependencyBundle, *args, **kwargs) -> float:  # ← NEW METHOD
         """                                                # ← ADDED: docstring
         Calculate reproducibility score for a model.
         

@@ -6,6 +6,7 @@ import io
 import sys
 import unittest
 
+
 def run_testsuite() -> int:
     parser = argparse.ArgumentParser(description="Run unittest suite with coverage.")
     parser.add_argument("--tests-dir", default="tests",

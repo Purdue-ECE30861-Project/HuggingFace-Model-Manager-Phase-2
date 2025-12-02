@@ -8,17 +8,17 @@ from pydantic import validate_call
 from src.contracts.artifact_contracts import ArtifactQuery, ArtifactMetadata, Artifact, ArtifactID, ArtifactType, \
     ArtifactName, \
     ArtifactRegEx, ArtifactData
-from .dependencies import ArtifactAccessorDependencies
+from src.backend_server.model.dependencies import DependencyBundle
 from .enums import *
 from .register_deferred import RaterTaskManager
-from .register_direct import generate_unique_id, \
+from .register_direct import \
     register_data_store_model, register_data_store_artifact, update_data_store_model, update_data_store_artifact
 from ..data_store.database_connectors.mother_db_connector import DBManager
-from ..data_store.downloaders.base_downloader import BaseArtifactDownloader
+from ..data_store.downloaders.base_downloader import BaseArtifactDownloader, generate_unique_id
 from ..data_store.downloaders.gh_downloader import GHArtifactDownloader
 from ..data_store.downloaders.hf_downloader import HFArtifactDownloader
 from ..data_store.s3_manager import S3BucketManager
-
+from ...utils.llm_api import LLMAccessor
 
 logger = logging.getLogger(__name__)
 
@@ -26,16 +26,19 @@ logger = logging.getLogger(__name__)
 class ArtifactAccessor:
     def __init__(self, db: DBManager,
                  s3: S3BucketManager,
+                 llm_accessor: LLMAccessor,
                  rater_task_manager: RaterTaskManager,
                  num_processors: int = 1,
                  ingest_score_threshold: float = 0.5,
                  ):
         logger.info("Artifact Accessor is Started")
         self.rater_task_manager = rater_task_manager
-        self.dependencies: ArtifactAccessorDependencies = ArtifactAccessorDependencies(db=db,
-           s3=s3,
-           num_processors=num_processors,
-           ingest_score_threshold=ingest_score_threshold
+        self.dependencies: DependencyBundle = DependencyBundle(
+            db=db,
+            s3=s3,
+            llm_accessor=llm_accessor,
+            num_processors=num_processors,
+            ingest_score_threshold=ingest_score_threshold
         )
 
     @validate_call

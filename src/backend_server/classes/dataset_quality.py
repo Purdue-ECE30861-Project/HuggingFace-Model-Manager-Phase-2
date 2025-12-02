@@ -6,12 +6,11 @@ from typing import override
 
 from huggingface_hub import HfApi
 
+from src.backend_server.model.dependencies import DependencyBundle
 from src.contracts.artifact_contracts import Artifact
 from src.contracts.metric_std import MetricStd
 
 
-class DBManager:
-    pass
 class DatasetQuality(MetricStd[float]):
     metric_name = "dataset_quality"
 
@@ -26,7 +25,7 @@ class DatasetQuality(MetricStd[float]):
         return math.log2(0.5) / half_magnitude_point
 
     @override
-    def calculate_metric_score(self, ingested_path: Path, artifact_data: Artifact, database_manager: DBManager, *args, **kwargs) -> float:
+    def calculate_metric_score(self, ingested_path: Path, artifact_data: Artifact, dependency_bundle: DependencyBundle, *args, **kwargs) -> float:
         repo_id = artifact_data.data.url.rstrip("/").split("datasets/")[-1]
 
         info = self.api.dataset_info(repo_id, printCLI=False)

@@ -19,6 +19,8 @@ from dotenv import load_dotenv
 import boto3
 from botocore.exceptions import ClientError
 
+from src.backend_server.utils.llm_api import LLMAccessor
+
 
 class S3Config(BaseModel):
     is_deploy: bool
@@ -62,13 +64,13 @@ class GlobalConfig(BaseModel):
     @staticmethod
     def read_env() -> "GlobalConfig":
         load_dotenv()
-        is_deploy: bool = os.environ.get("DEVEL_TEST", "false").lower() != "true"
+        is_deploy: bool = os.environ.get("DEVEL_TEST", "false").lower() == "true"
         genai_key: str = os.environ.get("GEN_AI_STUDIO_API_KEY", "sk-12345")
         github_pat: str = os.getenv("GITHUB_TOKEN", "github_pat_12345")
 
         redis_password: str = os.environ.get("REDIS_PASSWORD", "TestPassword")
         db_url = os.environ.get(
-            "DB_URL", "mysql+pymysql://test_user:newpassword@localhost:3307/test_db"
+            "DB_URL", "mysql+pymysql://test_user:new_password@localhost:3307/test_db"
         )
 
         if is_deploy:
@@ -138,6 +140,7 @@ global_config: GlobalConfig = GlobalConfig.read_env()
 
 mysql_engine: Engine = create_engine(global_config.db_url)
 SQLModel.metadata.create_all(mysql_engine)
+llm_accessor: LLMAccessor = LLMAccessor(os.environ.get("GEN_AI_STUDIO_API_KEY", "sk-12345"))
 
 database_manager: DBManager = DBManager(mysql_engine)
 
@@ -150,7 +153,6 @@ s3_accessor: S3BucketManager = S3BucketManager(
     global_config.s3_config.s3_data_prefix,
     global_config.s3_config.s3_region_name,
 )
-
 rater_task_manager: RaterTaskManager = RaterTaskManager(
     global_config.ingest_score_threshold,
     s3_accessor,

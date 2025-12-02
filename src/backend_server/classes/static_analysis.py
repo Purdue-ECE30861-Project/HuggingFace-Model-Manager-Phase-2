@@ -30,7 +30,7 @@ class AIDebugResult:
 
 class StaticAnalyzer:
     def __init__(self, llm_api):
-        self.llm = llm_api
+        self.llm = llm_api #this cannot be here. Must pass as parameter
         # load_dotenv()
         self.api_key = os.getenv("GEN_AI_STUDIO_API_KEY")
         if not self.api_key:

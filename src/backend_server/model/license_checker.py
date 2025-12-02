@@ -4,7 +4,7 @@ import json
 from typing import Optional
 from enum import Enum
 import requests
-from src.backend_server.utils.llm_api import llmAPI
+from src.backend_server.utils.llm_api import LLMAccessor
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +24,7 @@ class LicenseChecker:
         self.hf_token = hf_token
         self.github_token = github_token
         self.session = requests.Session()
-        self.llm_api = llmAPI()
+        self.llm_api = LLMAccessor()
         
         if github_token:
             self.session.headers.update({"Authorization": f"token {github_token}"})

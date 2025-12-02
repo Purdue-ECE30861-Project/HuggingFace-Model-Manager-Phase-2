@@ -393,14 +393,14 @@ class DBRouterCost(DBRouterBase):
 class DBRouterRating(DBRouterBase):
     def db_rating_add(self,
         model_id: str,
-        rating: ModelRating,
+        rating: BaseModelRating,
     ) -> bool:
         if not DBArtifactAccessor.artifact_get_by_id(self.engine, model_id, ArtifactType(rating.category)):
             return False
 
         return DBModelRatingAccessor.add_rating(self.engine, model_id, rating)
 
-    def db_rating_get_snapshot(self, model_id: str) -> ModelRating|None:
+    def db_rating_get_snapshot(self, model_id: str) -> BaseModelRating|None:
         model_result: None | DBModelSchema = DBArtifactAccessor.artifact_get_by_id(self.engine, model_id,
                                                                                    ArtifactType.model)
         if not model_result:
@@ -412,7 +412,7 @@ class DBRouterRating(DBRouterBase):
     def db_rating_get(self,
         model_id: str,
         user: User=User(name="GoonerMcGoon", is_admin=False)
-    ) -> ModelRating|None:
+    ) -> BaseModelRating|None:
         model_result: None|DBModelSchema = DBArtifactAccessor.artifact_get_by_id(self.engine, model_id, ArtifactType.model)
         if not model_result:
             return None
@@ -442,11 +442,11 @@ class DBManager:
     def db_reset(self):
         self.db_reset()
 
-    def db_get_snapshot_model(self, artifact_id: str) -> tuple[DBArtifactSchema, str, ModelLinkedArtifactNames, ModelRating]: # WHAT ABOUT WHEN SOMETHING THAT ANOTHER DEPENDS ON GETS UPDATED?
+    def db_get_snapshot_model(self, artifact_id: str) -> tuple[DBArtifactSchema, str, ModelLinkedArtifactNames, BaseModelRating]: # WHAT ABOUT WHEN SOMETHING THAT ANOTHER DEPENDS ON GETS UPDATED?
         artifact, readme = self.router_artifact.db_artifact_snapshot(artifact_id, ArtifactType.model)
         return artifact, readme, self.router_lineage.db_model_connection_snapshot(artifact_id), self.router_rating.db_rating_get_snapshot(artifact_id)
 
-    def db_restore_snapshot_model(self, artifact: DBArtifactSchema, readme: str, names: ModelLinkedArtifactNames, rating: ModelRating):
+    def db_restore_snapshot_model(self, artifact: DBArtifactSchema, readme: str, names: ModelLinkedArtifactNames, rating: BaseModelRating):
         DBReadmeAccessor.artifact_insert_readme(self.engine, artifact.to_artifact(), readme)
         DBArtifactAccessor.artifact_insert(self.engine, artifact)
         DBConnectionAccessor.model_insert(self.engine, artifact.to_concrete(), names)

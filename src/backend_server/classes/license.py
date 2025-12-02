@@ -4,6 +4,7 @@ import re
 from pathlib import Path
 from typing import Iterable, Union, override
 
+from src.backend_server.model.dependencies import DependencyBundle
 from src.contracts.artifact_contracts import Artifact
 from src.contracts.metric_std import MetricStd
 
@@ -56,6 +57,6 @@ class License(MetricStd[float]):
         super().__init__(metric_weight)
 
     @override
-    def calculate_metric_score(self, ingested_path: Path, artifact_data: Artifact, database_manager: DBManager, *args, **kwargs) -> float:
+    def calculate_metric_score(self, ingested_path: Path, artifact_data: Artifact, dependency_bundle: DependencyBundle, *args, **kwargs) -> float:
         #return self.evaluate(artifact_data.data.url)
         return 0.5

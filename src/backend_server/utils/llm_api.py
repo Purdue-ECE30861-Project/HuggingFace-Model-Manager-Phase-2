@@ -11,10 +11,11 @@ Usage:
 
 import os
 import requests
-from src.backend_server.global_state import global_config
 
 
-class llmAPI:
+class LLMAccessor:
+    def __init__(self, key: str):
+        self.genai_key = key
 
     def make_prompt(self, token, role, content):
         url = "https://genai.rcac.purdue.edu/api/chat/completions"
@@ -34,7 +35,7 @@ class llmAPI:
             raise Exception(f"Error: {response.status_code}, {response.text}")
 
     def main(self, text):
-        api_key = global_config.genai_key
+        api_key = self.genai_key
         if not api_key:
             raise RuntimeError("Missing GENAI_STUDIO_TOKEN environment variable")
 
@@ -44,7 +45,7 @@ class llmAPI:
 
 
 if __name__ == "__main__":
-    apiTester = llmAPI()
+    apiTester = LLMAccessor("mog this key")
     hfurl = "https://huggingface.co/google-bert/bert-base-uncased"
     prompt = "Given this link to a HuggingFace model repository, can you assess the Bus Factor of the model based on size of the organization/members \
                 and likelihood that the work for developing this model was evenly split but all contributors. \

@@ -7,6 +7,7 @@ from typing import override
 import requests
 
 import src.backend_server.utils.get_metadata
+from src.backend_server.model.dependencies import DependencyBundle
 from src.contracts.artifact_contracts import Artifact
 from src.contracts.metric_std import MetricStd
 from src.backend_server.global_state import DBManager
@@ -56,12 +57,12 @@ class Reviewedness(MetricStd):
         self,
         ingested_path: Path,
         artifact_data: Artifact,
-        database_manager: DBManager,
+        dependency_bundle: DependencyBundle,
         *args,
         **kwargs,
     ) -> float:
         attached_codebase_info: None | list[Artifact] = (
-            database_manager.router_lineage.db_artifact_get_attached_codebases(
+            dependency_bundle.db.router_lineage.db_artifact_get_attached_codebases(
                 artifact_data.metadata.id
             )
         )

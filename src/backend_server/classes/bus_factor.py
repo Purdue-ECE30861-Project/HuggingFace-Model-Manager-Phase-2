@@ -7,12 +7,11 @@ from typing import override
 
 from src.contracts.artifact_contracts import Artifact
 from src.contracts.metric_std import MetricStd
+from ..model.dependencies import DependencyBundle
 from ..utils.get_metadata import get_collaborators_github, find_github_links
-from ..utils.llm_api import llmAPI
+from ..utils.llm_api import LLMAccessor
 
 
-class DBManager:
-    pass
 class BusFactor(MetricStd[float]):
     metric_name = "bus_factor"
 
@@ -33,7 +32,7 @@ class BusFactor(MetricStd[float]):
             self.NumContributors = len(authors)
             return round(evenness * groupsize, 3)
         else:
-            api = llmAPI()
+            api = LLMAccessor()
             prompt = "Given this link to a HuggingFace model repository, can you assess the Bus Factor of the model based on size of the organization/members \
                 and likelihood that the work for developing this model was evenly split but all contributors. \
                 I would like you to return a single value from 0-1 with 1 being perfect bus factor and no risk involved, and 0 being one singular contributor doing all the work. \
@@ -47,6 +46,6 @@ class BusFactor(MetricStd[float]):
         return 0.0
 
     @override
-    def calculate_metric_score(self, ingested_path: Path, artifact_data: Artifact, database_manager: DBManager, *args, **kwargs) -> float:
+    def calculate_metric_score(self, ingested_path: Path, artifact_data: Artifact, dependency_bundle: DependencyBundle, *args, **kwargs) -> float:
         #return self.setNumContributors(artifact_data.url, "BoneheadRepo")
         return 0.5

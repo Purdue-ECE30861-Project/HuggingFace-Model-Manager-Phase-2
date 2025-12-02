@@ -3,19 +3,14 @@ from __future__ import annotations
 from pathlib import Path
 from typing import override
 
-from src.backend_server.utils.llm_api import llmAPI
+from src.backend_server.model.dependencies import DependencyBundle
+from src.backend_server.utils.llm_api import LLMAccessor
 from src.contracts.artifact_contracts import Artifact
 from src.contracts.metric_std import MetricStd
 
 
-class DBManager:
-    pass
 class RampUpTime(MetricStd[float]):
     metric_name = "ramp_up_time"
-
-    def __init__(self, metric_weight=0.1):
-        super().__init__(metric_weight)
-        self.llm = llmAPI()
 
     def _score_readme_with_llm(self, readme_text: str) -> float:
         """Send README text to Purdue’s LLM and return 0.0, 0.5, or 1.0."""
@@ -57,11 +52,8 @@ class RampUpTime(MetricStd[float]):
         else:
             return 0.0
 
-    def getRampUpTime(self) -> float:
-        return self.metricScore
-
     @override
-    def calculate_metric_score(self, ingested_path: Path, artifact_data: Artifact, database_manager: DBManager, *args, **kwargs) -> float:
+    def calculate_metric_score(self, ingested_path: Path, artifact_data: Artifact, dependency_bundle: DependencyBundle, *args, **kwargs) -> float:
         # readme_files = [p for p in Path.rglob('*') if p.is_file() and p.name.lower().startswith("readme")]
         # contents = []
         # for f in readme_files:

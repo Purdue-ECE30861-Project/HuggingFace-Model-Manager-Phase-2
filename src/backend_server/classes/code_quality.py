@@ -9,7 +9,8 @@ from pylint.reporters import CollectingReporter
 
 from src.contracts.artifact_contracts import Artifact
 from src.contracts.metric_std import MetricStd
-from ..utils.llm_api import llmAPI
+from ..model.dependencies import DependencyBundle
+from ..utils.llm_api import LLMAccessor
 
 _PROMPT = """You are evaluating CODE QUALITY (style & maintainability).
 Consider consistency, naming, modularity, comments/docstrings, type hints, tests/CI hints, and readability.
@@ -21,12 +22,8 @@ class DBManager:
 class CodeQuality(MetricStd[float]):
     metric_name = "code_quality"
 
-    def __init__(self, metric_weight=0.1):
-        super().__init__(metric_weight)
-        self.llm = llmAPI()
-
     @override
-    def calculate_metric_score(self, ingested_path: Path, artifact_data: Artifact, database_manager: DBManager, *args, **kwargs) -> float:
+    def calculate_metric_score(self, ingested_path: Path, artifact_data: Artifact, dependency_bundle: DependencyBundle, *args, **kwargs) -> float:
         target = pathlib.Path(ingested_path)
         if not target.exists():
             raise ValueError(f"Path does not exist: {ingested_path}")

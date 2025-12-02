@@ -2,16 +2,15 @@ import logging
 import queue
 from tempfile import TemporaryDirectory
 
-from src.backend_server.model.artifact_accessor.dependencies import ArtifactAccessorDependencies
+from src.backend_server.model.dependencies import DependencyBundle
 from src.backend_server.model.artifact_accessor.enums import RegisterArtifactEnum, UpdateArtifactEnum
 from src.backend_server.model.artifact_accessor.register_direct import \
     register_data_store_model, register_data_store_artifact, update_data_store_model, update_data_store_artifact
 from src.backend_server.model.data_store.database_connectors.mother_db_connector import DBManager
-from src.backend_server.model.data_store.downloaders.base_downloader import BaseArtifactDownloader, generate_unique_id
+from src.backend_server.model.data_store.downloaders.base_downloader import BaseArtifactDownloader
 from src.backend_server.model.data_store.downloaders.gh_downloader import GHArtifactDownloader
 from src.backend_server.model.data_store.downloaders.hf_downloader import HFArtifactDownloader
 from src.backend_server.model.data_store.s3_manager import S3BucketManager
-from src.contracts.model_rating import ModelRating
 import asyncio
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
@@ -23,7 +22,7 @@ from src.contracts.artifact_contracts import Artifact, ArtifactType, ArtifactDat
 logger = logging.getLogger(__name__)
 
 
-def register_task(artifact_id: str, artifact_type: ArtifactType, body: ArtifactData, dependencies: ArtifactAccessorDependencies):
+def register_task(artifact_id: str, artifact_type: ArtifactType, body: ArtifactData, dependencies: DependencyBundle):
     temporary_downloader: BaseArtifactDownloader = HFArtifactDownloader()
     if artifact_type == ArtifactType.code:
         temporary_downloader = GHArtifactDownloader()
@@ -46,7 +45,7 @@ def register_task(artifact_id: str, artifact_type: ArtifactType, body: ArtifactD
         else:
             register_data_store_artifact(artifact_id, body, artifact_type, size, temp_path, dependencies)
 
-def update_task(artifact_id: str, artifact_type: ArtifactType, body: Artifact, dependencies: ArtifactAccessorDependencies):
+def update_task(artifact_id: str, artifact_type: ArtifactType, body: Artifact, dependencies: DependencyBundle):
     temporary_downloader: BaseArtifactDownloader = HFArtifactDownloader()
     if artifact_type == ArtifactType.code:
         temporary_downloader = GHArtifactDownloader()
@@ -81,7 +80,7 @@ class RaterTaskManager:
         self._running = False
         self._dispatcher = None
 
-        self.dependencies: ArtifactAccessorDependencies = ArtifactAccessorDependencies(
+        self.dependencies: DependencyBundle = DependencyBundle(
             ingest_score_threshold=ingest_score_threshold,
             s3=s3_manager,
             db=db_manager,

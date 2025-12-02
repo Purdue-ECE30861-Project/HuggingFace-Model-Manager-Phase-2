@@ -5,8 +5,8 @@ import math
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, override
 
+from src.backend_server.model.dependencies import DependencyBundle
 from src.backend_server.utils.hf_api import hfAPI
-from src.backend_server.utils.llm_api import llmAPI
 from src.contracts.artifact_contracts import Artifact
 from src.contracts.metric_std import MetricStd
 
@@ -109,7 +109,7 @@ def _normalize_metric(name: str, value: Any) -> Optional[float]:
     # If in [0,1] or looks like percent -> treat as UP
     f = _as_fraction(v)
     if not math.isnan(f):
-        return f
+        return f #what the fuck is all this bullshit it cannot be this deep
 
     return None
 
@@ -154,8 +154,6 @@ class PerformanceClaims(MetricStd[float]):
         super().__init__(metric_weight)
         self.benchmarks = benchmarks={"batch size": 64, "accuracy": 0.0, "time": 0.0}
         self.benchmarks = benchmarks
-        self.llm = llmAPI()
-        
 
     def evaluate(self, url: str) -> float:
         api = hfAPI()
@@ -209,7 +207,7 @@ class PerformanceClaims(MetricStd[float]):
         return round(overall, 4)
 
     @override
-    def calculate_metric_score(self, ingested_path: Path, artifact_data: Artifact, database_manager: DBManager, *args, **kwargs) -> float:
+    def calculate_metric_score(self, ingested_path: Path, artifact_data: Artifact, dependency_bundle: DependencyBundle, *args, **kwargs) -> float:
         #return self.evaluate(artifact_data.url)
         return 0.5
 

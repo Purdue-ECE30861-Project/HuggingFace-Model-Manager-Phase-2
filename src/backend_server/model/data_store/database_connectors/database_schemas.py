@@ -148,9 +148,9 @@ class DBModelSchema(DBArtifactSchema, table=True):
 
 class DBModelRatingSchema(SQLModel, table=True):
     id: str = Field(default="BoatyMcBoatFace", primary_key=True)
-    rating: ModelRating = Field(sa_type=ModelRatingSerializer)
+    rating: BaseModelRating = Field(sa_type=ModelRatingSerializer)
 
-    def to_model_rating(self) -> ModelRating:
+    def to_model_rating(self) -> BaseModelRating:
         return self.rating
 
 

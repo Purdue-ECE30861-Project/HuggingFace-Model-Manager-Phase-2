@@ -1,12 +1,13 @@
-from fastapi import Depends, APIRouter, HTTPException, status, Response, Query
+from typing import List
+
+from fastapi import APIRouter, HTTPException, status, Response, Query
 from fastapi.exceptions import RequestValidationError
 from pydantic import ValidationError
-from typing import Annotated, List
 
-from src.contracts.artifact_contracts import ArtifactID, ArtifactType, ArtifactQuery, Artifact, ArtifactMetadata, ArtifactName, ArtifactRegEx, ArtifactData
+from src.contracts.artifact_contracts import ArtifactID, ArtifactType, ArtifactQuery, Artifact, ArtifactMetadata, \
+    ArtifactName, ArtifactRegEx, ArtifactData
+from ..global_state import artifact_accessor, global_config, cache_accessor
 from ..model.artifact_accessor.enums import GetArtifactsEnum, GetArtifactEnum, RegisterArtifactEnum, UpdateArtifactEnum
-from ...contracts.auth_contracts import ArtifactAuditEntry
-from ..global_state import database_manager, artifact_accessor, global_config, cache_accessor
 
 accessor_router = APIRouter()
 

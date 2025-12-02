@@ -4,12 +4,12 @@ import unittest
 from unittest.mock import patch, MagicMock
 
 import requests
-from src.backend_server.utils.llm_api import llmAPI
+from src.backend_server.utils.llm_api import LLMAccessor
 
 
 class MakePromptTests(unittest.TestCase):
     def setUp(self):
-        self.api = llmAPI()
+        self.api = LLMAccessor()
         self.fake_token = "FAKE_TOKEN"
         self.role = "user"
         self.content = "Hello, world!"
@@ -49,7 +49,7 @@ class MakePromptTests(unittest.TestCase):
 
 class MainTests(unittest.TestCase):
     def setUp(self):
-        self.api = llmAPI()
+        self.api = LLMAccessor()
 
     @patch.dict(os.environ, {"GEN_AI_STUDIO_API_KEY": "ENV_TOKEN"}, clear=True)
     @patch("requests.post")

@@ -24,7 +24,7 @@ class DBModelRatingAccessor:
         return result[0]
 
     @staticmethod
-    def add_rating(engine: Engine, model_id: str, rating: ModelRating) -> bool:
+    def add_rating(engine: Engine, model_id: str, rating: BaseModelRating) -> bool:
         with Session(engine) as session:
             try:
                 session.add(DBModelRatingSchema(id=model_id, rating=rating))

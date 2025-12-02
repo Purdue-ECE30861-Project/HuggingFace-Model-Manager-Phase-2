@@ -1,18 +1,17 @@
-import hashlib
 import logging
 import shutil
 from pathlib import Path
 
 import botocore.exceptions as botoexc
 
-from src.backend_server.model.data_store.s3_manager import S3BucketManager
 from src.contracts.artifact_contracts import Artifact, ArtifactMetadata, ArtifactData, ArtifactType
+from src.contracts.base_model_rating import BaseModelRating
 from src.contracts.model_rating import ModelRating
-from .dependencies import ArtifactAccessorDependencies
+from src.backend_server.model.dependencies import DependencyBundle
 from .enums import *
 from ..data_store.database_connectors.database_schemas import ModelLinkedArtifactNames
 from ..data_store.database_connectors.mother_db_connector import DBManager
-from ..data_store.downloaders.base_downloader import extract_name_from_url, generate_unique_id
+from ..data_store.downloaders.base_downloader import extract_name_from_url
 from ..data_store.downloaders.hf_downloader import model_get_related_artifacts
 
 
@@ -55,7 +54,7 @@ def model_rate_direct(
         data: ArtifactData,
         size: float,
         tempdir: Path,
-        dependencies: ArtifactAccessorDependencies
+        dependencies: DependencyBundle
 ) -> tuple[Artifact, ModelRating]:
     new_artifact: Artifact = Artifact(
         metadata=ArtifactMetadata(
@@ -67,7 +66,7 @@ def model_rate_direct(
     )
     if not register_database(dependencies.db, new_artifact, tempdir, size):
         raise IOError("Database Failure")
-    rating: ModelRating = ModelRating.generate_rating(tempdir, new_artifact, dependencies.db, dependencies.num_processors)
+    rating: ModelRating = ModelRating.generate_rating(tempdir, new_artifact, dependencies)
 
     return new_artifact, rating
 
@@ -76,7 +75,7 @@ def register_data_store_model(
         data: ArtifactData,
         size: float,
         tempdir: Path,
-        dependencies: ArtifactAccessorDependencies
+        dependencies: DependencyBundle
 ) -> tuple[RegisterArtifactEnum, Artifact | None]:
     artifact: Artifact
     rating: ModelRating
@@ -87,7 +86,7 @@ def register_data_store_model(
             logger.error(f"FAILED: {data.url} id {artifact.metadata.id} failed to ingest due to low score")
             dependencies.db.router_artifact.db_artifact_delete(artifact.metadata.id, artifact.metadata.type)
             return RegisterArtifactEnum.DISQUALIFIED, None
-        dependencies.db.router_rating.db_rating_add(artifact.metadata.id, rating)
+        dependencies.db.router_rating.db_rating_add(artifact.metadata.id, BaseModelRating.to_base(rating))
 
         archive_path = shutil.make_archive(str(tempdir.resolve()), "xztar", root_dir=tempdir)
         dependencies.s3_manager.s3_artifact_upload(artifact.metadata.id, Path(archive_path))
@@ -105,7 +104,7 @@ def register_data_store_artifact(
     artifact_type: ArtifactType,
     size: float,
     tempdir: Path,
-    dependencies: ArtifactAccessorDependencies
+    dependencies: DependencyBundle
 ) -> tuple[RegisterArtifactEnum, Artifact | None]:
     try:
         artifact: Artifact = Artifact(
@@ -133,17 +132,18 @@ def update_data_store_model(
     artifact: Artifact,
     size: float,
     tempdir: Path,
-    dependencies: ArtifactAccessorDependencies
+    dependencies: DependencyBundle
 ) -> UpdateArtifactEnum:
     try:
         if not dependencies.db.router_artifact.db_artifact_update(artifact, size, collect_readmes(
                 tempdir)):  # update and resocre models that dpeend on artifact
             raise IOError("Database Failure")
 
-        rating: ModelRating = ModelRating.generate_rating(tempdir, artifact, dependencies.db,
-                                                          dependencies.num_processors)
+        rating: ModelRating = ModelRating.generate_rating(tempdir, artifact, dependencies)
         if rating.net_score < dependencies.ingest_score_threshold:
             return UpdateArtifactEnum.DISQUALIFIED
+
+        dependencies.db.router_rating.db_rating_add(artifact.metadata.id, BaseModelRating.to_base(rating))
 
         archive_path = shutil.make_archive(str(tempdir.resolve()), "xztar", root_dir=tempdir)
         dependencies.s3_manager.s3_artifact_upload(artifact.metadata.id, Path(archive_path))
@@ -159,7 +159,7 @@ def update_data_store_artifact(
     artifact: Artifact,
     size: float,
     tempdir: Path,
-    dependencies: ArtifactAccessorDependencies
+    dependencies: DependencyBundle
 ) -> UpdateArtifactEnum:
     try:
         if not dependencies.db.router_artifact.db_artifact_update(artifact, size, collect_readmes(tempdir)): # update and resocre models that dpeend on artifact
