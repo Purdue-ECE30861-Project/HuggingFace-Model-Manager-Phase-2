@@ -47,7 +47,6 @@ class ArtifactAccessor:
             return GetArtifactsEnum.TOO_MANY_ARTIFACTS, []
         return GetArtifactsEnum.SUCCESS, result
 
-
     @validate_call
     def get_artifact(self, artifact_type: ArtifactType, id: ArtifactID) -> tuple[GetArtifactEnum, Artifact | None]:
         result: Artifact = self.dependencies.db.router_artifact.db_artifact_get_id(id.id, artifact_type)
