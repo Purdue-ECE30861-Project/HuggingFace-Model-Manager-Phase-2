@@ -4,7 +4,7 @@ import json
 from typing import Optional
 from enum import Enum
 import requests
-from src.backend_server.utils.llm_api import LLMAccessor
+from src.backend_server.model.llm_api import LLMAccessor
 
 logger = logging.getLogger(__name__)
 

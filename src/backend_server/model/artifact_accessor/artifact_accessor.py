@@ -14,11 +14,12 @@ from .register_deferred import RaterTaskManager
 from .register_direct import \
     register_data_store_model, register_data_store_artifact, update_data_store_model, update_data_store_artifact
 from ..data_store.database_connectors.mother_db_connector import DBManager
-from ..data_store.downloaders.base_downloader import BaseArtifactDownloader, generate_unique_id
-from ..data_store.downloaders.gh_downloader import GHArtifactDownloader
-from ..data_store.downloaders.hf_downloader import HFArtifactDownloader
+from src.backend_server.model.downloaders.base_downloader import BaseArtifactDownloader
+from .connection_extractor import generate_unique_id
+from src.backend_server.model.downloaders.gh_downloader import GHArtifactDownloader
+from src.backend_server.model.downloaders.hf_downloader import HFArtifactDownloader
 from ..data_store.s3_manager import S3BucketManager
-from ...utils.llm_api import LLMAccessor
+from src.backend_server.model.llm_api import LLMAccessor
 
 logger = logging.getLogger(__name__)
 

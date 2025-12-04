@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 from src.backend_server.model.data_store.database_connectors.mother_db_connector import DBManager
 from src.backend_server.model.data_store.s3_manager import S3BucketManager
-from src.backend_server.utils.llm_api import LLMAccessor
+from src.backend_server.model.llm_api import LLMAccessor
 
 
 @dataclass

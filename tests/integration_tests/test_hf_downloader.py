@@ -1,7 +1,7 @@
 import tempfile
 import unittest
 from pathlib import Path
-from src.backend_server.model.data_store.downloaders.hf_downloader import HFArtifactDownloader
+from src.backend_server.model.downloaders import HFArtifactDownloader
 from src.contracts.artifact_contracts import ArtifactType
 
 

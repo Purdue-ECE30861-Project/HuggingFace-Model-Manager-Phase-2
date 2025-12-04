@@ -9,7 +9,6 @@ from pathlib import Path
 from typing import List, Optional, override
 
 from src.backend_server.utils.hf_api import hfAPI
-from src.backend_server.utils.llm_api import LLMAccessor
 from src.contracts.artifact_contracts import Artifact
 from src.contracts.metric_std import MetricStd
 from .static_analysis import StaticAnalyzer

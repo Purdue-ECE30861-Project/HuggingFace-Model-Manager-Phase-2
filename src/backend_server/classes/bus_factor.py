@@ -9,7 +9,7 @@ from src.contracts.artifact_contracts import Artifact
 from src.contracts.metric_std import MetricStd
 from ..model.dependencies import DependencyBundle
 from ..utils.get_metadata import get_collaborators_github, find_github_links
-from ..utils.llm_api import LLMAccessor
+from src.backend_server.model.llm_api import LLMAccessor
 
 
 class BusFactor(MetricStd[float]):

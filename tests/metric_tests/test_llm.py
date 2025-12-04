@@ -3,8 +3,7 @@ import os
 import unittest
 from unittest.mock import patch, MagicMock
 
-import requests
-from src.backend_server.utils.llm_api import LLMAccessor
+from src.backend_server.model.llm_api import LLMAccessor
 
 
 class MakePromptTests(unittest.TestCase):

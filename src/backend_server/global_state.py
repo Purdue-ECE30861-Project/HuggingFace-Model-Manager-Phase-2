@@ -19,7 +19,7 @@ from dotenv import load_dotenv
 import boto3
 from botocore.exceptions import ClientError
 
-from src.backend_server.utils.llm_api import LLMAccessor
+from src.backend_server.model.llm_api import LLMAccessor
 
 
 class S3Config(BaseModel):

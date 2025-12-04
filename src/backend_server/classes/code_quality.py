@@ -10,7 +10,6 @@ from pylint.reporters import CollectingReporter
 from src.contracts.artifact_contracts import Artifact
 from src.contracts.metric_std import MetricStd
 from ..model.dependencies import DependencyBundle
-from ..utils.llm_api import LLMAccessor
 
 _PROMPT = """You are evaluating CODE QUALITY (style & maintainability).
 Consider consistency, naming, modularity, comments/docstrings, type hints, tests/CI hints, and readability.

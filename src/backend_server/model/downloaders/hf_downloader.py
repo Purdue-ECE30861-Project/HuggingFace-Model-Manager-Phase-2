@@ -5,8 +5,7 @@ from typing import override
 import huggingface_hub.utils
 from huggingface_hub import snapshot_download
 
-from src.backend_server.model.data_store.database_connectors.database_schemas import ModelLinkedArtifactNames
-from src.backend_server.model.data_store.downloaders.base_downloader import BaseArtifactDownloader
+from src.backend_server.model.downloaders.base_downloader import BaseArtifactDownloader
 from src.contracts.artifact_contracts import ArtifactType
 
 
@@ -55,6 +54,3 @@ class HFArtifactDownloader(BaseArtifactDownloader):
         return size / 10e6
 
 
-def model_get_related_artifacts(tempdir: Path) -> ModelLinkedArtifactNames:
-    # MICHAEL RAY (MALINKYZUBR) AKA DUMBSHIT FORGOT TO IMPLEMENT> IMPLEMENT ASAP OR DIE! -Michael Ray
-    raise NotImplementedError()

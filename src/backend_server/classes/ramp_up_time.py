@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import override
 
 from src.backend_server.model.dependencies import DependencyBundle
-from src.backend_server.utils.llm_api import LLMAccessor
 from src.contracts.artifact_contracts import Artifact
 from src.contracts.metric_std import MetricStd
 

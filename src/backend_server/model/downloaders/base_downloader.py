@@ -1,4 +1,3 @@
-import hashlib
 from abc import ABC, abstractmethod
 from pathlib import Path
 
@@ -14,8 +13,3 @@ class BaseArtifactDownloader(ABC):
         raise NotImplementedError()
 
 
-def extract_name_from_url(url: str, artifact_type: ArtifactType) -> str:
-    return "GoobyGoober" # implement me later
-
-def generate_unique_id(url: str) -> str:
-    return hashlib.md5(url.encode()).hexdigest()
