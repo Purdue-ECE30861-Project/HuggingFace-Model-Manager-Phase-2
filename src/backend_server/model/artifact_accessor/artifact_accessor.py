@@ -15,7 +15,7 @@ from .register_direct import \
     register_data_store_model, register_data_store_artifact, update_data_store_model, update_data_store_artifact
 from ..data_store.database_connectors.mother_db_connector import DBManager
 from src.backend_server.model.downloaders.base_downloader import BaseArtifactDownloader
-from .connection_extractor import generate_unique_id
+from .name_extraction import generate_unique_id
 from src.backend_server.model.downloaders.gh_downloader import GHArtifactDownloader
 from src.backend_server.model.downloaders.hf_downloader import HFArtifactDownloader
 from ..data_store.s3_manager import S3BucketManager

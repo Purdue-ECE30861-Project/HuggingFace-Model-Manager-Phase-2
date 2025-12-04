@@ -8,7 +8,8 @@ from src.contracts.artifact_contracts import Artifact, ArtifactMetadata, Artifac
 from src.contracts.base_model_rating import BaseModelRating
 from src.contracts.model_rating import ModelRating
 from src.backend_server.model.dependencies import DependencyBundle
-from .connection_extractor import model_get_related_artifacts, extract_name_from_url
+from .connection_extractor import model_get_related_artifacts
+from .name_extraction import extract_name_from_url
 from .enums import *
 from ..data_store.database_connectors.database_schemas import ModelLinkedArtifactNames
 from ..data_store.database_connectors.mother_db_connector import DBManager
