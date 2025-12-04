@@ -1,0 +1,9 @@
+[
+  {
+    "call":"register_artifact",
+    "arguments":{
+      "artifact_type": "model",
+      "body":
+    }
+  }
+]

@@ -56,4 +56,5 @@ class HFArtifactDownloader(BaseArtifactDownloader):
 
 
 def model_get_related_artifacts(tempdir: Path) -> ModelLinkedArtifactNames:
+    # MICHAEL RAY (MALINKYZUBR) AKA DUMBSHIT FORGOT TO IMPLEMENT> IMPLEMENT ASAP OR DIE! -Michael Ray
     raise NotImplementedError()
