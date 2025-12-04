@@ -70,7 +70,7 @@ class GlobalConfig(BaseModel):
 
         redis_password: str = os.environ.get("REDIS_PASSWORD", "TestPassword")
         db_url = os.environ.get(
-            "DB_URL", "mysql+pymysql://test_user:new_password@localhost:3307/test_db"
+            "DB_URL", "mysql+pymysql://test_user:test_password@localhost:3307/test_db"
         )
 
         if is_deploy:
@@ -125,7 +125,7 @@ class GlobalConfig(BaseModel):
             max_ingest_queue_size=int(os.environ.get("MAX_INGEST_QUEUE_SIZE", 100)),
             redis_config=RedisConfig(
                 redis_host=os.environ.get("REDIS_HOST", "127.0.0.1"),
-                redis_port=int(os.environ.get("REDIS_PORT", 6379)),
+                redis_port=int(os.environ.get("REDIS_PORT", 6399)),
                 redis_image=os.environ.get("REDIS_IMAGE", "redis:7.2"),
                 redis_database=int(os.environ.get("REDIS_DB", 0)),
                 redis_password=redis_password,
@@ -157,6 +157,7 @@ rater_task_manager: RaterTaskManager = RaterTaskManager(
     global_config.ingest_score_threshold,
     s3_accessor,
     database_manager,
+    llm_accessor,
     max_workers=global_config.rater_task_manager_workers,
     max_processes_per_rater=global_config.rater_processes,
     max_queue_size=global_config.max_ingest_queue_size,
@@ -171,6 +172,7 @@ cache_accessor = CacheAccessor(
 artifact_accessor: ArtifactAccessor = ArtifactAccessor(
     database_manager,
     s3_accessor,
+    llm_accessor,
     rater_task_manager,
     global_config.rater_processes,
     global_config.ingest_score_threshold,

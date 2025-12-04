@@ -1,0 +1,8 @@
+{"time": "2025-12-04T00:37:06+00:00", "level": "WARNING", "logger": "root", "msg": "Failed to set up CloudWatch logging: Unable to locate credentials. Local logging will continue.", "filename": "logger.py", "lineno": 97}
+{"time": "2025-12-04T00:37:06+00:00", "level": "INFO", "logger": "uvicorn.error", "msg": "Started server process [323879]", "filename": "server.py", "lineno": 84}
+{"time": "2025-12-04T00:37:06+00:00", "level": "INFO", "logger": "uvicorn.error", "msg": "Waiting for application startup.", "filename": "on.py", "lineno": 48}
+{"time": "2025-12-04T00:37:06+00:00", "level": "INFO", "logger": "uvicorn.error", "msg": "Application startup complete.", "filename": "on.py", "lineno": 62}
+{"time": "2025-12-04T00:42:25+00:00", "level": "INFO", "logger": "uvicorn.error", "msg": "Shutting down", "filename": "server.py", "lineno": 264}
+{"time": "2025-12-04T00:42:25+00:00", "level": "INFO", "logger": "uvicorn.error", "msg": "Waiting for application shutdown.", "filename": "on.py", "lineno": 67}
+{"time": "2025-12-04T00:42:25+00:00", "level": "INFO", "logger": "uvicorn.error", "msg": "Application shutdown complete.", "filename": "on.py", "lineno": 76}
+{"time": "2025-12-04T00:42:25+00:00", "level": "INFO", "logger": "uvicorn.error", "msg": "Finished server process [323879]", "filename": "server.py", "lineno": 94}

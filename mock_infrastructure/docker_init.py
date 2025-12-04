@@ -187,6 +187,7 @@ def start_redis_container(name_prefix: str = "redis_test_", host_port: Optional[
 
     container = client.containers.run(
         REDIS_IMAGE,
+        command=f'--requirepass "{REDIS_PASSWORD}"',
         ports={"6379/tcp": (REDIS_HOST, host_port)},
         detach=True,
         remove=False,  # keep for debugging; caller may remove
@@ -200,7 +201,7 @@ def wait_for_redis(host: str = REDIS_HOST, port: int = REDIS_HOST_PORT, retries:
     last_exc: Optional[Exception] = None
     for attempt in range(retries):
         try:
-            r = redis.Redis(host=host, port=port, socket_connect_timeout=2)
+            r = redis.Redis(host=host, port=port, socket_connect_timeout=2, password=REDIS_PASSWORD)
             if r.ping():
                 logger.info("Redis ready after %d attempts", attempt + 1)
                 return

@@ -33,7 +33,7 @@ class CacheAccessor:
             self.redis_client = redis.Redis(
                 host=host,
                 port=port,
-                db=db,
+                socket_connect_timeout=2,
                 decode_responses=decode_responses,
                 password=password
             )

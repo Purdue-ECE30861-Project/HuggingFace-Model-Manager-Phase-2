@@ -6,7 +6,6 @@ from sqlalchemy.orm import dependency
 
 from src.contracts.artifact_contracts import ArtifactID, ArtifactType, ArtifactCost
 from ..global_state import database_manager
-from ..model.model_rater import ModelRaterEnum
 
 
 cost_router = APIRouter()

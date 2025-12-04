@@ -16,8 +16,8 @@ from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 import contextlib
 
+from src.backend_server.utils.llm_api import LLMAccessor
 from src.contracts.artifact_contracts import Artifact, ArtifactType, ArtifactData
-
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +44,7 @@ def register_task(artifact_id: str, artifact_type: ArtifactType, body: ArtifactD
             register_data_store_model(artifact_id, body, size, temp_path, dependencies)
         else:
             register_data_store_artifact(artifact_id, body, artifact_type, size, temp_path, dependencies)
+
 
 def update_task(artifact_id: str, artifact_type: ArtifactType, body: Artifact, dependencies: DependencyBundle):
     temporary_downloader: BaseArtifactDownloader = HFArtifactDownloader()
@@ -72,11 +73,16 @@ def update_task(artifact_id: str, artifact_type: ArtifactType, body: Artifact, d
         else:
             update_result = update_data_store_artifact(body, size, temp_path, dependencies)
 
+
 class RaterTaskManager:
-    def __init__(self, ingest_score_threshold: float, s3_manager: S3BucketManager, db_manager: DBManager, max_workers: int = 4, max_processes_per_rater: int = 1, max_queue_size: int = 100):
-        self.max_processes_per_rater: int = max_processes_per_rater
+    def __init__(self, ingest_score_threshold: float, s3_manager: S3BucketManager, db_manager: DBManager,
+                 llm_accessor: LLMAccessor,
+                 max_workers: int = 4, max_processes_per_rater: int = 1, max_queue_size: int = 100,
+        ):
+
         self.executor = ProcessPoolExecutor(max_workers=max_workers)
-        self.queue: asyncio.Queue[tuple[str, ArtifactType, ArtifactData | Artifact]] = asyncio.Queue(maxsize=max_queue_size)
+        self.queue: asyncio.Queue[tuple[str, ArtifactType, ArtifactData | Artifact]] = asyncio.Queue(
+            maxsize=max_queue_size)
         self._running = False
         self._dispatcher = None
 
@@ -84,7 +90,8 @@ class RaterTaskManager:
             ingest_score_threshold=ingest_score_threshold,
             s3=s3_manager,
             db=db_manager,
-            num_processors=self.max_processes_per_rater,
+            num_processors=max_processes_per_rater,
+            llm_accessor=llm_accessor,
         )
 
     async def start(self):
