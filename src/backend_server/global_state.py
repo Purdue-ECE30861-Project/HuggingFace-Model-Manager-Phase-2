@@ -18,6 +18,7 @@ from src.backend_server.model.data_store.s3_manager import S3BucketManager
 from dotenv import load_dotenv
 import boto3
 from botocore.exceptions import ClientError
+import json
 
 from src.backend_server.model.llm_api import LLMAccessor
 
@@ -74,14 +75,14 @@ class GlobalConfig(BaseModel):
         )
 
         if is_deploy:
-            secret_manager = boto3.client("secretsmanager")
+            secret_manager = boto3.client("secretsmanager", region_name="us-east-2")
             # secret for external API connections (genai, github)
             api_key_location = os.environ.get("API_KEY_SECRET", "461/api_secrets")
             try:
-                api_keys = secret_manager.get_secret_value(SecretId=api_key_location)
+                response = secret_manager.get_secret_value(SecretId=api_key_location)
             except ClientError as e:
                 raise e
-
+            api_keys = json.loads(response["SecretString"])
             genai_key = api_keys["GENAI_STUDIO_KEY"]
             github_pat = api_keys["GITHUB_PAT"]
 
@@ -89,11 +90,12 @@ class GlobalConfig(BaseModel):
             db_location = os.environ.get("PROD_DB_LOCATION", "172.31.34.188:3306/artifact_db")
             db_secrets_location = os.environ.get("DB_SECRET", "461/db_passwords")
             try:
-                db_passwds = secret_manager.get_secret_value(
+                response = secret_manager.get_secret_value(
                     SecretId=db_secrets_location
                 )
             except ClientError as e:
                 raise e
+            db_passwds = json.loads(response["SecretString"])
             # redis credentials
             redis_password = db_passwds["REDIS_PASSWORD"]
             # compose mysql credentials url
