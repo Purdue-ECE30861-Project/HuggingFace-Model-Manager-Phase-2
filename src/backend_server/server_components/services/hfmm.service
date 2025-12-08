@@ -9,7 +9,7 @@ WorkingDirectory=/opt/hfmm
 Environment="PATH=/opt/hfmm/venv/bin"
 Environment="DEVEL_TEST=false"
 Environment="RATER_PROCESSES=4"
-Environment="PROD_DB_LOCATION=172.31.10.22:3306/artifact_db"
+Environment="PROD_DB_LOCATION=172.31.10.22:3306/artifacts_db"
 Environment="REDIS_HOST=172.31.10.22"
 Environment="REDIS_PORT=6379"
 Environment="GIT_PYTHON_GIT_EXECUTABLE=/usr/bin/git"
