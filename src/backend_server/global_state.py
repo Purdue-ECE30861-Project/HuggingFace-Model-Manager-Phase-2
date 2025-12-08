@@ -64,7 +64,7 @@ class GlobalConfig(BaseModel):
     @staticmethod
     def read_env() -> "GlobalConfig":
         load_dotenv()
-        is_deploy: bool = os.environ.get("DEVEL_TEST", "false").lower() == "true"
+        is_deploy: bool = os.environ.get("DEVEL_TEST", "false").lower() == "false"
         genai_key: str = os.environ.get("GEN_AI_STUDIO_API_KEY", "sk-12345")
         github_pat: str = os.getenv("GITHUB_TOKEN", "github_pat_12345")
 
