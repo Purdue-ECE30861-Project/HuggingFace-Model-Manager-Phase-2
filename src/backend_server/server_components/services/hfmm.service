@@ -9,6 +9,9 @@ WorkingDirectory=/opt/hfmm
 Environment="PATH=/opt/hfmm/venv/bin"
 Environment="DEVEL_TEST=false"
 Environment="RATER_PROCESSES=4"
+Environment="PROD_DB_LOCATION=172.31.34.188:3306/artifact_db"
+Environment="REDIS_HOST=172.31.34.188"
+Environment="REDIST_PORT=6399"
 ExecStart=/opt/hfmm/venv/bin/uvicorn src.backend_server.__main__:api_core --workers 4 --uds /opt/hfmm/hfmm.sock --proxy-headers
 
 [Install]

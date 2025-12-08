@@ -7,9 +7,9 @@ from src.backend_server.model.artifact_accessor.enums import RegisterArtifactEnu
 from src.backend_server.model.artifact_accessor.register_direct import \
     register_data_store_model, register_data_store_artifact, update_data_store_model, update_data_store_artifact
 from src.backend_server.model.data_store.database_connectors.mother_db_connector import DBManager
-from src.backend_server.model.downloaders import BaseArtifactDownloader
-from src.backend_server.model.downloaders import GHArtifactDownloader
-from src.backend_server.model.downloaders import HFArtifactDownloader
+from src.backend_server.model.downloaders.base_downloader import BaseArtifactDownloader
+from src.backend_server.model.downloaders.gh_downloader import GHArtifactDownloader
+from src.backend_server.model.downloaders.hf_downloader import HFArtifactDownloader
 from src.backend_server.model.data_store.s3_manager import S3BucketManager
 import asyncio
 from concurrent.futures import ProcessPoolExecutor

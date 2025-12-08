@@ -86,7 +86,7 @@ class GlobalConfig(BaseModel):
             github_pat = api_keys["GITHUB_PAT"]
 
             # secrets for database access
-            db_location = os.environ.get("PROD_DB_LOCATION", "localhost:3307/test_db")
+            db_location = os.environ.get("PROD_DB_LOCATION", "172.31.34.188:3306/artifact_db")
             db_secrets_location = os.environ.get("DB_SECRET", "461/db_passwords")
             try:
                 db_passwds = secret_manager.get_secret_value(
