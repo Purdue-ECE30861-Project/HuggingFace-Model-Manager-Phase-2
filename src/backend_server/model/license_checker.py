@@ -173,8 +173,7 @@ Do NOT use code fences. Do NOT add explanation. Output JSON ONLY.""")
             # Parse LLM response
             try:
                 if isinstance(response, str):
-                    response_data = json.loads(response)
-                    response_data  = json.loads(response_data["choices"][0]["message"]["content"])
+                    response_data  = json.loads(response)
                 else:
                     response_data = response
                     

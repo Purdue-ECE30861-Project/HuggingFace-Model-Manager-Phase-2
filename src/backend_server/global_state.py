@@ -41,6 +41,10 @@ class RedisConfig(BaseModel):
     redis_database: int
     redis_ttl_seconds: int
 
+class LLMConfig(BaseModel):
+    bedrock_model: str
+    use_bedrock: bool
+
 
 class GlobalConfig(BaseModel):
     ingest_asynchronous: bool
@@ -53,6 +57,7 @@ class GlobalConfig(BaseModel):
     max_ingest_queue_size: int
     genai_key: str
     github_pat: str
+    llm_config: LLMConfig
 
     @staticmethod
     def _str_to_bool(str_value: str) -> bool:
@@ -73,6 +78,7 @@ class GlobalConfig(BaseModel):
         db_url = os.environ.get(
             "DB_URL", "mysql+pymysql://test_user:test_password@localhost:3307/test_db"
         )
+        llm_model = "us.anthropic.claude-3-haiku-20240307-v1:0"
 
         if is_deploy:
             secret_manager = boto3.client("secretsmanager", region_name="us-east-2")
@@ -85,6 +91,7 @@ class GlobalConfig(BaseModel):
             api_keys = json.loads(response["SecretString"])
             genai_key = api_keys["GENAI_STUDIO_KEY"]
             github_pat = api_keys["GITHUB_PAT"]
+            llm_model = api_keys["BEDROCK_MODEL_ID"]
 
             # secrets for database access
             db_location = os.environ.get("PROD_DB_LOCATION", "172.31.10.22:3306/artifacts_db")
@@ -135,6 +142,10 @@ class GlobalConfig(BaseModel):
             ),
             genai_key=genai_key,
             github_pat=github_pat,
+            llm_config=LLMConfig(
+                bedrock_model=llm_model,
+                use_bedrock=is_deploy
+            )
         )
 
 
@@ -142,7 +153,7 @@ global_config: GlobalConfig = GlobalConfig.read_env()
 
 mysql_engine: Engine = create_engine(global_config.db_url)
 SQLModel.metadata.create_all(mysql_engine)
-llm_accessor: LLMAccessor = LLMAccessor(os.environ.get("GEN_AI_STUDIO_API_KEY", "sk-12345"))
+llm_accessor: LLMAccessor = LLMAccessor(os.environ.get("GEN_AI_STUDIO_API_KEY", "sk-12345"), bedrock=global_config.llm_config.use_bedrock, model_name=global_config.llm_config.bedrock_model)
 
 database_manager: DBManager = DBManager(mysql_engine)
 
