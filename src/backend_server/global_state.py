@@ -61,16 +61,12 @@ class GlobalConfig(BaseModel):
 
     @staticmethod
     def _str_to_bool(str_value: str) -> bool:
-        if str_value == "True":
-            return True
-        elif str_value == "False":
-            return False
-        raise ValueError(str_value)
+        return str_value == "True"
 
     @staticmethod
     def read_env() -> "GlobalConfig":
         load_dotenv()
-        is_deploy: bool = os.environ.get("DEVEL_TEST", "false").lower() == "false"
+        is_deploy: bool = os.environ.get("DEVEL_TEST", "false").lower() == "true"
         genai_key: str = os.environ.get("GEN_AI_STUDIO_API_KEY", "sk-12345")
         github_pat: str = os.getenv("GITHUB_TOKEN", "github_pat_12345")
 

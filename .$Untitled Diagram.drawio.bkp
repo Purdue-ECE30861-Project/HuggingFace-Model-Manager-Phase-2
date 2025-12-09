@@ -1,0 +1,92 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/28.2.5 Chrome/138.0.7204.251 Electron/37.6.1 Safari/537.36" version="28.2.5">
+  <diagram name="Page-1" id="nsKuF7r1AUfED6OHO5Vg">
+    <mxGraphModel dx="2445" dy="848" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" background="#000000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="HiyuJvhjgYuYjmNkSafx-7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="HiyuJvhjgYuYjmNkSafx-1" target="HiyuJvhjgYuYjmNkSafx-2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="HiyuJvhjgYuYjmNkSafx-8" value="Buffer exhaustion, pull buffer from global pool" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="HiyuJvhjgYuYjmNkSafx-7">
+          <mxGeometry x="0.0545" relative="1" as="geometry">
+            <mxPoint y="-28" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="HiyuJvhjgYuYjmNkSafx-1" value="Global Buffer Allocation (one time)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;" vertex="1" parent="1">
+          <mxGeometry x="130" y="40" width="210" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="HiyuJvhjgYuYjmNkSafx-9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="HiyuJvhjgYuYjmNkSafx-2" target="HiyuJvhjgYuYjmNkSafx-6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="HiyuJvhjgYuYjmNkSafx-2" value="Ingestion Step (ping pong buffer" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="175" y="230" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="HiyuJvhjgYuYjmNkSafx-4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="HiyuJvhjgYuYjmNkSafx-3" target="HiyuJvhjgYuYjmNkSafx-2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="HiyuJvhjgYuYjmNkSafx-5" value="DMA" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="HiyuJvhjgYuYjmNkSafx-4">
+          <mxGeometry x="0.0286" y="3" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="HiyuJvhjgYuYjmNkSafx-3" value="ADC" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;" vertex="1" parent="1">
+          <mxGeometry x="-40" y="230" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="HiyuJvhjgYuYjmNkSafx-11" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="HiyuJvhjgYuYjmNkSafx-6" target="HiyuJvhjgYuYjmNkSafx-10">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="HiyuJvhjgYuYjmNkSafx-6" value="Ingest Queue (interrupt)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;" vertex="1" parent="1">
+          <mxGeometry x="330" y="220" width="60" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="HiyuJvhjgYuYjmNkSafx-13" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="HiyuJvhjgYuYjmNkSafx-10" target="HiyuJvhjgYuYjmNkSafx-12">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="HiyuJvhjgYuYjmNkSafx-10" value="Hilbert Transform" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="420" y="230" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="HiyuJvhjgYuYjmNkSafx-15" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="HiyuJvhjgYuYjmNkSafx-12" target="HiyuJvhjgYuYjmNkSafx-14">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="HiyuJvhjgYuYjmNkSafx-12" value="Intercore queue (atomic)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;" vertex="1" parent="1">
+          <mxGeometry x="570" y="185" width="100" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="HiyuJvhjgYuYjmNkSafx-17" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="HiyuJvhjgYuYjmNkSafx-14" target="HiyuJvhjgYuYjmNkSafx-16">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="HiyuJvhjgYuYjmNkSafx-14" value="Decoder/State Machine" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="690" y="230" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="HiyuJvhjgYuYjmNkSafx-21" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="HiyuJvhjgYuYjmNkSafx-16" target="HiyuJvhjgYuYjmNkSafx-18">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="HiyuJvhjgYuYjmNkSafx-16" value="Decoder Queue (interrupt)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;" vertex="1" parent="1">
+          <mxGeometry x="720" y="320" width="60" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="HiyuJvhjgYuYjmNkSafx-25" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="HiyuJvhjgYuYjmNkSafx-18" target="HiyuJvhjgYuYjmNkSafx-24">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="HiyuJvhjgYuYjmNkSafx-18" value="Image Synthesis, write to screen" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="830" y="330" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="HiyuJvhjgYuYjmNkSafx-19" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="HiyuJvhjgYuYjmNkSafx-18" target="HiyuJvhjgYuYjmNkSafx-1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="970" y="80" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="HiyuJvhjgYuYjmNkSafx-20" value="Relinquish buffer to global pool at end of path" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="HiyuJvhjgYuYjmNkSafx-19">
+          <mxGeometry x="0.1385" y="-1" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="HiyuJvhjgYuYjmNkSafx-24" value="Screen,&amp;nbsp;&lt;div&gt;other output&lt;/div&gt;" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;" vertex="1" parent="1">
+          <mxGeometry x="830" y="230" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="HiyuJvhjgYuYjmNkSafx-26" value="External IO interrupts&lt;div&gt;(interrupt main compute path)&lt;/div&gt;" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;" vertex="1" parent="1">
+          <mxGeometry x="350" y="350" width="210" height="60" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
