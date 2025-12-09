@@ -145,12 +145,37 @@ class CacheRouter:
         try:
             cache_key = self._generate_cache_key(request)
             
-            # Collect body chunks
-            body_chunks = []
-            async for chunk in response.body_iterator:
-                body_chunks.append(chunk)
-            
-            body = b"".join(body_chunks)
+            # Collect body bytes safely from various Response types
+            body = b""
+            # Prefer an async body iterator if present
+            body_iterator = getattr(response, "body_iterator", None)
+            if body_iterator is not None:
+                body_chunks = []
+                async for chunk in body_iterator:
+                    body_chunks.append(chunk)
+                body = b"".join(body_chunks)
+            else:
+                # Try common attributes
+                resp_body = getattr(response, "body", None)
+                if resp_body is not None:
+                    body = resp_body if isinstance(resp_body, (bytes, bytearray)) else str(resp_body).encode()
+                else:
+                    resp_content = getattr(response, "content", None)
+                    if resp_content is not None:
+                        body = resp_content if isinstance(resp_content, (bytes, bytearray)) else str(resp_content).encode()
+                    else:
+                        # Last-resort attempts: try internal iterator names if any (best-effort)
+                        potential = response.__dict__.get("_body_iterator") or response.__dict__.get("background")
+                        if potential:
+                            try:
+                                body_chunks = []
+                                async for chunk in potential:
+                                    body_chunks.append(chunk)
+                                body = b"".join(body_chunks)
+                            except Exception:
+                                body = b""
+                        else:
+                            body = b""
             
             cache_data = {
                 "content": body.decode() if body else "",
@@ -371,9 +396,11 @@ class CacheMiddleware(BaseHTTPMiddleware):
         method = request.method.lower()
         
         # Check api_core routes
+        from fastapi.routing import APIRoute
         for route in api_core.routes:
-            if hasattr(route, 'path') and hasattr(route, 'methods'):
-                if route.path == path and method.upper() in route.methods:
+            if isinstance(route, APIRoute):
+                route_methods = getattr(route, 'methods', None)
+                if route.path == path and route_methods and method.upper() in route_methods:
                     return True
         return False
 
