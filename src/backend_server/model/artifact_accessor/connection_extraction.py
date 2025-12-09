@@ -16,7 +16,7 @@ def model_identify_attached_datasets(card_info: dict) -> list[str]:
     return []
 
 
-GITHUB_URL_RE = re.compile(r"(https?://)?github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+")
+GITHUB_URL_RE = re.compile(r'(?:https?:\/\/)?github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+')
 def find_github_urls(root_dir: Path) -> list[str]:
     results = []
 
@@ -27,14 +27,11 @@ def find_github_urls(root_dir: Path) -> list[str]:
             try:
                 with open(full_path, "r", encoding="utf-8") as f:
                     text = f.read()
+                    urls = GITHUB_URL_RE.findall(text)
+                    print(urls)
+                    results += urls
             except Exception:
                 continue
-
-            urls = GITHUB_URL_RE.findall(text)
-            if urls:
-                cleaned = ["https://github.com/" + u.split("github.com/")[1] if "github.com/" in u else u
-                           for u in urls]
-                results += cleaned
 
     return results
 
@@ -94,6 +91,7 @@ def model_identify_attached_parent_model(model_name: str, card_info: dict) -> tu
             source = "model_card"
         else:
             relation = model_identify_attached_parent_model_relation(model_name)
+            source = "model_webpage"
 
     return name, relation, source
 
