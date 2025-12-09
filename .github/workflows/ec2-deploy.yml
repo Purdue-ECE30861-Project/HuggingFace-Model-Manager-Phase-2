@@ -64,6 +64,5 @@ jobs:
                 sudo systemctl enable hfmm
                 sudo systemctl restart hfmm
                 ENDSSH
-                rm -r ~/.aws
                 rm ec2_key.pem
 
