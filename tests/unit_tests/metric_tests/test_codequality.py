@@ -35,7 +35,7 @@ class TestCodeQuality(unittest.TestCase):
         )
         
         # Create an empty DependencyBundle for testing
-        cls.dependencies = DependencyBundle()
+        cls.dependencies = DependencyBundle(s3=None, db=None, llm_accessor=None)
 
     @classmethod
     def tearDownClass(cls):
