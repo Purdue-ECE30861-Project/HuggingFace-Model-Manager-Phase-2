@@ -91,5 +91,5 @@ class BusFactor(MetricStd[float]):
 
         return self.calculate_bus_factor(
             gh_contributors,
-            len(self.hf_contributors(artifact_data.url, str(ingested_path)))
+            len(self.hf_contributors(artifact_data.data.url, str(ingested_path)))
         )
