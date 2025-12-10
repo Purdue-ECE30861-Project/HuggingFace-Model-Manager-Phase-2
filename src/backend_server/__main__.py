@@ -36,6 +36,15 @@ async def get_health():
     pass
 
 
+@api_core.get("/tracks", status_code=200)
+async def get_track():
+    return {
+        "plannedTracks":[
+            "Performance track"
+        ]
+    }
+
+
 # logging output needs:
 # just need log messages in a text file, json format
 # correspond to the log schemas in run.py
