@@ -31,6 +31,11 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     )
 
 
+@api_core.get("/health", status_code=200)
+async def get_health():
+    pass
+
+
 # logging output needs:
 # just need log messages in a text file, json format
 # correspond to the log schemas in run.py
