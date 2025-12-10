@@ -11,20 +11,16 @@ from ..backend_server.model.dependencies import DependencyBundle
 T = TypeVar("T")
 
 
-class DBManager: # dummy
-    pass
 class MetricStd(ABC, Generic[T]):
     metric_name: str = "NoName"
     def __init__(self, metric_weight=0.1):
         self.metric_weight = metric_weight
         self.ingested_path: Path|None = None
         self.artifact_data: Artifact|None = None
-        self.dependency_bundle: DependencyBundle|None = None
 
-    def set_params(self, ingested_path: Path, artifact_data: Artifact, dependencies: DependencyBundle) -> "MetricStd":
+    def set_params(self, ingested_path: Path, artifact_data: Artifact) -> "MetricStd":
         self.ingested_path = ingested_path
         self.artifact_data = artifact_data
-        self.dependency_bundle = dependencies
 
         return self
 
@@ -34,9 +30,9 @@ class MetricStd(ABC, Generic[T]):
     def get_weight(self) -> float:
         return self.metric_weight
 
-    def run_score_calculation(self, *args, **kwargs) -> tuple[str, float, T, T]:
+    def run_score_calculation(self, dependency_bundle: DependencyBundle, *args, **kwargs) -> tuple[str, float, T, T]:
         start_time = time.time()
-        metric_score = self.calculate_metric_score(self.ingested_path, self.artifact_data, self.dependency_bundle, *args, **kwargs)
+        metric_score = self.calculate_metric_score(self.ingested_path, self.artifact_data, dependency_bundle, *args, **kwargs)
         if metric_score > 1.0 or metric_score < 0.0:
             raise ValueError(f"The raw metric score for {self.metric_name} must be normalized between 0 and 1")
         metric_score_weighted = self.metric_weight * metric_score

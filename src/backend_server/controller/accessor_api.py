@@ -177,7 +177,7 @@ async def register_artifact(
         case return_code.BAD_REQUEST:
             raise HTTPException(status_code=return_code.value)
         case return_code.DEFERRED:
-            response.status_code = 202
+            response.status_code = return_code.value
         case return_code.INTERNAL_ERROR:
             raise HTTPException(status_code=return_code.value)
 

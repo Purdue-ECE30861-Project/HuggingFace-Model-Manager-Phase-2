@@ -34,13 +34,14 @@ def register_database(
         tempdir: Path,
         size: float
 ) -> bool:
-    if new_artifact.type == ArtifactType.model:
-        associated_artifacts: ModelLinkedArtifactNames = model_get_related_artifacts(tempdir)
+    if new_artifact.metadata.type == ArtifactType.model:
+        readme: str = collect_readmes(tempdir)
+        associated_artifacts: ModelLinkedArtifactNames = model_get_related_artifacts(new_artifact.metadata.name, tempdir, readme)
         return db.router_artifact.db_model_ingest(
             new_artifact,
             associated_artifacts,
             size,
-            collect_readmes(tempdir),
+            readme,
         )
     return db.router_artifact.db_artifact_ingest(
         new_artifact,
@@ -93,7 +94,7 @@ def register_data_store_model(
         logger.error(f"FAILED: {e.response['Error']['Message']}")
         return RegisterArtifactEnum.INTERNAL_ERROR, None
     except IOError as e:
-        logger.error(f"FAILED: {e.message}")
+        logger.error(f"FAILED: {e}")
         return RegisterArtifactEnum.INTERNAL_ERROR, None
     return RegisterArtifactEnum.SUCCESS, artifact
 

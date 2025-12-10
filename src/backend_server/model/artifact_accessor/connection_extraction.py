@@ -28,7 +28,6 @@ def find_github_urls(root_dir: Path) -> list[str]:
                 with open(full_path, "r", encoding="utf-8") as f:
                     text = f.read()
                     urls = GITHUB_URL_RE.findall(text)
-                    print(urls)
                     results += urls
             except Exception:
                 continue

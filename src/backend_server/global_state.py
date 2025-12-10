@@ -126,7 +126,7 @@ class GlobalConfig(BaseModel):
                 os.environ.get("RATER_TASK_MANAGER_WORKERS", 1)
             ),
             rater_processes=int(os.environ.get("RATER_PROCESSES", 1)),
-            ingest_score_threshold=float(os.environ.get("INGEST_SCORE_THRESHOLD", 0.5)),
+            ingest_score_threshold=float(os.environ.get("INGEST_SCORE_THRESHOLD", 0.2)),
             max_ingest_queue_size=int(os.environ.get("MAX_INGEST_QUEUE_SIZE", 100)),
             redis_config=RedisConfig(
                 redis_host=os.environ.get("REDIS_HOST", "127.0.0.1"),

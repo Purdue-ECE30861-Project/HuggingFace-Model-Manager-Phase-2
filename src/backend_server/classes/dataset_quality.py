@@ -6,8 +6,9 @@ from typing import override
 
 from huggingface_hub import HfApi
 
+from src.backend_server.model.artifact_accessor.name_extraction import extract_name_from_url
 from src.backend_server.model.dependencies import DependencyBundle
-from src.contracts.artifact_contracts import Artifact
+from src.contracts.artifact_contracts import Artifact, ArtifactType
 from src.contracts.metric_std import MetricStd
 
 
@@ -26,14 +27,21 @@ class DatasetQuality(MetricStd[float]):
 
     @override
     def calculate_metric_score(self, ingested_path: Path, artifact_data: Artifact, dependency_bundle: DependencyBundle, *args, **kwargs) -> float:
-        repo_id = artifact_data.data.url.rstrip("/").split("datasets/")[-1]
+        attached_datasets: list[Artifact]|None = dependency_bundle.db.router_lineage.db_artifact_get_attached_datasets(artifact_data.metadata.id)
 
-        info = self.api.dataset_info(repo_id, printCLI=False)
+        if not attached_datasets:
+            return 0.0
 
-        num_likes_score: float = 1 - 2 ** (-info.likes * self.get_exp_coefficient(self.half_score_point_likes))
-        num_downloads_score: float = 1 - 2 ** (-info.downloads * self.get_exp_coefficient(self.half_score_point_downloads))
-        num_dimensions_score: float = (
-                1 - 2 ** (-len(info.cardData.get("task_categories", [])) * self.get_exp_coefficient(self.half_score_point_dimensions)))
+        quality_scores: list[float] = []
+        for dataset in attached_datasets:
+            info = self.api.dataset_info(dataset.metadata.name)
 
-        return (num_likes_score + num_downloads_score + num_dimensions_score) / 3
+            num_likes_score: float = 1 - 2 ** (-info.likes * self.get_exp_coefficient(self.half_score_point_likes))
+            num_downloads_score: float = 1 - 2 ** (-info.downloads * self.get_exp_coefficient(self.half_score_point_downloads))
+            num_dimensions_score: float = (
+                    1 - 2 ** (-len(info.cardData.get("task_categories", [])) * self.get_exp_coefficient(self.half_score_point_dimensions)))
+
+            quality_scores.append((num_likes_score + num_downloads_score + num_dimensions_score) / 3)
+
+        return sum(quality_scores) / len(quality_scores)
 

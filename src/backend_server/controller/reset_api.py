@@ -11,4 +11,4 @@ async def reset_registry():
 async def reset(response: Response):
     database_manager.db_reset()
     s3_accessor.s3_reset()
-    cache_accessor.cache_reset()
+    cache_accessor.reset()

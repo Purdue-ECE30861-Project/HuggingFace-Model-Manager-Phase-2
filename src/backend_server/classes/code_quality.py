@@ -31,7 +31,7 @@ class CodeQuality(MetricStd[float]):
         reporter = CollectingReporter()
 
         # Disable exit on error and disable output
-        results = Run([ingested_path, "--score=y"], reporter=reporter, exit=False)
+        results = Run([str(ingested_path), "--score=y"], reporter=reporter, exit=False)
 
         # Extract the global evaluation ("global_note")
         score = results.linter.stats.global_note

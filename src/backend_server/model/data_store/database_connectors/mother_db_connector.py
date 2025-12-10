@@ -292,7 +292,9 @@ class DBRouterLineage(DBRouterBase):
         datasets: list[Artifact] = []
         for artifact_connection in attached_artifacts:
             if artifact_connection.relationship == DBConnectiveRelation.MODEL_DATASET:
-                datasets.append(DBArtifactAccessor.artifact_get_by_id(self.engine, artifact_connection.src_id, ArtifactType.dataset).to_artifact())
+                dataset: DBArtifactSchema = DBArtifactAccessor.artifact_get_by_id(self.engine, artifact_connection.src_id, ArtifactType.dataset)
+                if dataset:
+                    datasets.append(dataset.to_artifact())
 
         if not datasets:
             return None
@@ -313,8 +315,10 @@ class DBRouterLineage(DBRouterBase):
         codebases: list[Artifact] = []
         for artifact_connection in attached_artifacts:
             if artifact_connection.relationship == DBConnectiveRelation.MODEL_CODEBASE:
-                codebases.append(DBArtifactAccessor.artifact_get_by_id(self.engine, artifact_connection.src_id,
-                                                                      ArtifactType.code).to_artifact())
+                codebase: DBArtifactSchema|None = DBArtifactAccessor.artifact_get_by_id(self.engine, artifact_connection.src_id,
+                                                                      ArtifactType.code)
+                if codebase:
+                    codebases.append(codebase.to_artifact())
 
         if not codebases:
             return None
@@ -440,7 +444,7 @@ class DBManager:
 
 
     def db_reset(self):
-        self.db_reset()
+        db_reset(self.engine)
 
     def db_get_snapshot_model(self, artifact_id: str) -> tuple[DBArtifactSchema, str, ModelLinkedArtifactNames, BaseModelRating]: # WHAT ABOUT WHEN SOMETHING THAT ANOTHER DEPENDS ON GETS UPDATED?
         artifact, readme = self.router_artifact.db_artifact_snapshot(artifact_id, ArtifactType.model)

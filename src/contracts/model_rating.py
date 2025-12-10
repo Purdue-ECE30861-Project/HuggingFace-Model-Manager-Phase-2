@@ -3,7 +3,7 @@ import time
 from pydantic import BaseModel, Field
 from typing import Any
 from pathlib import Path
-from multiprocessing import Pool
+from concurrent.futures import ThreadPoolExecutor
 
 from .base_model_rating import BaseModelRating
 from .metric_std import MetricStd
@@ -82,26 +82,25 @@ class ModelRating(BaseModelRating):
         return net_score
 
     @staticmethod
-    def _run_metric(metric: MetricStd) -> tuple[str, float, Any, Any]:
-        return metric.run_score_calculation()
+    def _run_metric(metric_tuple: tuple[MetricStd, DependencyBundle]) -> tuple[str, float, Any, Any]:
+        metric, dependency = metric_tuple
+        return metric.run_score_calculation(dependency)
 
     @staticmethod
     def generate_rating(ingested_path: Path, artifact: Artifact, dependency_bundle: DependencyBundle) -> "ModelRating":
-        metrics: list[MetricStd] = []
+        metrics: list[tuple[MetricStd, DependencyBundle]] = []
         for name, field in ModelRating.model_fields.items():
             if field.json_schema_extra and "calc" in field.json_schema_extra:
-                metrics.append(field.json_schema_extra["calc"].set_params(ingested_path, artifact, dependency_bundle))
-
+                metrics.append((field.json_schema_extra["calc"].set_params(ingested_path, artifact), dependency_bundle))
+        # could all the above be extracted to class level? to reduce runtime burden
         start = time.time()
 
         scores: dict[str, Any] = dict()
         weighted_scores: dict[str, Any] = dict()
         latencies: dict[str, float] = dict()
-        # for metric in metrics:
-        #     name, latency, value = ModelRating._run_metric(metric)
 
-        with Pool(processes=dependency_bundle.num_processors) as pool:
-            result = pool.map(ModelRating._run_metric, metrics)
+        with ThreadPoolExecutor(max_workers=dependency_bundle.num_processors) as ex:
+            result = list(ex.map(ModelRating._run_metric, metrics))
             for field_name, latency, score, weighted_score in result:
                 scores[field_name] = score
                 weighted_scores[field_name] = weighted_score
