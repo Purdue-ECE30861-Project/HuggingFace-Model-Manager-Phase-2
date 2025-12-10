@@ -11,8 +11,6 @@ from src.contracts.artifact_contracts import Artifact
 from src.contracts.metric_std import MetricStd
 from .get_exp_coefficient import score_large_good, get_exp_coefficient
 from ..model.dependencies import DependencyBundle
-from deprecated.get_metadata import get_collaborators_github
-
 
 SHORTLOG_RE = re.compile(r"^\s*(\d+)\s+(.*)$")
 
@@ -54,7 +52,7 @@ class BusFactor(MetricStd[float]):
         contributors = self.parse_shortlog(result.stdout)
         return contributors
 
-    def gh_contributors(self, url):
+    def gh_contributors(self, url) -> list:
         headers = {"Accept": "application/vnd.github+json"}
 
         contributors = []
@@ -74,6 +72,8 @@ class BusFactor(MetricStd[float]):
             contributors.extend(data)
             page += 1
 
+        return contributors
+
     def calculate_bus_factor(self, num_contributors_gh: int, num_contributors_hf: int) -> float:
         return score_large_good(get_exp_coefficient(self.contributors_half_score_point),
                                 max(num_contributors_gh, num_contributors_hf))
@@ -81,7 +81,15 @@ class BusFactor(MetricStd[float]):
     @override
     def calculate_metric_score(self, ingested_path: Path, artifact_data: Artifact, dependency_bundle: DependencyBundle,
                                *args, **kwargs) -> float:
+        attached_codebase = dependency_bundle.db.router_lineage.db_artifact_get_attached_codebases(
+            artifact_data.metadata.id)
+        gh_contributors = 0
+        if attached_codebase:
+            contributors = [len(self.gh_contributors(codebase.data.url)) for codebase in attached_codebase]
+            if contributors:
+                gh_contributors = sum(contributors) / len(contributors)
+
         return self.calculate_bus_factor(
-            len(get_collaborators_github(artifact_data.metadata.url)),
+            gh_contributors,
             len(self.hf_contributors(artifact_data.metadata.url, str(ingested_path)))
         )

@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <meta name="description" content="" />
+    <meta name="author" content="Parth Patil" />
+    <title>ECE 30861: Autograder</title>
+    <link rel="icon" type="image/x-icon" href="assets/favicon.ico" />
+    <!-- Font Awesome icons (free version)-->
+    <script src="https://use.fontawesome.com/releases/v6.3.0/js/all.js" crossorigin="anonymous"></script>
+    <!-- Google fonts-->
+    <link href="https://fonts.googleapis.com/css?family=Varela+Round" rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i"
+        rel="stylesheet" />
+    <!-- Core theme CSS (includes Bootstrap)-->
+    <link href="css/styles.css" rel="stylesheet" />
+    <style>
+        #schedule {
+            transition: background-color 0.4s ease;
+        }
+
+        .phase-transition {
+            animation: phaseFade 0.6s ease-in-out;
+        }
+
+        @keyframes phaseFade {
+            0% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+
+            50% {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+
+<body id="page-top">
+    <!-- Navigation-->
+    <nav class="navbar navbar-expand-lg navbar-light fixed-top" id="mainNav">
+        <div class="container px-4 px-lg-5">
+            <a class="navbar-brand" href="#page-top">ECE 30861</a>
+            <button class="navbar-toggler navbar-toggler-right" type="button" data-bs-toggle="collapse"
+                data-bs-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false"
+                aria-label="Toggle navigation">
+                Menu
+                <i class="fas fa-bars"></i>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarResponsive">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="#about">About</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#projects">Submit Run</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#signup">Contact</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    <!-- Masthead-->
+    <header class="masthead">
+        <div class="container px-4 px-lg-5 d-flex h-100 align-items-center justify-content-center">
+            <div class="d-flex justify-content-center">
+                <div class="text-center">
+                    <h1 class="mx-auto my-0 text-uppercase">Autograder</h1>
+                    <h2 class="text-white-50 mx-auto mt-2 mb-5">Each submission is a Grand Line adventure of battles,
+                        laughter, and tears with devil logs.</h2>
+                    <a class="btn btn-primary" href="#schedule">Set sail</a>
+                </div>
+            </div>
+        </div>
+    </header>
+    <!-- About-->
+    <section class="about-section text-center" id="about">
+        <div class="container px-4 px-lg-5">
+            <div class="row gx-4 gx-lg-5 justify-content-center">
+                <div class="col-lg-8">
+                    <h2 class="text-white mb-4">What is Autograder?</h2>
+                    <p class="text-white-50">
+                        Autograder is an in-house tool designed to streamline the process of grading projects.
+                        It provides automated feedback to students, helping them learn from their mistakes and improve
+                        their code before final submission.
+                    <div class="container px-4 px-lg-5">
+                        <div class="row gx-4 gx-lg-5">
+                            <div class="col-md-4 mb-3 mb-md-0">
+                                <div class="card py-4 h-100">
+                                    <div class="card-body text-center">
+                                        <h6 class="text-uppercase m-0">Scheduling</h6>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3 mb-md-0">
+                                <div class="card py-4 h-100">
+                                    <div class="card-body text-center">
+                                        <h6 class="text-uppercase m-0">Logging</h6>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3 mb-md-0">
+                                <div class="card py-4 h-100">
+                                    <div class="card-body text-center">
+                                        <h6 class="text-uppercase m-0">Authentication</h6>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    </p>
+                </div>
+            </div>
+            <!-- <img class="img-fluid" src="assets/img/ipad.png" alt="..." /> -->
+        </div>
+    </section>
+    <!-- Projects-->
+    <section class="projects-section bg-light" id="schedule">
+        <div class="container px-4 px-lg-5">
+            <div class="row gx-4 gx-lg-5">
+                <div class="col-md-10 col-lg-8 mx-auto text-center">
+                    <h2 class="text-black mb-5" id="phaseTitle">Submit To Autograder</h2>
+                    <div class="alert alert-info d-none mx-auto mb-4 text-start" id="phaseNotice" role="alert">
+                        <h5 class="mb-1 fw-semibold">Phase 2 Notice</h5>
+                        <p class="mb-0">OpenAPI spec version 3.4.7 is used.</p>
+                    </div>
+
+                    <div class="d-flex justify-content-center mb-2">
+                        <div class="input-group w-auto">
+                            <label class="input-group-text" for="phaseSelector">Phase</label>
+                            <select class="form-select" id="phaseSelector" aria-label="Select autograder phase"
+                                disabled>
+                                <option>Loading...</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="text-muted small mb-4" id="phaseSelectorFeedback"></div>
+
+                    <!-- <button class="btn btn-outline-success mb-4" id="openRegistrationModal" type="button" data-bs-toggle="modal"
+                        data-bs-target="#teamRegistrationModal">
+                        Register Your Team
+                    </button> -->
+
+                    <!-- One horizontal row -->
+                    <div class="row input-group-newsletter mb-2 align-items-center">
+                        <div class="col-auto">
+                            <input class="form-control" id="groupNumber" type="number" placeholder="Group ID"
+                                required />
+                        </div>
+                        <div class="col">
+                            <input class="form-control" id="githubToken" type="password" placeholder="GitHub token"
+                                required />
+                        </div>
+                        <div class="col-auto">
+                            <button class="btn btn-primary" id="submitButton">Submit</button>
+                        </div>
+                    </div>
+
+                    <!-- Success / Error messages -->
+                    <!-- Success alert -->
+                    <!-- <div class="alert alert-success d-none" id="submitSuccessMessage" role="alert">
+                        <strong>Submission successful!</strong>
+                        <pre id="responseData" class="mb-0"></pre>
+                    </div> -->
+
+                    <!-- Error alert -->
+                    <div class="alert alert-danger d-none" id="submitErrorMessage" role="alert">
+                        <strong>Error:</strong> Could not send message!
+                    </div>
+                </div>
+            </div>
+
+            <div class="row gx-4 gx-lg-5" id="teamInfoContainer"></div>
+
+            <!-- Anonymous Leaderboard Section -->
+            <div class="row gx-4 gx-lg-5 mt-5">
+                <div class="col-lg-10 mx-auto">
+                    <div class="text-center mb-4">
+                        <h3 class="text-black">Leaderboard</h3>
+                        <p class="text-muted small">Top 10 scores per phase</p>
+                    </div>
+
+                    <div id="leaderboardContainer" class="row g-3">
+                        <!-- Leaderboard data will be dynamically inserted here -->
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- Schedule-->
+    <section class="signup-section" id="contact">
+        <div class="container px-4 px-lg-5">
+            <div class="row gx-4 gx-lg-5">
+                <div class="col-md-4 mb-3 mb-md-0">
+                    <div class="card py-4 h-100">
+                        <div class="card-body text-center">
+                            <i class="fas fa-envelope text-primary mb-2"></i>
+                            <h4 class="text-uppercase m-0">Parth Patil</h4>
+                            <hr class="my-4 mx-auto" />
+                            <div class="small text-black-50"><a href="#!">parthpatil@purdue.edu</a></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3 mb-md-0">
+                    <div class="card py-4 h-100">
+                        <div class="card-body text-center">
+                            <i class="fas fa-envelope text-primary mb-2"></i>
+                            <h4 class="text-uppercase m-0">Tanmay Singla</h4>
+                            <hr class="my-4 mx-auto" />
+                            <div class="small text-black-50"><a href="#!">singlat@purdue.edu</a></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3 mb-md-0">
+                    <div class="card py-4 h-100">
+                        <div class="card-body text-center">
+                            <i class="fas fa-envelope text-primary mb-2"></i>
+                            <h4 class="text-uppercase m-0">Azam Ikram</h4>
+                            <hr class="my-4 mx-auto" />
+                            <div class="small text-black-50"><a href="#!">mikram@purdue.edu</a></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer-->
+    <footer class="footer bg-black small text-center text-white-50">
+        <div class="container px-4 px-lg-5">Copyright &copy; Parth Patil 2025</div>
+    </footer>
+    <!-- Bootstrap core JS-->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Core theme JS-->
+    <script src="js/scripts.js"></script>
+    <script src="js/api.js"></script>
+
+    <div class="modal fade" id="teamRegistrationModal" tabindex="-1" aria-labelledby="teamRegistrationModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="teamRegistrationModalLabel">Register Your Team</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="teamRegistrationForm" novalidate>
+                        <div class="row g-2">
+                            <div class="col-md-4">
+                                <label for="registrationGroupNumber" class="form-label">Group Number</label>
+                                <input class="form-control" id="registrationGroupNumber" type="number" min="1" required
+                                    placeholder="e.g. 12">
+                            </div>
+                            <div class="col-md-8">
+                                <label for="registrationGithubUrl" class="form-label">GitHub Repository URL (optional
+                                    for Phase 2)</label>
+                                <input class="form-control" id="registrationGithubUrl" type="url"
+                                    placeholder="https://github.com/org/repo">
+                            </div>
+                        </div>
+                        <div class="row g-2 mt-2 d-none" data-phase-visible="phase2" id="registrationEndpointsRow">
+                            <div class="col-md-6">
+                                <label for="registrationFrontendUrl" class="form-label">Frontend URL</label>
+                                <input class="form-control" id="registrationFrontendUrl" type="url" disabled
+                                    placeholder="https://frontend.example.com">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="registrationBackendUrl" class="form-label">Backend URL</label>
+                                <input class="form-control" id="registrationBackendUrl" type="url" disabled
+                                    placeholder="https://backend.example.com">
+                            </div>
+                        </div>
+                        <div class="row g-2 mt-2">
+                            <div class="col-md-6">
+                                <label for="registrationGithubToken" class="form-label">GitHub Token</label>
+                                <input class="form-control" id="registrationGithubToken" type="password" required
+                                    placeholder="GitHub Personal Access Token">
+                                <div class="form-text">Token used only for authentication during registration.</div>
+                            </div>
+                        </div>
+                        <div class="row g-2 mt-3">
+                            <div class="col-12">
+                                <label class="form-label">Team Members</label>
+                            </div>
+                            <div class="col-12 col-sm-6">
+                                <input class="form-control team-member-input" id="teamMemberName1" type="text"
+                                    placeholder="Member 1" required>
+                            </div>
+                            <div class="col-12 col-sm-6">
+                                <input class="form-control team-member-input" id="teamMemberName2" type="text"
+                                    placeholder="Member 2">
+                            </div>
+                            <div class="col-12 col-sm-6">
+                                <input class="form-control team-member-input" id="teamMemberName3" type="text"
+                                    placeholder="Member 3">
+                            </div>
+                            <div class="col-12 col-sm-6">
+                                <input class="form-control team-member-input" id="teamMemberName4" type="text"
+                                    placeholder="Member 4">
+                            </div>
+                            <div class="col-12 col-sm-6">
+                                <input class="form-control team-member-input" id="teamMemberName5" type="text"
+                                    placeholder="Member 5">
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-end mt-3">
+                            <button class="btn btn-success" id="registerTeamButton" type="submit">Register Team</button>
+                        </div>
+                        <div class="alert d-none mt-3" id="registrationFeedback" role="alert"></div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        if (window.initializePhaseSelector) {
+            window.initializePhaseSelector();
+        }
+
+        if (window.fetchAndDisplayLeaderboard) {
+            window.fetchAndDisplayLeaderboard();
+        }
+
+        const registerForm = document.getElementById('teamRegistrationForm');
+        if (registerForm) {
+            registerForm.addEventListener('submit', registerTeamListener);
+        }
+
+        const submitButton = document.getElementById('submitButton');
+        if (submitButton) {
+            submitButton.addEventListener('click', getTeamInfoListenser);
+        }
+
+        const phaseSelector = document.getElementById('phaseSelector');
+        if (phaseSelector) {
+            phaseSelector.addEventListener('change', () => {
+                const teamContainer = document.getElementById('teamInfoContainer');
+                if (teamContainer) {
+                    teamContainer.innerHTML = '';
+                }
+                const errorMessage = document.getElementById('submitErrorMessage');
+                if (errorMessage) {
+                    errorMessage.classList.add('d-none');
+                }
+                if (submitButton) {
+                    submitButton.disabled = false;
+                }
+                if (window.togglePhaseSpecificFields) {
+                    window.togglePhaseSpecificFields();
+                }
+            });
+            if (window.togglePhaseSpecificFields) {
+                window.togglePhaseSpecificFields();
+            }
+        }
+    </script>
+
+</body>
+
+</html>
