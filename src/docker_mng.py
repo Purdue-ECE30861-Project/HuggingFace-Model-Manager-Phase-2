@@ -8,7 +8,7 @@ ROOT_DIR = Path(__file__).resolve().parents[2]  # adjust if layout differs
 sys.path.append(str(ROOT_DIR))
 
 # Import from existing script (assumed same directory or adjust path accordingly)
-from mock_infrastructure.docker_init import (
+from src.mock_infrastructure import (
     start_mysql_container,
     wait_for_mysql,
     start_minio_container,

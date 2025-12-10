@@ -7,7 +7,7 @@ import redis
 
 from src.backend_server.model.data_store.cache_accessor import CacheAccessor
 from src.contracts.artifact_contracts import ArtifactType
-from mock_infrastructure import docker_init
+from src.mock_infrastructure import docker_init
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 # Redis configuration from docker_init (container is started externally)
 REDIS_HOST = getattr(docker_init, "REDIS_HOST", "127.0.0.1")
 REDIS_PORT = getattr(docker_init, "REDIS_HOST_PORT", 6399)
+REDIS_PASSWORD=getattr(docker_init, "REDIS_PASSWORD", "TestPassword")
 
 
 class DummyResponse(BaseModel):
@@ -37,6 +38,7 @@ class TestCacheAccessorIntegration(unittest.TestCase):
         cls.raw_client = redis.Redis(
             host=REDIS_HOST,
             port=REDIS_PORT,
+            password=REDIS_PASSWORD,
             decode_responses=True,
         )
         # Will raise if Redis is not ready
@@ -48,7 +50,7 @@ class TestCacheAccessorIntegration(unittest.TestCase):
             host=REDIS_HOST,
             port=REDIS_PORT,
             db=0,
-            password=None,
+            password=REDIS_PASSWORD,
             ttl_seconds=60,
         )
         self.cache.reset()

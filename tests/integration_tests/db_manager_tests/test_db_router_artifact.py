@@ -4,7 +4,7 @@ import unittest
 from sqlalchemy import create_engine, Engine
 from sqlmodel import SQLModel, Session, select
 
-from mock_infrastructure import docker_init
+from src.mock_infrastructure import docker_init
 from src.backend_server.model.data_store.database_connectors.artifact_database import (
     DBArtifactAccessor
 )

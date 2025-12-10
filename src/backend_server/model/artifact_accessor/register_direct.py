@@ -124,7 +124,7 @@ def register_data_store_artifact(
         logger.error(f"FAILED: {e.response['Error']['Message']}")
         return RegisterArtifactEnum.INTERNAL_ERROR, None
     except IOError as e:
-        logger.error(f"FAILED: {e.message}")
+        logger.error(f"FAILED: {e}")
         return RegisterArtifactEnum.INTERNAL_ERROR, None
     return RegisterArtifactEnum.SUCCESS, artifact
 
@@ -152,7 +152,7 @@ def update_data_store_model(
         logger.error(f"FAILED: {e.response['Error']['Message']}")
         return UpdateArtifactEnum.DISQUALIFIED
     except IOError as e:
-        logger.error(f"FAILED: {e.message}")
+        logger.error(f"FAILED: {e}")
         return UpdateArtifactEnum.DOES_NOT_EXIST
 
 def update_data_store_artifact(
@@ -171,7 +171,7 @@ def update_data_store_artifact(
         logger.error(f"FAILED: {e.response['Error']['Message']}")
         return UpdateArtifactEnum.DISQUALIFIED
     except IOError as e:
-        logger.error(f"FAILED: {e.message}")
+        logger.error(f"FAILED: {e}")
         return UpdateArtifactEnum.DOES_NOT_EXIST
 
 

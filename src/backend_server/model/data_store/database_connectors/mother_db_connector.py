@@ -15,6 +15,9 @@ from .base_database import db_reset
 logger = logging.getLogger(__name__)
 
 
+"""
+TODO: Need a separate column for accessing that determines if an artifact has finished rating yet. Gets to the database should match this column (eg if true, only then return that entry)
+"""
 class DBRouterBase:
     def __init__(self, engine: Engine):
         self.engine = engine
@@ -383,7 +386,8 @@ class DBRouterCost(DBRouterBase):
             for connection in connections:
                 artifact: DBArtifactSchema = DBArtifactAccessor.artifact_get_by_id(
                     self.engine, connection.src_id, connection.relationship.to_source_type())
-                cost.total_cost += artifact.size_mb
+                if artifact:
+                    cost.total_cost += artifact.size_mb
             parent_model_relation = DBConnectionAccessor.model_get_parent_model(self.engine, selected_model)
             if parent_model_relation:
                 selected_model = DBArtifactAccessor.artifact_get_by_id(self.engine, parent_model_relation.src_id,
@@ -451,6 +455,9 @@ class DBManager:
         return artifact, readme, self.router_lineage.db_model_connection_snapshot(artifact_id), self.router_rating.db_rating_get_snapshot(artifact_id)
 
     def db_restore_snapshot_model(self, artifact: DBArtifactSchema, readme: str, names: ModelLinkedArtifactNames, rating: BaseModelRating):
+        """
+        TODO: Must add update to delete existing database entry to restore the snapshot. Also need separate endpoint for deleting model to prevent rating persistence
+        """
         DBReadmeAccessor.artifact_insert_readme(self.engine, artifact.to_artifact(), readme)
         DBArtifactAccessor.artifact_insert(self.engine, artifact)
         DBConnectionAccessor.model_insert(self.engine, artifact.to_concrete(), names)

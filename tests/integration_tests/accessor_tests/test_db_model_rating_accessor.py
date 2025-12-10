@@ -1,16 +1,15 @@
 import unittest
 import logging
-from pydantic import HttpUrl
 from sqlalchemy import create_engine, Engine
 from sqlmodel import SQLModel, Session, select
 
 from src.contracts.artifact_contracts import ArtifactType, Artifact, ArtifactData, ArtifactMetadata
-from src.backend_server.model.data_store.database_connectors.artifact_database import DBReadmeAccessor, DBArtifactAccessor
+from src.backend_server.model.data_store.database_connectors.artifact_database import DBReadmeAccessor
 from src.backend_server.model.data_store.database_connectors.database_schemas import (
-    DBArtifactSchema, DBArtifactReadmeSchema
+    DBArtifactReadmeSchema
 )
 from src.backend_server.model.data_store.database_connectors.base_database import db_reset
-from mock_infrastructure import docker_init
+from src.mock_infrastructure import docker_init
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

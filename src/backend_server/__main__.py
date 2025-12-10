@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
-from .controller import accessor_api, cost_api, lineage_api, rater_api, reset_api
+from .controller import accessor_api, cost_api, lineage_api, rater_api, reset_api, audit_api
 from src.backend_server.utils.logger import setup_logging
 import sys
 import logging
@@ -20,6 +20,7 @@ api_core.include_router(cost_api.cost_router)
 api_core.include_router(rater_api.rater_router)
 api_core.include_router(reset_api.reset_router)
 api_core.include_router(lineage_api.lineage_router)
+api_core.include_router(audit_api.audit_router)
 
 
 @api_core.exception_handler(RequestValidationError)

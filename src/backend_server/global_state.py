@@ -20,6 +20,7 @@ import boto3
 from botocore.exceptions import ClientError
 import json
 
+from src.backend_server.model.license_checker import LicenseChecker
 from src.backend_server.model.llm_api import LLMAccessor
 
 
@@ -186,3 +187,4 @@ artifact_accessor: ArtifactAccessor = ArtifactAccessor(
     global_config.rater_processes,
     global_config.ingest_score_threshold,
 )
+license_checker: LicenseChecker = LicenseChecker(llm_accessor, github_token=global_config.github_pat)

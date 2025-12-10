@@ -6,7 +6,7 @@ import zipfile
 from pathlib import Path
 import boto3
 import requests
-from mock_infrastructure import docker_init
+from src.mock_infrastructure import docker_init
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

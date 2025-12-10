@@ -3,7 +3,7 @@ import logging
 import pymysql
 from pydantic import HttpUrl
 from src.contracts.artifact_contracts import ArtifactType, Artifact, ArtifactData, ArtifactMetadata, ArtifactQuery
-from mock_infrastructure import docker_init
+from src.mock_infrastructure import docker_init
 from src.contracts.model_rating import ModelRating
 from src.backend_server.model.data_store.database_connectors.artifact_database import SQLMetadataAccessor, ArtifactDataDB
 

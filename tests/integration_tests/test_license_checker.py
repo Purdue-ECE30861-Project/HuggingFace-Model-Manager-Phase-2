@@ -1,12 +1,14 @@
 import unittest
 from unittest.mock import Mock, patch
 from src.backend_server.model.license_checker import LicenseChecker
+from src.backend_server.model.llm_api import LLMAccessor
 
 
 class TestLicenseChecker(unittest.TestCase):
     
     def setUp(self):
-        self.checker = LicenseChecker()
+        self.llm_accessor = LLMAccessor(None, False, None)
+        self.checker = LicenseChecker(self.llm_accessor)
     
     def test_fetch_model_license_valid_url(self):
         """
@@ -153,7 +155,8 @@ class TestCheckCompatibility(unittest.TestCase):
     
     def setUp(self):
         """Create a LicenseChecker instance for testing."""
-        self.checker = LicenseChecker()
+        self.llm_accessor = LLMAccessor(None, False, None)
+        self.checker = LicenseChecker(self.llm_accessor)
     
     def test_compatible_licenses_apache(self):
         """
@@ -263,7 +266,8 @@ class TestEdgeCases(unittest.TestCase):
         """
         Create a LicenseChecker instance for testing.
         """
-        self.checker = LicenseChecker()
+        self.llm_accessor = LLMAccessor(None, False, None)
+        self.checker = LicenseChecker(self.llm_accessor)
     
     def test_empty_url_model(self):
         """

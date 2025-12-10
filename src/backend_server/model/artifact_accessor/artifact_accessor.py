@@ -65,14 +65,13 @@ class ArtifactAccessor:
 
     @validate_call
     def get_artifact_by_name(self, name: ArtifactName) -> tuple[GetArtifactEnum, list[ArtifactMetadata]]:
-        results = self.dependencies.db.router_artifact.db_artifact_get_name(name)
+        results: list[ArtifactMetadata]|None = self.dependencies.db.router_artifact.db_artifact_get_name(name)
 
         if not results:
             logger.error(f"FAILED: get_artifact_by_name {name.name}")
             return GetArtifactEnum.DOES_NOT_EXIST, []
 
-        results_reformatted: list[ArtifactMetadata] = [model.generate_metadata() for model in results]
-        return GetArtifactEnum.SUCCESS, results_reformatted
+        return GetArtifactEnum.SUCCESS, results
 
     @validate_call
     def get_artifact_by_regex(self, regex_exp: ArtifactRegEx) -> tuple[GetArtifactEnum, list[ArtifactMetadata]]:
@@ -150,7 +149,7 @@ class ArtifactAccessor:
             size: float = 0.0
             temp_path: Path = Path(tempdir)
             try:
-                size = temporary_downloader.download_artifact(body.url, artifact_type, temp_path)
+                size = temporary_downloader.download_artifact(body.data.url, artifact_type, temp_path) # would benefit from reordering to prevent download if does not match db exactly
             except FileNotFoundError:
                 logger.error(f"FAILED: model not found for {body.url}")
                 return UpdateArtifactEnum.DISQUALIFIED

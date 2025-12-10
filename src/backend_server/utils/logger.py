@@ -18,7 +18,7 @@ CLOUDWATCH_LOG_STREAM = os.getenv("CLOUDWATCH_LOG_STREAM", f"run-logs-{datetime.
 try:
     LOG_LEVEL = int(os.getenv("LOG_LEVEL", "0"))
 except ValueError:
-    LOG_LEVEL = 0
+    LOG_LEVEL = 1
 
 # Map custom LOG_LEVEL to Python logging levels
 LEVEL_MAP = {

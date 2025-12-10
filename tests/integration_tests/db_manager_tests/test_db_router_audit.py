@@ -8,7 +8,7 @@ from src.contracts.auth_contracts import User, AuditAction
 from src.backend_server.model.data_store.database_connectors.mother_db_connector import DBRouterAudit, DBRouterArtifact
 from src.backend_server.model.data_store.database_connectors.database_schemas import ModelLinkedArtifactNames
 from src.backend_server.model.data_store.database_connectors.base_database import db_reset
-from mock_infrastructure import docker_init
+from src.mock_infrastructure import docker_init
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

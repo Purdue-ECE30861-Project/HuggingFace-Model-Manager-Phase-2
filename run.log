@@ -1,4 +1,1 @@
-{"time": "2025-12-10T01:15:23+00:00", "level": "WARNING", "logger": "root", "msg": "Failed to set up CloudWatch logging: Unable to locate credentials. Local logging will continue.", "filename": "logger.py", "lineno": 97}
-{"time": "2025-12-10T01:15:23+00:00", "level": "INFO", "logger": "uvicorn.error", "msg": "Started server process [45647]", "filename": "server.py", "lineno": 84}
-{"time": "2025-12-10T01:15:23+00:00", "level": "INFO", "logger": "uvicorn.error", "msg": "Waiting for application startup.", "filename": "on.py", "lineno": 48}
-{"time": "2025-12-10T01:15:23+00:00", "level": "INFO", "logger": "uvicorn.error", "msg": "Application startup complete.", "filename": "on.py", "lineno": 62}
+{"time": "2025-12-10T03:38:28+00:00", "level": "WARNING", "logger": "root", "msg": "Failed to set up CloudWatch logging: Unable to locate credentials. Local logging will continue.", "filename": "logger.py", "lineno": 97}

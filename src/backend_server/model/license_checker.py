@@ -19,12 +19,11 @@ class LicenseCompatibility(str, Enum):
     ERROR = "error"
 
 class LicenseChecker:
-    
-    def __init__(self, hf_token: Optional[str] = None, github_token: Optional[str] = None):
+    def __init__(self, llm_api: LLMAccessor, hf_token: Optional[str] = None, github_token: Optional[str] = None):
         self.hf_token = hf_token
         self.github_token = github_token
         self.session = requests.Session()
-        self.llm_api = LLMAccessor()
+        self.llm_api = llm_api
         
         if github_token:
             self.session.headers.update({"Authorization": f"token {github_token}"})

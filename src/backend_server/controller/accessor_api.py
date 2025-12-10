@@ -3,6 +3,7 @@ from typing import List
 from fastapi import APIRouter, HTTPException, status, Response, Query
 from fastapi.exceptions import RequestValidationError
 from pydantic import ValidationError
+import logging
 
 from src.contracts.artifact_contracts import ArtifactID, ArtifactType, ArtifactQuery, Artifact, ArtifactMetadata, \
     ArtifactName, ArtifactRegEx, ArtifactData
@@ -10,6 +11,9 @@ from ..global_state import artifact_accessor, global_config, cache_accessor
 from ..model.artifact_accessor.enums import GetArtifactsEnum, GetArtifactEnum, RegisterArtifactEnum, UpdateArtifactEnum
 
 accessor_router = APIRouter()
+
+
+logger = logging.getLogger(__name__)
 
 
 @accessor_router.post("/artifacts", status_code=status.HTTP_200_OK)
@@ -31,7 +35,7 @@ async def get_artifacts(
             raise HTTPException(status_code=return_code.value, detail="Too many artifacts returned.")
 
 
-@accessor_router.post("/artifact/byName/{name}", status_code=status.HTTP_200_OK)
+@accessor_router.post("/artifact/byName/{name:path}", status_code=status.HTTP_200_OK)
 async def get_artifacts_by_name(
         name: str,
 ) -> List[ArtifactMetadata]:
@@ -86,7 +90,6 @@ async def get_artifact(
 
     match return_code:
         case GetArtifactEnum.SUCCESS:
-            cache_accessor.insert(id, )
             return return_content
         case GetArtifactEnum.DOES_NOT_EXIST:
             raise HTTPException(status_code=return_code.value, detail="Artifact does not exist.")
@@ -136,9 +139,8 @@ async def delete_artifact(
         raise RequestValidationError(errors=["invalid artifact type or id"])
 
     return_code: GetArtifactEnum
-    return_content: None
 
-    return_code, return_content = artifact_accessor.delete_artifact(artifact_type_model, id_model)
+    return_code = artifact_accessor.delete_artifact(artifact_type_model, id_model)
 
     match return_code:
         case GetArtifactEnum.SUCCESS:

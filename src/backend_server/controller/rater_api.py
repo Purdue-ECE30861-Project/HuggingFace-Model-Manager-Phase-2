@@ -4,7 +4,7 @@ from typing import Annotated
 from pydantic import ValidationError
 
 from src.backend_server.global_state import database_manager
-from src.contracts.artifact_contracts import ArtifactID
+from src.contracts.artifact_contracts import ArtifactID, ArtifactType
 from src.contracts.model_rating import ModelRating
 
 
@@ -20,7 +20,7 @@ async def rate_model(
     except ValidationError:
         raise RequestValidationError(errors=["invalid artifact id"])
 
-    if not database_manager.router_artifact.db_artifact_exists(id):
+    if not database_manager.router_artifact.db_artifact_exists(id, ArtifactType.model):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="artifact not found")
 
     return_content: None|ModelRating = database_manager.router_rating.db_rating_get(id)

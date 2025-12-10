@@ -6,6 +6,7 @@ from src.contracts.artifact_contracts import SimpleLicenseCheckRequest, Artifact
 from src.backend_server.model.license_checker import LicenseChecker
 from src.backend_server.model.artifact_accessor.artifact_accessor import GetArtifactEnum
 from src.backend_server import global_state
+from src.backend_server.global_state import license_checker as checker
 
 router = APIRouter()
 
@@ -33,12 +34,6 @@ def artifact_model_license_check(id: str, request: SimpleLicenseCheckRequest, x_
             model_url = artifact.data.url
         case default:
             raise HTTPException(status_code=502, detail="Failed to retrieve artifact.")
-
-    # Require X-Authorization header
-    if not x_authorization:
-        raise HTTPException(status_code=403, detail="Missing X-Authorization header")
-
-    checker = LicenseChecker()
 
     # Attempt to fetch model license
     try:

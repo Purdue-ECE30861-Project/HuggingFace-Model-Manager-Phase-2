@@ -1,4 +1,3 @@
-import logging
 import tempfile
 import unittest
 
@@ -11,7 +10,7 @@ from src.backend_server.model.data_store.database_connectors.audit_database impo
 from src.contracts.artifact_contracts import (
     ArtifactQuery, ArtifactID, ArtifactName, ArtifactRegEx,
 )
-from mock_infrastructure import docker_init
+from src.mock_infrastructure import docker_init
 
 logger = logging.getLogger(__name__)
 
