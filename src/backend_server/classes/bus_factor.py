@@ -49,7 +49,7 @@ class BusFactor(MetricStd[float]):
             capture_output=True,
         )
 
-        contributors = self.parse_sh    ortlog(result.stdout)
+        contributors = self.parse_shortlog(result.stdout)
         return contributors
 
     def gh_contributors(self, url) -> list:
