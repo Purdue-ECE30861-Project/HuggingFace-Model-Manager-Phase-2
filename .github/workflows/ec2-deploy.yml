@@ -47,8 +47,8 @@ jobs:
                 sudo chmod 775 /opt/hfmm
                 sudo apt install -y python3 python3.12-venv nginx
                 cd /opt/hfmm
-                cp -r ~/tmp/HuggingFace-Model-Manager-Phase-2/src/ .
-                cp -r ~/tmp/HuggingFace-Model-Manager-Phase-2/requirements.txt .
+                cp -rf ~/tmp/HuggingFace-Model-Manager-Phase-2/src/ .
+                cp -rf ~/tmp/HuggingFace-Model-Manager-Phase-2/requirements.txt .
                 python3 -m venv venv
                 source venv/bin/activate
                 pip3 install -r requirements.txt

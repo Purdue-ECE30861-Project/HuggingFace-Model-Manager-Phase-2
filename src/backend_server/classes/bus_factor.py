@@ -33,7 +33,7 @@ class BusFactor(MetricStd[float]):
             contribs[name] = count
         return contribs
 
-    def hf_contributors(self, url, tmpdir) -> dict:
+    def hf_contributors(self, url: str, tmpdir: str) -> dict:
         repo_url = url
 
         subprocess.run(
@@ -49,7 +49,7 @@ class BusFactor(MetricStd[float]):
             capture_output=True,
         )
 
-        contributors = self.parse_shortlog(result.stdout)
+        contributors = self.parse_sh    ortlog(result.stdout)
         return contributors
 
     def gh_contributors(self, url) -> list:
@@ -91,5 +91,5 @@ class BusFactor(MetricStd[float]):
 
         return self.calculate_bus_factor(
             gh_contributors,
-            len(self.hf_contributors(artifact_data.metadata.url, str(ingested_path)))
+            len(self.hf_contributors(artifact_data.url, str(ingested_path)))
         )
