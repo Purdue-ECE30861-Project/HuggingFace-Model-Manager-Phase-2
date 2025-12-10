@@ -22,10 +22,23 @@ class Size(MetricStd[SizeScore]):
         self.aws_max_size_mb = aws_max_size_mb
 
     def calculate_size_score_with_max_size(self, max_size: float, size: float) -> float:
-        adjusted_score = max_size - size
-        if adjusted_score < 0.0:
+        if size < 0:
             return 0.0
-        return adjusted_score / max_size
+        if size >= max_size:
+            return 0.0
+        return 1 - (size / max_size)
+
+    def generate_score_output(self, return_value: SizeScore, artifact_size: ArtifactCost) -> SizeScore:
+        return_value.raspberry_pi = self.calculate_size_score_with_max_size(self.rpi_max_size_mb,
+                                                                            artifact_size.standalone_cost)
+        return_value.jetson_nano = self.calculate_size_score_with_max_size(self.jsn_max_size_mb,
+                                                                           artifact_size.standalone_cost)
+        return_value.desktop_pc = self.calculate_size_score_with_max_size(self.dpc_max_size_mb,
+                                                                          artifact_size.standalone_cost)
+        return_value.aws_server = self.calculate_size_score_with_max_size(self.aws_max_size_mb,
+                                                                          artifact_size.standalone_cost)
+
+        return return_value
 
     @override
     def calculate_metric_score(self, ingested_path: Path, artifact_data: Artifact, dependency_bundle: DependencyBundle, *args, **kwargs) -> SizeScore:
@@ -40,9 +53,4 @@ class Size(MetricStd[SizeScore]):
             logger.error(f"Artifact '{artifact_data.metadata.id}' has no size")
             return return_value
 
-        return_value.raspberry_pi = self.calculate_size_score_with_max_size(self.rpi_max_size_mb, artifact_size.standalone_cost)
-        return_value.jetson_nano = self.calculate_size_score_with_max_size(self.jsn_max_size_mb, artifact_size.standalone_cost)
-        return_value.desktop_pc = self.calculate_size_score_with_max_size(self.dpc_max_size_mb, artifact_size.standalone_cost)
-        return_value.aws_server = self.calculate_size_score_with_max_size(self.aws_max_size_mb, artifact_size.standalone_cost)
-
-        return return_value
+        return self.generate_score_output(return_value, artifact_size)

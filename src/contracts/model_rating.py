@@ -45,9 +45,18 @@ class ModelRating(BaseModelRating):
     category: str = Field(..., description="Model category assigned during evaluation")
     net_score: float = Field(..., description="Overall score synthesizing all metrics")
     net_score_latency: float = Field(..., description="Time (seconds) required to compute net_score")
-    ramp_up_time: float = Field(..., description="Ease-of-adoption rating for the model", json_schema_extra={"calc":ramp_up_time.RampUpTime(metric_weight=0.1)})
+    ramp_up_time: float = Field(..., description="Ease-of-adoption rating for the model", json_schema_extra={"calc":ramp_up_time.RampUpTime(
+        metric_weight=0.1,
+        directory_breadth_half_score_point=10,
+        directory_depth_half_score_point=5,
+        arxiv_link_half_score_point=1,
+        num_spaces_half_score_point=3
+    )})
     ramp_up_time_latency: float = Field(..., description="Time (seconds) required to compute ramp_up_time")
-    bus_factor: float = Field(..., description="Team redundancy score for the upstream project", json_schema_extra={"calc":bus_factor.BusFactor(metric_weight=0.1)})
+    bus_factor: float = Field(..., description="Team redundancy score for the upstream project", json_schema_extra={"calc":bus_factor.BusFactor(
+        metric_weight=0.1,
+        contributors_half_score_point=5,
+    )})
     bus_factor_latency: float = Field(..., description="Time (seconds) required to compute bus_factor")
     performance_claims: float = Field(..., description="Alignment between stated and observed performance", json_schema_extra={"calc":performance_claims.PerformanceClaims(metric_weight=0.1)})
     performance_claims_latency: float = Field(..., description="Time (seconds) required to compute performance_claims")
@@ -56,7 +65,11 @@ class ModelRating(BaseModelRating):
     dataset_and_code_score: float = Field(..., description="Availability and quality of accompanying datasets and code", json_schema_extra={"calc":available_datasets_and_code.AvailableDatasetAndCode(metric_weight=0.1)})
     dataset_and_code_score_latency: float = Field(...,
                                                   description="Time (seconds) required to compute dataset_and_code_score")
-    dataset_quality: float = Field(..., description="Quality rating for associated datasets", json_schema_extra={"calc":dataset_quality.DatasetQuality(metric_weight=0.1, half_score_point_likes=100, half_score_point_dimensions=5, half_score_point_downloads=100)}) # this is done wrong. Need to have inerted exponential direction
+    dataset_quality: float = Field(..., description="Quality rating for associated datasets", json_schema_extra={"calc":dataset_quality.DatasetQuality(
+        metric_weight=0.1,
+        half_score_point_likes=100,
+        half_score_point_dimensions=5,
+        half_score_point_downloads=100)}) # this is done wrong. Need to have inerted exponential direction
     dataset_quality_latency: float = Field(..., description="Time (seconds) required to compute dataset_quality")
     code_quality: float = Field(..., description="Quality rating for provided code artifacts", json_schema_extra={"calc":code_quality.CodeQuality(metric_weight=0.1)})
     code_quality_latency: float = Field(..., description="Time (seconds) required to compute code_quality")

@@ -14,8 +14,6 @@ from src.contracts.metric_std import MetricStd
 # ---- Canonicalization & rules ----
 
 
-class DBManager:
-    pass
 ALIASES = {
     "acc": "accuracy", "top1-acc": "top-1-accuracy", "top1_accuracy": "top-1-accuracy",
     "top5-acc": "top-5-accuracy", "top5_accuracy": "top-5-accuracy",

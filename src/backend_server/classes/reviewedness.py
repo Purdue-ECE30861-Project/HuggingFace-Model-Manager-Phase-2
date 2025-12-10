@@ -6,12 +6,10 @@ from typing import override
 
 import requests
 
-import src.backend_server.utils.get_metadata
+import deprecated.get_metadata
 from src.backend_server.model.dependencies import DependencyBundle
 from src.contracts.artifact_contracts import Artifact
 from src.contracts.metric_std import MetricStd
-from src.backend_server.global_state import DBManager
-from src.backend_server.global_state import global_config
 
 
 github_pattern = re.compile(r"^(.*)?github.com\/([^\/]+)\/([^\/]+)\/?(.*)$")
@@ -86,7 +84,7 @@ class Reviewedness(MetricStd):
         :param githubURL: Associated github URL (if present)
         """
         if githubURL is None:
-            links = list(src.backend_server.utils.get_metadata.find_github_links(url))
+            links = list(deprecated.get_metadata.find_github_links(url))
         else:
             links = [githubURL]
         if len(links) == 0 or githubURL is None:

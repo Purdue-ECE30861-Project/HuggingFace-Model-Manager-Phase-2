@@ -68,7 +68,7 @@ class GlobalConfig(BaseModel):
     def read_env() -> "GlobalConfig":
         load_dotenv()
         is_deploy: bool = os.environ.get("DEVEL_TEST", "false").lower() == "true"
-        genai_key: str = os.environ.get("GEN_AI_STUDIO_API_KEY", "sk-12345")
+        genai_key: str = os.environ.get("GEN_AI_STUDIO_API_KEY", str(input("Enter GenAI API Key: ")))
         github_pat: str = os.getenv("GITHUB_TOKEN", "github_pat_12345")
 
         redis_password: str = os.environ.get("REDIS_PASSWORD", "TestPassword")
@@ -150,7 +150,7 @@ global_config: GlobalConfig = GlobalConfig.read_env()
 
 mysql_engine: Engine = create_engine(global_config.db_url)
 SQLModel.metadata.create_all(mysql_engine)
-llm_accessor: LLMAccessor = LLMAccessor(os.environ.get("GEN_AI_STUDIO_API_KEY", "sk-12345"), bedrock=global_config.llm_config.use_bedrock, model_name=global_config.llm_config.bedrock_model)
+llm_accessor: LLMAccessor = LLMAccessor(global_config.genai_key, bedrock=global_config.llm_config.use_bedrock, model_name=global_config.llm_config.bedrock_model)
 
 database_manager: DBManager = DBManager(mysql_engine)
 

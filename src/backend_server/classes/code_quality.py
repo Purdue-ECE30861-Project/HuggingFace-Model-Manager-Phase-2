@@ -11,13 +11,7 @@ from src.contracts.artifact_contracts import Artifact
 from src.contracts.metric_std import MetricStd
 from ..model.dependencies import DependencyBundle
 
-_PROMPT = """You are evaluating CODE QUALITY (style & maintainability).
-Consider consistency, naming, modularity, comments/docstrings, type hints, tests/CI hints, and readability.
-Rate on this discrete scale and reply with ONLY one number: 1.0, 0.5, or 0.0. The link to the github repository for the code is here:"""
 
-
-class DBManager:
-    pass
 class CodeQuality(MetricStd[float]):
     metric_name = "code_quality"
 
