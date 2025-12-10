@@ -68,7 +68,7 @@ class GlobalConfig(BaseModel):
     def read_env() -> "GlobalConfig":
         load_dotenv()
         is_deploy: bool = os.environ.get("DEVEL_TEST", "false").lower() == "true"
-        genai_key: str = os.environ.get("GEN_AI_STUDIO_API_KEY", str(input("Enter GenAI API Key: ")))
+        genai_key: str = os.environ.get("GEN_AI_STUDIO_API_KEY", "sk-12345")
         github_pat: str = os.getenv("GITHUB_TOKEN", "github_pat_12345")
 
         redis_password: str = os.environ.get("REDIS_PASSWORD", "TestPassword")
