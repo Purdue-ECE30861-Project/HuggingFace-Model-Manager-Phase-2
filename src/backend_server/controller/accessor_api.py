@@ -29,9 +29,11 @@ async def get_artifacts(
 
     match return_code:
         case return_code.SUCCESS:
+            logger.info(f"Successfully got page {offset} of artifacts, len {len(return_content)}")
             response.headers["offset"] = str(int(offset) + 1)
             return return_content
         case return_code.TOO_MANY_ARTIFACTS:
+            logger.warning("Too many artifacts returned.")
             raise HTTPException(status_code=return_code.value, detail="Too many artifacts returned.")
 
 
