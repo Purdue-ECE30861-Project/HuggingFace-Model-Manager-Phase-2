@@ -21,7 +21,7 @@ docker==7.1.0
 redis==7.1.0
 GitPython==3.1.45
 SQLAlchemy~=2.0.44
-huggingface_hub~=1.1.4
+huggingface_hub~=1.2.2
 pydantic_core~=2.41.5
 typing_extensions~=4.15.0
 dotenv~=0.9.9
