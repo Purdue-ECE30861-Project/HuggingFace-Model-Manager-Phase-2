@@ -22,6 +22,7 @@ async def get_artifacts(
         body: List[ArtifactQuery],
         offset: str = Query(..., pattern=r"^\d+$"),
 ) -> List[ArtifactMetadata]:
+    return []
     logger.info(f"Getting page {offset} of artifacts")
     return_code: GetArtifactsEnum
     return_content: list[ArtifactMetadata]
