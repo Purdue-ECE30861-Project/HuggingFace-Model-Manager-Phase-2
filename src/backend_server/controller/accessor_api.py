@@ -19,23 +19,28 @@ logger = logging.getLogger(__name__)
 @accessor_router.post("/artifacts", status_code=status.HTTP_200_OK)
 async def get_artifacts(
         response: Response,
-        body: ArtifactQuery,
+        body: List[ArtifactQuery],
         offset: str = Query(..., pattern=r"^\d+$"),
 ) -> List[ArtifactMetadata]:
     logger.info(f"Getting page {offset} of artifacts")
     return_code: GetArtifactsEnum
     return_content: list[ArtifactMetadata]
 
-    return_code, return_content = artifact_accessor.get_artifacts(body, offset)
+    response_agg: list[ArtifactMetadata] = []
 
-    match return_code:
-        case return_code.SUCCESS:
-            logger.info(f"Successfully got page {offset} of artifacts, len {len(return_content)}")
-            response.headers["offset"] = str(int(offset) + 1)
-            return return_content
-        case return_code.TOO_MANY_ARTIFACTS:
-            logger.warning("Too many artifacts returned.")
-            raise HTTPException(status_code=return_code.value, detail="Too many artifacts returned.")
+    for request in body:
+        return_code, return_content = artifact_accessor.get_artifacts(request, offset)
+
+        match return_code:
+            case return_code.SUCCESS:
+                logger.info(f"Successfully got page {offset} of artifacts, len {len(return_content)}")
+                response_agg.extend(return_content)
+            case return_code.TOO_MANY_ARTIFACTS:
+                logger.warning("Too many artifacts returned.")
+                raise HTTPException(status_code=return_code.value, detail="Too many artifacts returned.")
+
+    response.headers["offset"] = str(int(offset) + 1)
+    return response_agg
 
 
 @accessor_router.post("/artifact/byName/{name:path}", status_code=status.HTTP_200_OK)
