@@ -7,7 +7,7 @@ import requests
 # ===========================
 # Global server configuration
 # ===========================
-SERVER_HOST = "18.191.187.17"
+SERVER_HOST = "18.191.95.56"
 SERVER_PORT = 80
 
 BASE_URL = f"http://{SERVER_HOST}:{SERVER_PORT}"
