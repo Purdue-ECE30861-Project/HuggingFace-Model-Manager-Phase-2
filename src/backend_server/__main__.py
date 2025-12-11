@@ -25,7 +25,7 @@ api_core.include_router(audit_api.audit_router)
 
 @api_core.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    logger.error(f"Request Validation Failed: {request.url} {exc.errors()}")
+    logger.error(f"Request Validation Failed\n\tURL: {request.url}\n\tBODY: {request.body}\n\tErrors: {exc.errors()}")
     return JSONResponse(
         status_code=400,
         content={"detail": exc.errors(), "body": exc.body},
