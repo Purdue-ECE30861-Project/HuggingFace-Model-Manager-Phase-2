@@ -1,7 +1,10 @@
 pydantic
 fastapi
+starlette
 python-dotenv>=1.0.0
 requests
+httpx
+redis>=4.5.0
 huggingface_hub
 dotenv
 coverage
