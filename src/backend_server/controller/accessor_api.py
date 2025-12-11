@@ -160,7 +160,7 @@ async def delete_artifact(
             raise HTTPException(status_code=return_code.value, detail="Artifact does not exist.")
 
 
-@accessor_router.post("/artifacts/{artifact_type}", status_code=status.HTTP_201_CREATED)
+@accessor_router.post("/artifact/{artifact_type}", status_code=status.HTTP_201_CREATED)
 async def register_artifact(
         artifact_type: str,
         body: ArtifactData,
