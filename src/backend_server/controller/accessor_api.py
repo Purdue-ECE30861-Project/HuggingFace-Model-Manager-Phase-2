@@ -91,7 +91,7 @@ async def get_artifact(
         artifact_type_model: ArtifactType = ArtifactType(artifact_type)
         id_model: ArtifactID = ArtifactID(id=id)
     except ValidationError:
-        raise RequestValidationError(errors=["invalid artifact type or id"])
+        raise RequestValidationError(errors=[f"invalid artifact type or id, {id}, {artifact_type}"])
 
     return_code: GetArtifactEnum
     return_content: Artifact
