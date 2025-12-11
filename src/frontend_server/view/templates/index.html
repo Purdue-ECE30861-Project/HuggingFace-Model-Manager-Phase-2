@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block title %}Artifacts - Model Registry{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex justify-between items-center">
+        <h1 class="text-4xl font-bold text-gray-800">Artifacts</h1>
+        <a href="/upload" class="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-2 px-6 rounded-lg transition">
+            Upload New Artifact
+        </a>
+    </div>
+
+    <!-- Search Section -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <form method="post" action="/search" class="flex space-x-4">
+            <input 
+                type="text" 
+                name="regex" 
+                placeholder="Search artifacts by regex pattern..." 
+                class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                required
+            >
+            <button 
+                type="submit" 
+                class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-6 rounded-lg transition"
+            >
+                Search
+            </button>
+        </form>
+    </div>
+
+    <!-- Artifacts Grid -->
+    {% if artifacts %}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for artifact in artifacts %}
+        {% set metadata = artifact.get('metadata', {}) %}
+        {% set artifact_type = metadata.get('type', 'unknown') %}
+        {% set artifact_id = metadata.get('id', 'N/A') %}
+        <div class="bg-white rounded-lg shadow-md p-6 card-hover">
+            <div class="flex justify-between items-start mb-4">
+                <div class="flex-1">
+                    <h3 class="text-xl font-bold text-gray-800">{{ metadata.get('name', 'Unnamed') }}</h3>
+                    <p class="text-sm text-gray-500">ID: {{ artifact_id }}</p>
+                </div>
+                <span class="bg-gradient-to-r from-purple-100 to-pink-100 text-purple-800 px-3 py-1 rounded-full text-sm font-semibold">
+                    {{ artifact_type.title() }}
+                </span>
+            </div>
+
+            {% if artifact_type == 'model' and artifact.get('rating') %}
+            <div class="mb-4 p-3 bg-gray-50 rounded">
+                <p class="text-sm font-semibold text-gray-700">Rating Score</p>
+                {% set overall_score = artifact.rating.get('overall_score', 'N/A') %}
+                <p class="text-2xl font-bold text-purple-600">
+                    {% if overall_score != 'N/A' %}
+                        {{ "%.2f"|format(overall_score) }} / 5.0
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </p>
+            </div>
+            {% endif %}
+
+            <div class="space-y-2 mb-4">
+                {% if artifact.data and artifact.data.url %}
+                <p class="text-sm text-gray-600 break-words">
+                    <span class="font-semibold">Source:</span> {{ artifact.data.url }}
+                </p>
+                {% endif %}
+            </div>
+
+            <a 
+                href="/artifact/{{ artifact_type }}/{{ artifact_id }}" 
+                class="inline-block bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg transition"
+            >
+                View Details
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    <div class="flex justify-between items-center mt-8">
+        {% if offset > 0 %}
+        <a href="/?offset=0" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg transition">
+            First
+        </a>
+        {% else %}
+        <div></div>
+        {% endif %}
+        
+        <div class="text-gray-600">
+            Page offset: {{ offset }}
+        </div>
+
+        {% if has_more %}
+        <a href="/?offset={{ next_offset }}" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg transition">
+            Next
+        </a>
+        {% else %}
+        <div></div>
+        {% endif %}
+    </div>
+    {% else %}
+    <div class="bg-white rounded-lg shadow-md p-12 text-center">
+        <p class="text-gray-500 text-lg">No artifacts found. <a href="/upload" class="text-purple-600 hover:text-purple-700 font-semibold">Upload one</a> to get started!</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

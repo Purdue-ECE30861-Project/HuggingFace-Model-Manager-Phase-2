@@ -1,0 +1,47 @@
+[
+  {
+    "call":"register_artifact",
+    "arguments":{
+      "artifact_type": "model",
+      "body":{
+        "url": "https://huggingface.co/opendatalab/MinerU-HTML",
+        "download_url": ""
+      }
+    },
+    "return_value":[
+      "SUCCESS",
+      {
+        "metadata": {
+          "name": "opendatalab/MinerU-HTML",
+          "id": "936c34581b0c74b7acff748f386a157681c71933ba7eba8a5cb2e1b0adf40db4",
+          "type": "model"
+        },
+        "data": {
+          "url": "https://huggingface.co/opendatalab/MinerU-HTML",
+          "download_url": ""
+        }
+      }
+    ]
+  },
+  {
+    "call": "get_artifact",
+    "arguments": {
+      "artifact_type": "model",
+      "id": "936c34581b0c74b7acff748f386a157681c71933ba7eba8a5cb2e1b0adf40db4"
+    },
+    "return_value": [
+      "SUCCESS",
+      {
+        "metadata": {
+          "name": "opendatalab/MinerU-HTML",
+          "id": "936c34581b0c74b7acff748f386a157681c71933ba7eba8a5cb2e1b0adf40db4",
+          "type": "model"
+        },
+        "data": {
+          "url": "https://huggingface.co/opendatalab/MinerU-HTML",
+          "download_url": ""
+        }
+      }
+    ]
+  }
+]
