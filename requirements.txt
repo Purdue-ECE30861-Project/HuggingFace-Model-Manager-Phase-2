@@ -26,6 +26,6 @@ pydantic_core~=2.41.5
 typing_extensions~=4.15.0
 dotenv~=0.9.9
 cryptography~=46.0.3
-huggingface_hub~=1.1.4
 pylint==4.0.3
 beautifulsoup4
+redis==7.1.0
