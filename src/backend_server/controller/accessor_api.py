@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 async def get_artifacts(
         response: Response,
         body: List[ArtifactQuery],
-        offset: str = Query(..., pattern=r"^\d+$"),
+        offset: str = Query("0", pattern=r"^\d+$"),
 ) -> List[ArtifactMetadata]:
     return_code: GetArtifactsEnum
     return_content: list[ArtifactMetadata]
