@@ -4,6 +4,7 @@ import re
 import subprocess
 from pathlib import Path
 from typing import override
+import shutil
 
 import requests
 
@@ -36,9 +37,11 @@ class BusFactor(MetricStd[float]):
     def hf_contributors(self, url: str, tmpdir: str) -> dict:
         repo_url = url
 
+        shutil.rmtree(tmpdir)
+
         subprocess.run(
             ["git", "clone", "--filter=blob:none", "--no-checkout", repo_url, tmpdir],
-            check=True,
+            check=True
         )
 
         result = subprocess.run(
