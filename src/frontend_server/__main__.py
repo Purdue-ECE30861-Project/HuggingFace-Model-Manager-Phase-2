@@ -9,6 +9,8 @@ import logging
 import redis
 import json
 import hashlib
+import base64
+import asyncio
 from typing import Optional, Dict, Any
 
 from src.frontend_server.controller.health import health_router
@@ -52,9 +54,34 @@ class CacheRouter:
         """
         return self.redis_client is not None
     
+    @staticmethod
+    def _filter_headers_for_caching(headers: Dict[str, str]) -> Dict[str, str]:
+        """
+        Filter out sensitive and hop-by-hop headers before caching.
+        
+        Removes headers that should not be cached or forwarded:
+        - Set-Cookie, Authorization, Proxy-Authorization
+        - Hop-by-hop headers (Connection, Transfer-Encoding, etc.)
+        - Content-Length (may change when reconstructed)
+        """
+        excluded = {
+            "set-cookie",
+            "authorization",
+            "proxy-authorization",
+            "connection",
+            "transfer-encoding",
+            "content-length",
+            "keep-alive",
+            "upgrade",
+            "te",
+            "trailer"
+        }
+        return {k: v for k, v in headers.items() if k.lower() not in excluded}
+    
     def _generate_cache_key(self, request: Request) -> str:
         """
         Generate a unique cache key from request.
+        Includes hashed Authorization header (if present) for per-user caching.
         """
         
         key_parts = [
@@ -63,10 +90,12 @@ class CacheRouter:
             str(sorted(request.query_params.items())),
         ]
         
-        # Include authorization header if present
-        auth_header = request.headers.get("X-Authorization", "")
+        # Include hashed authorization header if present (use standard Authorization header)
+        auth_header = request.headers.get("Authorization", "")
         if auth_header:
-            key_parts.append(auth_header)
+            # Hash the auth header to avoid storing raw tokens in the cache key
+            auth_hash = hashlib.sha256(auth_header.encode()).hexdigest()[:16]
+            key_parts.append(f"auth:{auth_hash}")
         
         key_string = "|".join(key_parts)
 
@@ -105,6 +134,7 @@ class CacheRouter:
     async def get(self, request: Request) -> Optional[Response]:
         """
         Retrieve cached response for request.
+        Uses thread-wrapped Redis calls to avoid blocking the event loop.
         """
         if not self.is_available():
             return None
@@ -114,15 +144,21 @@ class CacheRouter:
         
         try:
             cache_key = self._generate_cache_key(request)
-            cached_data = self.redis_client.get(cache_key)
+            # Run Redis get in a thread to avoid blocking
+            cached_data = await asyncio.to_thread(self.redis_client.get, cache_key)
             
             if cached_data:
                 logger.debug(f"Cache HIT for {request.url.path}")
                 data = json.loads(cached_data)
                 
+                # Decode body: check if it was base64-encoded
+                content = data.get("content", "")
+                if data.get("is_base64", False):
+                    content = base64.b64decode(content.encode()).decode('utf-8', errors='replace')
+                
                 # Reconstruct response
                 return Response(
-                    content=data.get("content", ""),
+                    content=content,
                     status_code=data.get("status_code", 200),
                     headers=data.get("headers", {}),
                     media_type=data.get("media_type", "application/json")
@@ -140,6 +176,12 @@ class CacheRouter:
             return response
         
         if response.status_code >= 400:
+            return response
+        
+        # Check Cache-Control header to respect no-store and private directives
+        cache_control = response.headers.get("cache-control", "").lower()
+        if "no-store" in cache_control or "private" in cache_control:
+            logger.debug(f"Skipping cache for {request.url.path} (Cache-Control: {cache_control})")
             return response
         
         try:
@@ -177,15 +219,34 @@ class CacheRouter:
                         else:
                             body = b""
             
+            # Base64-encode body for safe storage (handles binary and text)
+            is_base64 = False
+            try:
+                # Try to decode as UTF-8; if it fails, store as base64
+                body_str = body.decode('utf-8')
+            except (UnicodeDecodeError, AttributeError):
+                body_str = base64.b64encode(body).decode('utf-8')
+                is_base64 = True
+            
+            # Strip sensitive headers before caching
+            safe_headers = self._filter_headers_for_caching(dict(response.headers))
+            
             cache_data = {
-                "content": body.decode() if body else "",
+                "content": body_str,
+                "is_base64": is_base64,
                 "status_code": response.status_code,
-                "headers": dict(response.headers),
+                "headers": safe_headers,
                 "media_type": response.media_type
             }
             
             ttl_seconds = ttl if ttl is not None else self.default_ttl
-            self.redis_client.setex(cache_key, ttl_seconds, json.dumps(cache_data))
+            # Run Redis setex in a thread to avoid blocking
+            await asyncio.to_thread(
+                self.redis_client.setex,
+                cache_key,
+                ttl_seconds,
+                json.dumps(cache_data)
+            )
             
             logger.debug(f"Cached response for {request.url.path} (TTL: {ttl_seconds}s)")
             
@@ -208,7 +269,8 @@ class CacheRouter:
             return 0
         
         try:
-            keys = self.redis_client.keys(f"cache:{pattern}")
+            # Use scan_iter to avoid blocking on large keyspaces
+            keys = list(self.redis_client.scan_iter(f"cache:{pattern}"))
             if keys:
                 deleted = self.redis_client.delete(*keys)
                 logger.info(f"Invalidated {deleted} cache entries (pattern: {pattern})")
@@ -230,7 +292,7 @@ class CacheRouter:
         
         try:
             info = self.redis_client.info("stats")
-            keys = self.redis_client.keys("cache:*")
+            keys = list(self.redis_client.scan_iter("cache:*"))
             
             return {
                 "status": "available",
@@ -391,18 +453,36 @@ class CacheMiddleware(BaseHTTPMiddleware):
             )
     
     def _endpoint_exists_in_api_core(self, request: Request) -> bool:
-        """Check if the endpoint exists in the api_core router"""
-        path = request.url.path
-        method = request.method.lower()
+        """Check if the endpoint exists in the api_core router using route matching.
         
-        # Check api_core routes
-        from fastapi.routing import APIRoute
-        for route in api_core.routes:
-            if isinstance(route, APIRoute):
-                route_methods = getattr(route, 'methods', None)
-                if route.path == path and route_methods and method.upper() in route_methods:
-                    return True
-        return False
+        Uses Starlette's route matching to properly handle path parameters (e.g., /artifact/{id}).
+        """
+        try:
+            from starlette.routing import Match
+            from fastapi.routing import APIRoute
+            
+            # Build request scope for route matching
+            scope = {
+                "type": "http",
+                "method": request.method,
+                "path": request.url.path,
+                "headers": request.headers.raw,
+                "query_string": request.url.query.encode() if request.url.query else b"",
+            }
+            
+            # Check api_core routes using proper route matching
+            for route in api_core.routes:
+                if isinstance(route, APIRoute):
+                    match, child_scope = route.matches(scope)
+                    if match == Match.FULL:
+                        # Verify method is allowed
+                        route_methods = getattr(route, 'methods', None)
+                        if route_methods and request.method.upper() in route_methods:
+                            return True
+            return False
+        except Exception as e:
+            logger.debug(f"Error checking endpoint in api_core: {e}")
+            return False
 
 @api_core.on_event("startup")
 async def startup_event():
