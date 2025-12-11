@@ -22,6 +22,7 @@ async def get_artifacts(
         body: ArtifactQuery,
         offset: str = Query(..., pattern=r"^\d+$"),
 ) -> List[ArtifactMetadata]:
+    logger.info(f"Getting page {offset} of artifacts")
     return_code: GetArtifactsEnum
     return_content: list[ArtifactMetadata]
 
@@ -41,6 +42,7 @@ async def get_artifacts(
 async def get_artifacts_by_name(
         name: str,
 ) -> List[ArtifactMetadata]:
+    logger.info(f"getting by name {name}")
     try:
         name_model: ArtifactName = ArtifactName(name=name)
     except ValidationError:
@@ -62,6 +64,7 @@ async def get_artifacts_by_name(
 async def get_artifacts_by_regex(
         regex: ArtifactRegEx,
 ) -> List[ArtifactMetadata]:
+    logger.info(f"getting by regex {regex.regex}")
     return_code: GetArtifactEnum
     return_content: list[ArtifactMetadata]
 
@@ -79,6 +82,7 @@ async def get_artifact(
         artifact_type: str,
         id: str,
 ) -> Artifact:
+    logger.info(f"getting by id: {id}")
     try:
         artifact_type_model: ArtifactType = ArtifactType(artifact_type)
         id_model: ArtifactID = ArtifactID(id=id)
@@ -134,6 +138,7 @@ async def delete_artifact(
         id: str,
         response: Response,
 ) -> None:
+    logger.info(f"deleting artifact {artifact_type}/{id}")
     try:
         artifact_type_model: ArtifactType = ArtifactType(artifact_type)
         id_model: ArtifactID = ArtifactID(id=id)
@@ -157,6 +162,7 @@ async def register_artifact(
         body: ArtifactData,
         response: Response
 ) -> Artifact | None:
+    logger.info(f"registering url {body.url} of type {artifact_type}")
     try:
         artifact_type_model: ArtifactType = ArtifactType(artifact_type)
     except ValidationError:
