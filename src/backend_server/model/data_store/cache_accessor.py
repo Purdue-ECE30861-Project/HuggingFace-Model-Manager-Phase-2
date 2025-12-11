@@ -42,9 +42,13 @@ class CacheAccessor:
             self.redis_client.ping()
             logger.info(f"Connected to Redis at {host}:{port}")
         except redis.AuthenticationError as e:
+            if self.redis_client:
+                self.redis_client.close()
             logger.error(f"Redis authentication failed: {e}")
             raise
         except redis.ConnectionError as e:
+            if self.redis_client:
+                self.redis_client.close()
             logger.error(f"Failed to connect to Redis at {host}:{port}: {e}")
             raise
     
