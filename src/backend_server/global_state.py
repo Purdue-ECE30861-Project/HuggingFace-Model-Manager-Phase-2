@@ -69,6 +69,7 @@ class GlobalConfig(BaseModel):
     def read_env() -> "GlobalConfig":
         load_dotenv()
         is_deploy: bool = os.environ.get("DEVEL_TEST", "true").lower() == "false"
+        hf_token = os.environ.get("HF_TOKEN", "")
         genai_key: str = os.environ.get("GEN_AI_STUDIO_API_KEY", "sk-12345")
         github_pat: str = os.getenv("GITHUB_TOKEN", "github_pat_12345")
 
@@ -90,6 +91,7 @@ class GlobalConfig(BaseModel):
             genai_key = api_keys["GENAI_STUDIO_KEY"]
             github_pat = api_keys["GITHUB_PAT"]
             llm_model = api_keys["BEDROCK_MODEL_ID"]
+            hf_token = api_keys["HF_API_KEY"]
 
             # secrets for database access
             db_location = os.environ.get("PROD_DB_LOCATION", "172.31.10.22:3306/artifacts_db")
@@ -144,7 +146,7 @@ class GlobalConfig(BaseModel):
                 bedrock_model=llm_model,
                 use_bedrock=is_deploy
             ),
-            hf_token=os.environ.get("HF_TOKEN", "")
+            hf_token=hf_token
         )
 
 

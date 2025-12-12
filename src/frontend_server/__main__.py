@@ -31,7 +31,7 @@ class CacheRouter:
 
     def __init__(
         self,
-        host: str = "localhost",
+        host: str = "172.31.10.22",
         port: int = 6379,
         db: int = 0,
         default_ttl: int = 3600,
