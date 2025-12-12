@@ -10,6 +10,10 @@ from src.contracts.artifact_contracts import ArtifactType
 
 
 class HFArtifactDownloader(BaseArtifactDownloader):
+    def __init__(self, hf_token: str = ""):
+        super().__init__()
+        self.hf_token = hf_token
+
     def _validate_url(self, url: str) -> bool:
         """Internal method to validate URL format"""
         return url.startswith(('http://huggingface.co', 'https://huggingface.co'))
@@ -34,9 +38,10 @@ class HFArtifactDownloader(BaseArtifactDownloader):
     def _huggingface_pull(self, repo_id: str, tempdir: Path, artifact_type: ArtifactType):
         try:
             print(repo_id)
+            print(artifact_type)
             snapshot_download(repo_id=repo_id, local_dir=tempdir, repo_type="dataset") \
                 if artifact_type == "dataset" else \
-                snapshot_download(repo_id=repo_id, local_dir=tempdir)
+                snapshot_download(repo_id=repo_id, local_dir=tempdir, token=self.hf_token)
         except (huggingface_hub.utils.RepositoryNotFoundError, huggingface_hub.utils.RevisionNotFoundError):
             raise FileNotFoundError("Requested repository doesnt exist")
 

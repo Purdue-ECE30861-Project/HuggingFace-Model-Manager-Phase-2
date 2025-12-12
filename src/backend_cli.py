@@ -7,8 +7,8 @@ import requests
 # ===========================
 # Global server configuration
 # ===========================
-SERVER_HOST = "18.191.95.56"
-SERVER_PORT = 80
+SERVER_HOST = "127.0.0.1"
+SERVER_PORT = 8000
 
 BASE_URL = f"http://{SERVER_HOST}:{SERVER_PORT}"
 
@@ -98,7 +98,8 @@ def cmd_delete_artifact(args):
 
 # POST /artifacts/{artifact_type}
 def cmd_register_artifact(args):
-    url = f"{BASE_URL}/artifacts/{args.artifact_type}"
+    url = f"{BASE_URL}/artifact/{args.artifact_type}"
+    print(url)
     try:
         payload = {
             "url": str(args.url),

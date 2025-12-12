@@ -31,6 +31,7 @@ class ArtifactAccessor:
                  rater_task_manager: RaterTaskManager,
                  num_processors: int = 1,
                  ingest_score_threshold: float = 0.5,
+                 hf_token: str = ""
                  ):
         logger.info("Artifact Accessor is Started")
         self.rater_task_manager = rater_task_manager
@@ -39,7 +40,8 @@ class ArtifactAccessor:
             s3=s3,
             llm_accessor=llm_accessor,
             num_processors=num_processors,
-            ingest_score_threshold=ingest_score_threshold
+            ingest_score_threshold=ingest_score_threshold,
+            hf_token=hf_token
         )
 
     @validate_call
@@ -106,7 +108,7 @@ class ArtifactAccessor:
             logger.error(f"FAILED: url: {body.url} artifact_id {artifact_id} type {artifact_type.name} already exists")
             return RegisterArtifactEnum.ALREADY_EXISTS, None
 
-        temporary_downloader: BaseArtifactDownloader = HFArtifactDownloader()
+        temporary_downloader: BaseArtifactDownloader = HFArtifactDownloader(hf_token=self.dependencies.hf_token)
         if artifact_type == ArtifactType.code:
             temporary_downloader = GHArtifactDownloader()
 
@@ -132,7 +134,7 @@ class ArtifactAccessor:
             logger.error(f"FAILED: url: {body.url} artifact_id {artifact_id} type {artifact_type.name} does not exist")
             return UpdateArtifactEnum.DOES_NOT_EXIST
 
-        push_result: bool = await self.rater_task_manager.submit(artifact_id.id, artifact_type, body)
+        push_result: bool = await self.rater_task_manager.submit(artifact_id.id, artifact_type, body.data)
         if not push_result:
             return UpdateArtifactEnum.DISQUALIFIED
         return UpdateArtifactEnum.DEFERRED
@@ -143,7 +145,7 @@ class ArtifactAccessor:
             logger.error(f"FAILED: url: {body.url} artifact_id {artifact_id} type {artifact_type.name} does not exist")
             return UpdateArtifactEnum.DOES_NOT_EXIST
 
-        temporary_downloader: BaseArtifactDownloader = HFArtifactDownloader()
+        temporary_downloader: BaseArtifactDownloader = HFArtifactDownloader(hf_token=self.dependencies.hf_token)
         if artifact_type == ArtifactType.code:
             temporary_downloader = GHArtifactDownloader()
 

@@ -59,6 +59,7 @@ class GlobalConfig(BaseModel):
     genai_key: str
     github_pat: str
     llm_config: LLMConfig
+    hf_token: str
 
     @staticmethod
     def _str_to_bool(str_value: str) -> bool:
@@ -67,7 +68,7 @@ class GlobalConfig(BaseModel):
     @staticmethod
     def read_env() -> "GlobalConfig":
         load_dotenv()
-        is_deploy: bool = os.environ.get("DEVEL_TEST", "false").lower() == "false"
+        is_deploy: bool = os.environ.get("DEVEL_TEST", "true").lower() == "false"
         genai_key: str = os.environ.get("GEN_AI_STUDIO_API_KEY", "sk-12345")
         github_pat: str = os.getenv("GITHUB_TOKEN", "github_pat_12345")
 
@@ -142,7 +143,8 @@ class GlobalConfig(BaseModel):
             llm_config=LLMConfig(
                 bedrock_model=llm_model,
                 use_bedrock=is_deploy
-            )
+            ),
+            hf_token=os.environ.get("HF_TOKEN", "")
         )
 
 
@@ -171,6 +173,7 @@ rater_task_manager: RaterTaskManager = RaterTaskManager(
     max_workers=global_config.rater_task_manager_workers,
     max_processes_per_rater=global_config.rater_processes,
     max_queue_size=global_config.max_ingest_queue_size,
+    hf_token=global_config.hf_token
 )
 cache_accessor = CacheAccessor(
     host=global_config.redis_config.redis_host,
@@ -186,5 +189,6 @@ artifact_accessor: ArtifactAccessor = ArtifactAccessor(
     rater_task_manager,
     global_config.rater_processes,
     global_config.ingest_score_threshold,
+    hf_token=global_config.hf_token
 )
 license_checker: LicenseChecker = LicenseChecker(llm_accessor, github_token=global_config.github_pat)
