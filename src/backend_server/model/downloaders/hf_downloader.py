@@ -39,9 +39,9 @@ class HFArtifactDownloader(BaseArtifactDownloader):
         try:
             print(repo_id)
             print(artifact_type)
-            snapshot_download(repo_id=repo_id, local_dir=tempdir, repo_type="dataset") \
+            snapshot_download(repo_id=repo_id, local_dir=tempdir, repo_type="dataset", max_workers=1) \
                 if artifact_type == "dataset" else \
-                snapshot_download(repo_id=repo_id, local_dir=tempdir, token=self.hf_token)
+                snapshot_download(repo_id=repo_id, local_dir=tempdir, token=self.hf_token, max_workers=1)
         except (huggingface_hub.utils.RepositoryNotFoundError, huggingface_hub.utils.RevisionNotFoundError):
             raise FileNotFoundError("Requested repository doesnt exist")
 
