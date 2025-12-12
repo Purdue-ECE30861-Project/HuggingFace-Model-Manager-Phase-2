@@ -59,8 +59,10 @@ async def get_artifacts_by_name(
 
     match return_code:
         case GetArtifactEnum.SUCCESS:
+            logger.info(f"Artifacts found.")
             return return_content
         case GetArtifactEnum.DOES_NOT_EXIST:
+            logger.error(f"No artifacts found.")
             raise HTTPException(status_code=return_code.value, detail="No such artifact.")
 
 
@@ -76,8 +78,10 @@ async def get_artifacts_by_regex(
 
     match return_code:
         case GetArtifactEnum.SUCCESS:
+            logger.info(f"Artifacts found.")
             return return_content
         case GetArtifactEnum.DOES_NOT_EXIST:
+            logger.error(f"No artifacts found.")
             raise HTTPException(status_code=return_code.value, detail="No artifact found under this regex.")
 
 
@@ -100,8 +104,10 @@ async def get_artifact(
 
     match return_code:
         case GetArtifactEnum.SUCCESS:
+            logger.info(f"Artifact {artifact_type}/{id} retrieved.")
             return return_content
         case GetArtifactEnum.DOES_NOT_EXIST:
+            logger.error(f"Artifact {artifact_type}/{id} does not exist.")
             raise HTTPException(status_code=return_code.value, detail="Artifact does not exist.")
 
 
@@ -127,12 +133,16 @@ async def update_artifact(
 
     match return_code:
         case UpdateArtifactEnum.SUCCESS:
+            logger.info(f"Artifact {artifact_type}/{id} updated.")
             response.content = "version is updated."
         case UpdateArtifactEnum.DOES_NOT_EXIST:
+            logger.error(f"Artifact {artifact_type}/{id} does not exist.")
             raise HTTPException(status_code=return_code.value, detail="Artifact does not exist.")
         case UpdateArtifactEnum.DISQUALIFIED:
+            logger.error(f"Artifact {artifact_type}/{id} disqualified.")
             raise HTTPException(status_code=return_code.value, detail="Artifact is not updated.")
         case UpdateArtifactEnum.DEFERRED:
+            logger.info(f"Artifact {artifact_type}/{id} deferred.")
             raise HTTPException(status_code=return_code.value, detail="Artifact deferred.")
 
 
@@ -155,8 +165,10 @@ async def delete_artifact(
 
     match return_code:
         case GetArtifactEnum.SUCCESS:
+            logger.info(f"Artifact {artifact_type}/{id} deleted.")
             response.content = "Artifact is deleted."
         case GetArtifactEnum.DOES_NOT_EXIST:
+            logger.error(f"Artifact {artifact_type}/{id} does not exist.")
             raise HTTPException(status_code=return_code.value, detail="Artifact does not exist.")
 
 
@@ -179,21 +191,25 @@ async def register_artifact(
     else:
         return_code = await artifact_accessor.register_artifact_deferred(artifact_type_model, body)
 
-    logger.info(f"Register complete for url {body.url} of type {artifact_type}.")
-
     match return_code:
         case return_code.SUCCESS:
+            logger.info(f"Register complete for url {body.url} of type {artifact_type}.")
             return return_content
         case return_code.ALREADY_EXISTS:
+            logger.error(f"FAILED: url: {body.url} artifact_type {artifact_type} already exists")
             raise HTTPException(status_code=return_code.value,
                                 detail="Authentication failed due to invalid or missing AuthenticationToken.")
         case return_code.DISQUALIFIED:
+            logger.error(f"FAILED: url: {body.url} artifact_type {artifact_type} disqualified")
             raise HTTPException(status_code=return_code.value,
                                 detail="Artifact is not registered due to the disqualified rating.")
         case return_code.BAD_REQUEST:
+            logger.error(f"FAILED: url: {body.url} artifact_type {artifact_type} bad request")
             raise HTTPException(status_code=return_code.value)
         case return_code.DEFERRED:
+            logger.info(f"FAILED: url: {body.url} artifact_type {artifact_type} deferred")
             response.status_code = return_code.value
         case return_code.INTERNAL_ERROR:
+            logger.error(f"FAILED: url: {body.url} artifact_type {artifact_type} internal error during ingest")
             raise HTTPException(status_code=return_code.value)
 
