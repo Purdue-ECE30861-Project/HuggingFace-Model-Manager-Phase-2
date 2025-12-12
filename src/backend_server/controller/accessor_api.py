@@ -179,6 +179,8 @@ async def register_artifact(
     else:
         return_code = await artifact_accessor.register_artifact_deferred(artifact_type_model, body)
 
+    logger.info(f"Register complete for url {body.url} of type {artifact_type}.")
+
     match return_code:
         case return_code.SUCCESS:
             return return_content
