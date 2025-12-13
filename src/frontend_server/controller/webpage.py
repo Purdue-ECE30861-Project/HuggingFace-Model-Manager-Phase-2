@@ -55,7 +55,7 @@ async def index(request: Request, offset: int = Query(0)):
             await fetch_through_middleware(
                 "/artifacts",
                 method="POST",
-                data={"name": "*", "types": ["model", "dataset", "code"]},
+                data=[{"name": "*", "types": ["model", "dataset", "code"]}],
                 params={"offset": offset},
             )
             or []

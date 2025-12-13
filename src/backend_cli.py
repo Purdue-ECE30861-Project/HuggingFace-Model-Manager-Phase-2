@@ -33,9 +33,6 @@ def print_response(resp: requests.Response):
 # POST /artifacts
 def cmd_get_artifacts(args):
     url = f"{BASE_URL}/artifacts"
-    payload = {
-        "artifact_type": args.artifact_type if hasattr(args, "artifact_type") else None
-    }
     # actual ArtifactQuery fields must be filled by user
     try:
         query_obj = json.loads(args.query_json)
@@ -44,7 +41,6 @@ def cmd_get_artifacts(args):
         sys.exit(1)
 
     params = {"offset": args.offset}
-
     resp = requests.post(url, json=query_obj, params=params)
     print_response(resp)
 
