@@ -7,8 +7,8 @@ import requests
 # ===========================
 # Global server configuration
 # ===========================
-SERVER_HOST = "127.0.0.1"
-SERVER_PORT = 8000
+SERVER_HOST = "18.118.161.226"
+SERVER_PORT = 80
 
 BASE_URL = f"http://{SERVER_HOST}:{SERVER_PORT}"
 
@@ -28,6 +28,7 @@ def print_response(resp: requests.Response):
 # ===========================
 # Endpoint Implementations
 # ===========================
+
 
 # POST /artifacts
 def cmd_get_artifacts(args):
@@ -112,6 +113,7 @@ def cmd_register_artifact(args):
     resp = requests.post(url, json=payload)
     print_response(resp)
 
+
 def cmd_reset(args):
     url = f"{BASE_URL}/reset"
     resp = requests.delete(url)
@@ -146,6 +148,7 @@ def cmd_rate_model(args):
 # ===========================
 # Argument Parser
 # ===========================
+
 
 def build_parser():
     parser = argparse.ArgumentParser(description="CLI client for backend artifact API")
@@ -204,8 +207,12 @@ def build_parser():
     p = sub.add_parser("get-cost", help="GET /artifact/{type}/{id}/cost")
     p.add_argument("artifact_type")
     p.add_argument("id")
-    p.add_argument("--dependency", required=True, choices=["true", "false"],
-                   help="Whether to compute dependency cost")
+    p.add_argument(
+        "--dependency",
+        required=True,
+        choices=["true", "false"],
+        help="Whether to compute dependency cost",
+    )
     p.set_defaults(func=cmd_get_cost)
 
     p = sub.add_parser("get-lineage", help="GET /artifact/model/{id}/lineage")
