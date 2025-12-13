@@ -60,19 +60,18 @@ async def index(request: Request, offset: int = Query(0)):
             )
             or []
         )
+        if not isinstance(artifacts_data, list):
+            artifacts_data = []
 
         next_offset = offset + len(artifacts_data) if artifacts_data else offset
 
         # Fetch ratings for each artifact if it's a model
         for artifact in artifacts_data:
-            if artifact.get("metadata", {}).get("type") == "model":
-                artifact_id = artifact.get("metadata", {}).get("id")
-                rating = await fetch_through_middleware(
-                    f"/artifact/model/{artifact_id}/rate"
-                )
-                artifact["rating"] = rating
-            else:
-                artifact["rating"] = None
+            artifact_id = artifact.get("id", "N/A")
+            rating = await fetch_through_middleware(
+                f"/artifact/model/{artifact_id}/rate"
+            )
+            artifact["rating"] = rating
 
         context = {
             "request": request,

@@ -12,6 +12,7 @@ import hashlib
 import base64
 import asyncio
 from typing import Optional, Dict, Any
+from src.frontend_server import BACKEND_CONFIG
 
 from src.frontend_server.controller.health import health_router
 from src.frontend_server.controller.webpage import webpage_router
@@ -340,10 +341,6 @@ class CacheRouter:
 
 
 # Global config for backend server
-BACKEND_CONFIG = {
-    "base_url": os.getenv("BACKEND_URL", "http://localhost:8001"),
-    "timeout": 30.0,
-}
 
 # Initialize Redis cache
 CACHE_CONFIG = {
@@ -453,7 +450,6 @@ class CacheMiddleware(BaseHTTPMiddleware):
             async with httpx.AsyncClient(timeout=BACKEND_CONFIG["timeout"]) as client:
                 # Prepare the request
                 url = f"{BACKEND_CONFIG['base_url']}{request.url.path}"
-
                 if request.url.query:
                     url += f"?{request.url.query}"
 
