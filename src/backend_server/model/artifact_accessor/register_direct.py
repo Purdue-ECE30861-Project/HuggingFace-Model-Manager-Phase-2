@@ -79,8 +79,8 @@ def register_data_store_model(
         data: ArtifactData,
         size: float,
         tempdir: Path,
-        dependencies: DependencyBundle
-
+        dependencies: DependencyBundle,
+        s3_store: bool = True
 ) -> tuple[RegisterArtifactEnum, Artifact | None]:
     artifact: Artifact
     rating: ModelRating
@@ -96,8 +96,14 @@ def register_data_store_model(
         dependencies.db.router_rating.db_rating_add(artifact.metadata.id, BaseModelRating.to_base(rating))
 
         logger.warning(f"SILLY SILLY {os.listdir(tempdir)}")
-        archive_path = shutil.make_archive(str(tempdir.resolve()), "xztar", root_dir=tempdir)
-        dependencies.s3_manager.s3_artifact_upload(artifact.metadata.id, Path(archive_path))
+
+        if s3_store:
+            archive_path = shutil.make_archive(
+                str(tempdir / f"artifact{id}"),
+                "xztar",
+                root_dir=tempdir,
+            )
+            dependencies.s3_manager.s3_artifact_upload(artifact.metadata.id, Path(archive_path))
     except botoexc.ClientError as e:
         logger.error(f"FAILED: {e.response['Error']['Message']}")
         return RegisterArtifactEnum.INTERNAL_ERROR, None
@@ -112,7 +118,8 @@ def register_data_store_artifact(
     artifact_type: ArtifactType,
     size: float,
     tempdir: Path,
-    dependencies: DependencyBundle
+    dependencies: DependencyBundle,
+    s3_store: bool = True
 ) -> tuple[RegisterArtifactEnum, Artifact | None]:
     try:
         artifact: Artifact = Artifact(
@@ -126,8 +133,15 @@ def register_data_store_artifact(
         if not register_database(dependencies.db, artifact, tempdir, size):
             raise IOError("Database Failure")
 
-        archive_path = shutil.make_archive(str(tempdir.resolve()), "xztar", root_dir=tempdir)
-        dependencies.s3_manager.s3_artifact_upload(artifact.metadata.id, Path(archive_path))
+        logger.warning(f"SILLY SILLY {os.listdir(tempdir)}")
+
+        if s3_store:
+            archive_path = shutil.make_archive(
+                str(tempdir / f"artifact{id}"),
+                "xztar",
+                root_dir=tempdir,
+            )
+            dependencies.s3_manager.s3_artifact_upload(artifact.metadata.id, Path(archive_path))
     except botoexc.ClientError as e:
         logger.error(f"FAILED: {e.response['Error']['Message']}")
         return RegisterArtifactEnum.INTERNAL_ERROR, None

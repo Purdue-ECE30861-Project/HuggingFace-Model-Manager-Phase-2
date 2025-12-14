@@ -49,6 +49,7 @@ class S3BucketManager:
             self.s3_client.download_file(
                 self.bucket_name, f"{self.data_prefix}{artifact_id}", f"{filepath}/{artifact_id}"
             )
+            print(f"{filepath}/{artifact_id}")
             with tarfile.open(f"{filepath}/{artifact_id}", mode="r:xz") as tar:
                 tar.extractall(path=filepath)
             logger.warning(os.listdir(filepath))

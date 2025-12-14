@@ -156,6 +156,7 @@ class ArtifactAccessor:
         with TemporaryDirectory() as tempdir:
             size: float = 0.0
             temp_path: Path = Path(tempdir)
+            s3_store: bool = True
             if not self.dependencies.s3_manager.s3_artifact_exists(artifact_id):
                 try:
                     size = temporary_downloader.download_artifact(
@@ -170,6 +171,7 @@ class ArtifactAccessor:
                     )
                     return RegisterArtifactEnum.DISQUALIFIED, None
             else:
+                s3_store: bool = False
                 try:
                     self.dependencies.s3_manager.s3_artifact_download(artifact_id, temp_path)
                     logger.info(f"Downloaded artifact {body.url} to {temp_path} from s3")
@@ -181,10 +183,10 @@ class ArtifactAccessor:
             if artifact_type == ArtifactType.model:
                 logger.warning(f"Beginnign data store {body.url}")
                 return register_data_store_model(
-                    artifact_id, body, size, temp_path, self.dependencies
+                    artifact_id, body, size, temp_path, self.dependencies, s3_store=s3_store
                 )
             return register_data_store_artifact(
-                artifact_id, body, artifact_type, size, temp_path, self.dependencies
+                artifact_id, body, artifact_type, size, temp_path, self.dependencies, s3_store=s3_store
             )
 
     @validate_call
