@@ -63,10 +63,12 @@
                 class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition">
                 Edit
             </button>
+            {% if artifact_type == "model" %}
             <button onclick="openModal('licenseModal')"
                 class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition">
                 Check License
             </button>
+            {% endif %}
             <button onclick="deleteArtifact()"
                 class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition">
                 Delete
