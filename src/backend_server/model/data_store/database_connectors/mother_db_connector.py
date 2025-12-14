@@ -426,6 +426,8 @@ class DBRouterRating(DBRouterBase):
             return None
 
         rating_result: DBModelRatingSchema = DBModelRatingAccessor.get_rating(self.engine, model_id)
+        if not rating_result:
+            return None
         if not DBAuditAccessor.append_audit(
             self.engine,
             action=AuditAction.RATE,
