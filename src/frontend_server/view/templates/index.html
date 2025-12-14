@@ -16,13 +16,15 @@
     <!-- Search Section -->
     <div class="bg-white rounded-lg shadow-md p-6">
         <form method="post" action="/search" class="flex space-x-4">
-            <input type="text" name="regex" placeholder="Search artifacts by regex pattern..."
+            {% if not search_query %}
+            {% set search_query = "" %}
+            {% endif %}
+            <input type="text" id="regex" name="regex" placeholder="Search artifacts by regex pattern..."
+                value="{{ search_query }}"
                 class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                 required>
-            <button type="submit"
-                class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-6 rounded-lg transition">
-                Search
-            </button>
+            <input type="submit" value="Search"
+                class=" bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-6 rounded-lg transition">
         </form>
     </div>
 

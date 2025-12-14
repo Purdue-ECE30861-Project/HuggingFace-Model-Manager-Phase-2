@@ -1,9 +1,9 @@
-from fastapi import Request, APIRouter, Query, HTTPException
+from fastapi import Request, Form, APIRouter, Query, HTTPException
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
 from src.frontend_server import BACKEND_CONFIG
 import httpx
-from typing import Optional, Any
+from typing import Optional, Any, Annotated
 
 webpage_router = APIRouter()
 
@@ -99,7 +99,7 @@ async def index(request: Request, offset: int = Query(0)):
 
 
 @webpage_router.post("/search", response_class=HTMLResponse)
-async def search(request: Request, regex: str = Query(...)):
+async def search(request: Request, regex: Annotated[str, Form()]):
     """Search artifacts using regex"""
     try:
         # Search via middleware using /artifact/byRegEx
@@ -109,6 +109,8 @@ async def search(request: Request, regex: str = Query(...)):
             )
             or []
         )
+
+        breakpoint()
 
         # Fetch ratings for each artifact if it's a model
         for artifact in artifacts_data:
