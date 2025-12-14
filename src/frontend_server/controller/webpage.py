@@ -110,8 +110,6 @@ async def search(request: Request, regex: Annotated[str, Form()]):
             or []
         )
 
-        breakpoint()
-
         # Fetch ratings for each artifact if it's a model
         for artifact in artifacts_data:
             if artifact.get("metadata", {}).get("type") == "model":
