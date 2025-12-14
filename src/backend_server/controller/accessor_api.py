@@ -227,6 +227,7 @@ async def register_artifact(
     return_code: RegisterArtifactEnum
     return_content: Artifact | None = None
     if not global_config.ingest_asynchronous:
+        logger.info(f"Start processing url {body.url} of type {artifact_type}")
         return_code, return_content = artifact_accessor.register_artifact(
             artifact_type_model, body
         )

@@ -48,10 +48,7 @@ class ArtifactAccessor:
     def get_artifacts(self, body: ArtifactQuery, offset: str) -> tuple[GetArtifactsEnum, List[ArtifactMetadata]]:
         result = self.dependencies.db.router_artifact.db_artifact_get_query(body, offset)
 
-        # when to return the too many artifacts>
-
         if not result:
-            logger.error(f"FAILED: get_artifacts {body.__dict__}")
             return GetArtifactsEnum.SUCCESS, []
         return GetArtifactsEnum.SUCCESS, result
 
@@ -125,6 +122,7 @@ class ArtifactAccessor:
                 return RegisterArtifactEnum.DISQUALIFIED, None
 
             if artifact_type == ArtifactType.model:
+                logger.info(f"Beginnign data store {body.url}")
                 return register_data_store_model(artifact_id, body, size, temp_path, self.dependencies)
             return register_data_store_artifact(artifact_id, body, artifact_type, size, temp_path, self.dependencies)
 

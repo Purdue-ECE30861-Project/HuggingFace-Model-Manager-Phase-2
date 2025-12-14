@@ -1,4 +1,4 @@
-from fastapi import Depends, APIRouter, HTTPException, status
+from fastapi import Depends, APIRouter, HTTPException, status, Query
 from fastapi.exceptions import RequestValidationError
 from typing import Annotated
 from pydantic import ValidationError
@@ -15,7 +15,7 @@ cost_router = APIRouter()
 async def cost_model(
         id: str,
         artifact_type: str,
-        dependency: bool,
+        dependency: bool = False,
 ) -> ArtifactCost:
     try:
         id_model: ArtifactID = ArtifactID(id=id)
