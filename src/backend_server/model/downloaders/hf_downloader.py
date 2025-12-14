@@ -1,3 +1,4 @@
+import logging
 import os
 from pathlib import Path
 from typing import override
@@ -7,6 +8,9 @@ from huggingface_hub import snapshot_download
 
 from src.backend_server.model.downloaders.base_downloader import BaseArtifactDownloader
 from src.contracts.artifact_contracts import ArtifactType
+
+
+logger = logging.getLogger(__name__)
 
 
 class HFArtifactDownloader(BaseArtifactDownloader):
@@ -37,11 +41,9 @@ class HFArtifactDownloader(BaseArtifactDownloader):
 
     def _huggingface_pull(self, repo_id: str, tempdir: Path, artifact_type: ArtifactType):
         try:
-            print(repo_id)
-            print(artifact_type)
-            snapshot_download(repo_id=repo_id, local_dir=tempdir, repo_type="dataset", max_workers=1) \
+            snapshot_download(repo_id=repo_id, local_dir=tempdir, repo_type="dataset", max_workers=2) \
                 if artifact_type == "dataset" else \
-                snapshot_download(repo_id=repo_id, local_dir=tempdir, token=self.hf_token, max_workers=1)
+                snapshot_download(repo_id=repo_id, local_dir=tempdir, token=self.hf_token, max_workers=2)
         except (huggingface_hub.utils.RepositoryNotFoundError, huggingface_hub.utils.RevisionNotFoundError):
             raise FileNotFoundError("Requested repository doesnt exist")
 

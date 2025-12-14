@@ -1,4 +1,5 @@
 import logging
+import os
 import shutil
 from pathlib import Path
 
@@ -66,7 +67,10 @@ def model_rate_direct(
     )
     if not register_database(dependencies.db, new_artifact, tempdir, size):
         raise IOError("Database Failure")
+
+    print(f"SILLY SILLY 4 {os.listdir(tempdir)}")
     rating: ModelRating = ModelRating.generate_rating(tempdir, new_artifact, dependencies)
+    print(f"SILLY SILLY 5 {os.listdir(tempdir)}")
 
     return new_artifact, rating
 
@@ -75,21 +79,31 @@ def register_data_store_model(
         data: ArtifactData,
         size: float,
         tempdir: Path,
-        dependencies: DependencyBundle
+        dependencies: DependencyBundle,
+        s3_store: bool = True
 ) -> tuple[RegisterArtifactEnum, Artifact | None]:
     artifact: Artifact
     rating: ModelRating
 
     try:
+        print(f"SILLY SILLY 3 {os.listdir(tempdir)}")
         artifact, rating = model_rate_direct(id, data, size, tempdir, dependencies)
+        print(f"SILLY SILLY 2 {os.listdir(tempdir)}")
         if rating.net_score < dependencies.ingest_score_threshold:
             logger.error(f"FAILED: {data.url} id {artifact.metadata.id} failed to ingest due to low score")
             dependencies.db.router_artifact.db_artifact_delete(artifact.metadata.id, artifact.metadata.type)
             return RegisterArtifactEnum.DISQUALIFIED, None
         dependencies.db.router_rating.db_rating_add(artifact.metadata.id, BaseModelRating.to_base(rating))
 
-        archive_path = shutil.make_archive(str(tempdir.resolve()), "xztar", root_dir=tempdir)
-        dependencies.s3_manager.s3_artifact_upload(artifact.metadata.id, Path(archive_path))
+        logger.warning(f"SILLY SILLY {os.listdir(tempdir)}")
+
+        if s3_store:
+            archive_path = shutil.make_archive(
+                str(tempdir / f"artifact{id}"),
+                "xztar",
+                root_dir=tempdir,
+            )
+            dependencies.s3_manager.s3_artifact_upload(artifact.metadata.id, Path(archive_path))
     except botoexc.ClientError as e:
         logger.error(f"FAILED: {e.response['Error']['Message']}")
         return RegisterArtifactEnum.INTERNAL_ERROR, None
@@ -104,7 +118,8 @@ def register_data_store_artifact(
     artifact_type: ArtifactType,
     size: float,
     tempdir: Path,
-    dependencies: DependencyBundle
+    dependencies: DependencyBundle,
+    s3_store: bool = True
 ) -> tuple[RegisterArtifactEnum, Artifact | None]:
     try:
         artifact: Artifact = Artifact(
@@ -118,8 +133,15 @@ def register_data_store_artifact(
         if not register_database(dependencies.db, artifact, tempdir, size):
             raise IOError("Database Failure")
 
-        archive_path = shutil.make_archive(str(tempdir.resolve()), "xztar", root_dir=tempdir)
-        dependencies.s3_manager.s3_artifact_upload(artifact.metadata.id, Path(archive_path))
+        logger.warning(f"SILLY SILLY {os.listdir(tempdir)}")
+
+        if s3_store:
+            archive_path = shutil.make_archive(
+                str(tempdir / f"artifact{id}"),
+                "xztar",
+                root_dir=tempdir,
+            )
+            dependencies.s3_manager.s3_artifact_upload(artifact.metadata.id, Path(archive_path))
     except botoexc.ClientError as e:
         logger.error(f"FAILED: {e.response['Error']['Message']}")
         return RegisterArtifactEnum.INTERNAL_ERROR, None
