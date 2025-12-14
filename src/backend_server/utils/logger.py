@@ -16,9 +16,9 @@ CLOUDWATCH_LOG_GROUP = os.getenv("CLOUDWATCH_LOG_GROUP", "/ece461/project")
 CLOUDWATCH_LOG_STREAM = os.getenv("CLOUDWATCH_LOG_STREAM", f"run-logs-{datetime.datetime.now(datetime.UTC).strftime('%Y%m%d')}")
 
 try:
-    LOG_LEVEL = int(os.getenv("LOG_LEVEL", "1"))
+    LOG_LEVEL = int(os.getenv("LOG_LEVEL", "0"))
 except ValueError:
-    LOG_LEVEL = 1
+    LOG_LEVEL = 0
 
 # Map custom LOG_LEVEL to Python logging levels
 LEVEL_MAP = {
