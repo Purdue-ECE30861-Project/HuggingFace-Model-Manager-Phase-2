@@ -1,3 +1,4 @@
+import logging
 import os
 from pathlib import Path
 from typing import override
@@ -7,6 +8,9 @@ from huggingface_hub import snapshot_download
 
 from src.backend_server.model.downloaders.base_downloader import BaseArtifactDownloader
 from src.contracts.artifact_contracts import ArtifactType
+
+
+logger = logging.getLogger(__name__)
 
 
 class HFArtifactDownloader(BaseArtifactDownloader):

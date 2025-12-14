@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import os
 import re
 import subprocess
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import override
 import shutil
 
@@ -35,25 +37,27 @@ class BusFactor(MetricStd[float]):
         return contribs
 
     def hf_contributors(self, url: str, tmpdir: str) -> dict:
-        repo_url = url
+        with TemporaryDirectory() as tmpdir2:
+            repo_url = url
 
-        shutil.rmtree(tmpdir)
+            shutil.rmtree(tmpdir2)
 
-        subprocess.run(
-            ["git", "clone", "--filter=blob:none", "--no-checkout", repo_url, tmpdir],
-            check=True
-        )
+            subprocess.run(
+                ["git", "clone", "--filter=blob:none", "--no-checkout", repo_url, tmpdir2],
+                check=True
+            )
 
-        result = subprocess.run(
-            ["git", "shortlog", "-sn"],
-            cwd=tmpdir,
-            check=True,
-            text=True,
-            capture_output=True,
-        )
+            result = subprocess.run(
+                ["git", "shortlog", "-sn"],
+                cwd=tmpdir2,
+                check=True,
+                text=True,
+                capture_output=True,
+            )
+            print(result.stdout)
 
-        contributors = self.parse_shortlog(result.stdout)
-        return contributors
+            contributors = self.parse_shortlog(result.stdout)
+            return contributors
 
     def gh_contributors(self, url) -> list:
         headers = {"Accept": "application/vnd.github+json"}

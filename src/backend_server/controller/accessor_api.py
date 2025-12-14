@@ -249,7 +249,7 @@ async def register_artifact(
             )
             raise HTTPException(
                 status_code=return_code.value,
-                detail="Authentication failed due to invalid or missing AuthenticationToken.",
+                detail="The artifact already exists. Please update the artifact instead of registering a new one.",
             )
         case return_code.DISQUALIFIED:
             logger.error(

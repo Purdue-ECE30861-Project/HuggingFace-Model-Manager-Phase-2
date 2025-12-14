@@ -2,6 +2,11 @@ import boto3
 import botocore.exceptions as botoexc
 import logging
 from pathlib import Path
+import os
+import tarfile
+
+
+logger = logging.getLogger(__name__)
 
 
 class S3BucketManager:
@@ -42,11 +47,17 @@ class S3BucketManager:
     def s3_artifact_download(self, artifact_id: str, filepath: Path):
         try:
             self.s3_client.download_file(
-                self.bucket_name, f"{self.data_prefix}{artifact_id}", filepath
+                self.bucket_name, f"{self.data_prefix}{artifact_id}", f"{filepath}/{artifact_id}"
             )
+            with tarfile.open(f"{filepath}/{artifact_id}", mode="r:xz") as tar:
+                tar.extractall(path=filepath)
+            logger.warning(os.listdir(filepath))
         except botoexc.ClientError as e:
             logging.error(f"Error downloading artifact from s3: {e}")
-            raise
+            raise e
+        except Exception as e:
+            logger.error(f"Error downloading artifact from s3: {e}")
+            raise e
 
     def s3_generate_presigned_url(
         self, artifact_id: str, expires_in: int = 3600
@@ -77,6 +88,7 @@ class S3BucketManager:
     def s3_artifact_exists(self, artifact_id: str) -> bool:
         """Check if artifact exists in S3 bucket"""
         try:
+            logger.warning(f"Checking if artifact {artifact_id} exists in S3...")
             self.s3_client.head_object(
                 Bucket=self.bucket_name, Key=f"{self.data_prefix}{artifact_id}"
             )

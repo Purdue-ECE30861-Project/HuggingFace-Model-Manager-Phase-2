@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import List
@@ -155,21 +156,30 @@ class ArtifactAccessor:
         with TemporaryDirectory() as tempdir:
             size: float = 0.0
             temp_path: Path = Path(tempdir)
-            try:
-                size = temporary_downloader.download_artifact(
-                    body.url, artifact_type, temp_path
-                )
-            except FileNotFoundError as e:
-                logger.error(f"FAILED: artifact not found for {body.url}: {e.strerror}")
-                return RegisterArtifactEnum.BAD_REQUEST, None
-            except (OSError, EnvironmentError) as e:
-                logger.error(
-                    f"FAILED: internal error when downloading artifact {e.strerror}"
-                )
-                return RegisterArtifactEnum.DISQUALIFIED, None
+            if not self.dependencies.s3_manager.s3_artifact_exists(artifact_id):
+                try:
+                    size = temporary_downloader.download_artifact(
+                        body.url, artifact_type, temp_path
+                    )
+                except FileNotFoundError as e:
+                    logger.error(f"FAILED: artifact not found for {body.url}: {e.strerror}")
+                    return RegisterArtifactEnum.BAD_REQUEST, None
+                except (OSError, EnvironmentError) as e:
+                    logger.error(
+                        f"FAILED: internal error when downloading artifact {e.strerror}"
+                    )
+                    return RegisterArtifactEnum.DISQUALIFIED, None
+            else:
+                try:
+                    self.dependencies.s3_manager.s3_artifact_download(artifact_id, temp_path)
+                    logger.info(f"Downloaded artifact {body.url} to {temp_path} from s3")
+                except Exception as e:
+                    logger.error(f"FAILED: internal error when downloading artifact {e}")
+                    return RegisterArtifactEnum.INTERNAL_ERROR, None
 
+            logger.warning(f"SUPER SILLY {os.listdir(tempdir)}")
             if artifact_type == ArtifactType.model:
-                logger.info(f"Beginnign data store {body.url}")
+                logger.warning(f"Beginnign data store {body.url}")
                 return register_data_store_model(
                     artifact_id, body, size, temp_path, self.dependencies
                 )

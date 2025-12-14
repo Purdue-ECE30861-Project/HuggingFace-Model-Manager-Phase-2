@@ -164,6 +164,8 @@ class DBRouterArtifact(DBRouterBase):
         return True
 
     def db_artifact_get_query(self, query: ArtifactQuery, offset: str) -> list[ArtifactMetadata]|None:
+        if len(query.types) == 0:
+            query.types = [ArtifactType.model, ArtifactType.dataset, ArtifactType.code]
         results: list[DBArtifactSchema]|None = DBArtifactAccessor.artifact_get_by_query(self.engine, query, offset)
         if not results:
             return None
