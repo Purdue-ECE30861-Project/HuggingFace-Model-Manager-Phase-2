@@ -14,11 +14,13 @@
         height: 100%;
         background-color: rgba(0, 0, 0, 0.4);
     }
+
     .modal.active {
         display: flex;
         align-items: center;
         justify-content: center;
     }
+
     .modal-content {
         background-color: #fefefe;
         padding: 2rem;
@@ -28,6 +30,7 @@
         max-height: 80vh;
         overflow-y: auto;
     }
+
     .modal-close {
         color: #aaa;
         float: right;
@@ -35,6 +38,7 @@
         font-weight: bold;
         cursor: pointer;
     }
+
     .modal-close:hover {
         color: black;
     }
@@ -55,13 +59,16 @@
             <p class="text-gray-500 mt-2">ID: <code class="bg-gray-100 px-2 py-1 rounded">{{ artifact_id }}</code></p>
         </div>
         <div class="flex space-x-3">
-            <button onclick="openModal('editModal')" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition">
+            <button onclick="openModal('editModal')"
+                class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition">
                 Edit
             </button>
-            <button onclick="openModal('licenseModal')" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition">
+            <button onclick="openModal('licenseModal')"
+                class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition">
                 Check License
             </button>
-            <button onclick="deleteArtifact()" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition">
+            <button onclick="deleteArtifact()"
+                class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition">
                 Delete
             </button>
             <a href="/" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg transition">
@@ -80,15 +87,16 @@
             </div>
             <div>
                 <p class="text-sm font-semibold text-gray-600">Source URL</p>
-                <a href="{{ data.get('url', '#') }}" target="_blank" class="text-lg text-blue-600 hover:text-blue-800 break-all">
+                <a href="{{ data.get('url', '#') }}" target="_blank"
+                    class="text-lg text-blue-600 hover:text-blue-800 break-all">
                     {{ data.get('url', 'N/A') }}
                 </a>
             </div>
             {% if data.get('download_url') %}
             <div class="md:col-span-2">
-                <p class="text-sm font-semibold text-gray-600">Download URL</p>
-                <a href="{{ data.get('download_url') }}" target="_blank" class="text-lg text-blue-600 hover:text-blue-800 break-all">
-                    {{ data.get('download_url') }}
+                <a href="{{ data.get('download_url') }}" target="_blank"
+                    class="inline-block bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg transition">
+                    Download
                 </a>
             </div>
             {% endif %}
@@ -105,28 +113,28 @@
                 <div class="text-center p-6 bg-gradient-to-r from-purple-100 to-pink-100 rounded-lg">
                     <p class="text-sm font-semibold text-gray-600 mb-2">Overall Score</p>
                     <p class="text-5xl font-bold text-purple-600">
-                        {% set overall_score = rating.get('overall_score', 'N/A') %}
+                        {% set overall_score = rating.get('net_score', 'N/A') %}
                         {% if overall_score != 'N/A' %}
-                            {{ "%.2f"|format(overall_score) }}
+                        {{ '{0:0.2%}'.format(overall_score) }}
                         {% else %}
-                            N/A
+                        N/A
                         {% endif %}
                     </p>
-                    <p class="text-gray-600 mt-2">/ 5.0</p>
                 </div>
             </div>
 
             <!-- Individual Metrics -->
             {% set metrics = [
-                ('Bus Factor Score', 'bus_factor_score'),
-                ('Code Quality Score', 'code_quality_score'),
-                ('Dataset Quality Score', 'dataset_quality_score'),
-                ('License Score', 'license_score'),
-                ('Performance Claims Score', 'performance_claims_score'),
-                ('Ramp Up Time Score', 'ramp_up_time_score'),
-                ('Size Score (Latency)', 'size_score_latency'),
-                ('Available Code Score', 'available_code_score'),
-                ('Available Dataset Score', 'available_dataset_score')
+            ('Bus Factor', 'bus_factor'),
+            ('Code Quality', 'code_quality'),
+            ('Dataset Quality', 'dataset_quality'),
+            ('License Compatibility', 'license'),
+            ('Performance Claims', 'performance_claims'),
+            ('Ramp Up Time', 'ramp_up_time'),
+            ('Dataset and Code Availability', 'dataset_and_code_score'),
+            ('Reproducibility', 'reproducibility'),
+            ('Reviewedness', 'reviewedness'),
+            ('Tree score', 'tree_score'),
             ] %}
 
             {% for label, key in metrics %}
@@ -136,13 +144,38 @@
                 <p class="text-sm font-semibold text-gray-600">{{ label }}</p>
                 <div class="bg-gray-200 rounded-full h-6 mt-2 overflow-hidden">
                     <div class="bg-gradient-to-r from-purple-600 to-pink-600 h-full flex items-center justify-center text-white text-xs font-bold"
-                         style="width: {{ (value / 5.0 * 100)|int }}%">
+                        style="width: {{ (value / 5.0 * 100)|int }}%">
                         {% if (value / 5.0 * 100)|int > 10 %}{{ "%.1f"|format(value) }}{% endif %}
                     </div>
                 </div>
             </div>
             {% endif %}
             {% endfor %}
+
+            {% set size_score = rating.get('size_score')%}
+            {% if size_score %}
+            <!-- size scores -->
+            {% set platforms = [
+            ('Size Score (Raspberry Pi)', 'raspberry_pi'),
+            ('Size Score (Jetson Nano)', 'jetson_nano'),
+            ('Size Score (Desktop PC)', 'desktop_pc'),
+            ('Size Score (AWS Server)', 'aws_server'),
+            ] %}
+            {% for label, key in platforms %}
+            {% set value = size_score.get(key, 'N/A') %}
+            {% if value != 'N/A' %}
+            <div>
+                <p class="text-sm font-semibold text-gray-600">{{ label }}</p>
+                <div class="bg-gray-200 rounded-full h-6 mt-2 overflow-hidden">
+                    <div class="bg-gradient-to-r from-purple-600 to-pink-600 h-full flex items-center justify-center text-white text-xs font-bold"
+                        style="width: {{ (value * 100)|int }}%">
+                        {% if (value * 100)|int > 10 %}{{ "%.1f"|format(value) }}{% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            {% endfor %}
+            {% endif %}
         </div>
     </div>
     {% endif %}
@@ -156,17 +189,26 @@
             <table class="w-full">
                 <thead>
                     <tr class="border-b-2 border-gray-300">
-                        <th class="text-left py-2 px-4">Node</th>
-                        <th class="text-left py-2 px-4">Type</th>
-                        <th class="text-left py-2 px-4">Metadata</th>
+                        <th class="text-left py-2 px-4">Name</th>
+                        <th class="text-left py-2 px-4">Source</th>
+                        <th class="text-left py-2 px-4">Original Location</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for node in lineage.nodes %}
                     <tr class="border-b border-gray-200 hover:bg-gray-50">
-                        <td class="py-2 px-4 font-mono text-sm">{{ node.get('artifact_id', 'N/A') }}</td>
-                        <td class="py-2 px-4">{{ node.get('node', {}).get('type', 'N/A') }}</td>
-                        <td class="py-2 px-4 text-gray-600 text-sm">{{ node.get('node', {}).get('metadata', 'N/A') }}</td>
+                        <td class="py-2 px-4 font-mono text-sm">{{ node.get('name', 'N/A') }}</td>
+                        <td class="py-2 px-4">{{ node.get('source', 'N/A').replace("_", " ").title() }}</td>
+
+                        <td class="py-2 px-4 text-gray-600 text-sm">
+                            {% if node.get('metadata') %}
+                            <a class="text-lg text-blue-600 hover:text-blue-800 break-all"
+                                href="{{ node.get('metadata').get('url') }}">Here</a>
+                            {% else %}
+                            N/A
+                            {% endif %}
+                        </td>
+
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -201,13 +243,13 @@
             <div>
                 <p class="text-sm font-semibold text-gray-600">{{ key.replace('_', ' ').title() }}</p>
                 {% if value is mapping %}
-                    <div class="mt-2 space-y-1">
-                        {% for subkey, subvalue in value.items() %}
-                        <p class="text-gray-700"><span class="font-mono text-sm">{{ subkey }}:</span> {{ subvalue }}</p>
-                        {% endfor %}
-                    </div>
+                <div class="mt-2 space-y-1">
+                    {% for subkey, subvalue in value.items() %}
+                    <p class="text-gray-700"><span class="font-mono text-sm">{{ subkey }}:</span> {{ subvalue }}</p>
+                    {% endfor %}
+                </div>
                 {% else %}
-                    <p class="text-lg font-semibold text-purple-600">{{ value }}</p>
+                <p class="text-lg font-semibold text-purple-600">{{ value }}</p>
                 {% endif %}
             </div>
             {% endfor %}
@@ -220,7 +262,8 @@
     <div class="bg-white rounded-lg shadow-md p-6">
         <h2 class="text-2xl font-bold text-gray-800 mb-4">License Check Result</h2>
         <div class="p-4 bg-blue-50 rounded-lg border border-blue-200">
-            <p class="text-gray-700">Checked against: <code class="bg-gray-100 px-2 py-1 rounded">{{ github_url }}</code></p>
+            <p class="text-gray-700">Checked against: <code
+                    class="bg-gray-100 px-2 py-1 rounded">{{ github_url }}</code></p>
             <pre class="mt-4 text-sm overflow-x-auto">{{ license_result | tojson }}</pre>
         </div>
     </div>
@@ -235,29 +278,23 @@
         <form method="post" action="/artifact/{{ artifact_type }}/{{ artifact_id }}/update" class="space-y-4">
             <div>
                 <label class="block text-sm font-semibold text-gray-600 mb-2">Name</label>
-                <input 
-                    type="text" 
-                    name="name" 
-                    value="{{ metadata.get('name', '') }}"
+                <input type="text" name="name" value="{{ metadata.get('name', '') }}"
                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    required
-                >
+                    required>
             </div>
             <div>
                 <label class="block text-sm font-semibold text-gray-600 mb-2">Source URL</label>
-                <input 
-                    type="url" 
-                    name="url" 
-                    value="{{ data.get('url', '') }}"
+                <input type="url" name="url" value="{{ data.get('url', '') }}"
                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    required
-                >
+                    required>
             </div>
             <div class="flex space-x-3">
-                <button type="submit" class="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg transition">
+                <button type="submit"
+                    class="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg transition">
                     Update Artifact
                 </button>
-                <button type="button" onclick="closeModal('editModal')" class="flex-1 bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg transition">
+                <button type="button" onclick="closeModal('editModal')"
+                    class="flex-1 bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg transition">
                     Cancel
                 </button>
             </div>
@@ -273,20 +310,19 @@
         <form method="post" action="/artifact/{{ artifact_type }}/{{ artifact_id }}/license-check" class="space-y-4">
             <div>
                 <label class="block text-sm font-semibold text-gray-600 mb-2">GitHub Repository URL</label>
-                <input 
-                    type="url" 
-                    name="github_url" 
-                    placeholder="https://github.com/user/repo"
+                <input type="url" name="github_url" placeholder="https://github.com/user/repo"
                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    required
-                >
-                <p class="text-xs text-gray-500 mt-2">Enter the GitHub URL to check license compatibility with this artifact</p>
+                    required>
+                <p class="text-xs text-gray-500 mt-2">Enter the GitHub URL to check license compatibility with this
+                    artifact</p>
             </div>
             <div class="flex space-x-3">
-                <button type="submit" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition">
+                <button type="submit"
+                    class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition">
                     Check License
                 </button>
-                <button type="button" onclick="closeModal('licenseModal')" class="flex-1 bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg transition">
+                <button type="button" onclick="closeModal('licenseModal')"
+                    class="flex-1 bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg transition">
                     Cancel
                 </button>
             </div>
@@ -309,7 +345,7 @@
             form.method = 'DELETE';
             form.action = '/artifact/{{ artifact_type }}/{{ artifact_id }}';
             document.body.appendChild(form);
-            
+
             // Since DELETE is not directly supported in HTML forms, we'll use a workaround
             fetch('/artifact/{{ artifact_type }}/{{ artifact_id }}', {
                 method: 'DELETE',
@@ -330,7 +366,7 @@
     }
 
     // Close modal when clicking outside of it
-    window.onclick = function(event) {
+    window.onclick = function (event) {
         const editModal = document.getElementById('editModal');
         const licenseModal = document.getElementById('licenseModal');
         if (event.target === editModal) {
