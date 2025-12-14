@@ -157,6 +157,7 @@ class ArtifactAccessor:
             size: float = 0.0
             temp_path: Path = Path(tempdir)
             s3_store: bool = True
+
             if not self.dependencies.s3_manager.s3_artifact_exists(artifact_id):
                 try:
                     size = temporary_downloader.download_artifact(

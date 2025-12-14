@@ -1,9 +1,11 @@
+import subprocess
+
 import boto3
 import botocore.exceptions as botoexc
 import logging
 from pathlib import Path
 import os
-import tarfile
+import zipfile
 
 
 logger = logging.getLogger(__name__)
@@ -46,12 +48,14 @@ class S3BucketManager:
 
     def s3_artifact_download(self, artifact_id: str, filepath: Path):
         try:
+            archive_path = f"{filepath}/artifact{artifact_id}.zip"
             self.s3_client.download_file(
-                self.bucket_name, f"{self.data_prefix}{artifact_id}", f"{filepath}/{artifact_id}"
+                self.bucket_name, f"{self.data_prefix}{artifact_id}", archive_path
             )
-            print(f"{filepath}/{artifact_id}")
-            with tarfile.open(f"{filepath}/{artifact_id}", mode="r:xz") as tar:
-                tar.extractall(path=filepath)
+            subprocess.run(
+                ["unzip", "-o", str(archive_path), "-d", str(filepath)],
+                check=True
+            )
             logger.warning(os.listdir(filepath))
         except botoexc.ClientError as e:
             logging.error(f"Error downloading artifact from s3: {e}")

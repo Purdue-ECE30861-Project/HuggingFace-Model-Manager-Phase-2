@@ -13,11 +13,14 @@ def dataset_name_extract_from_url(url: list[str]) -> str:
     return f"{url[2]}/{url[3]}"
 
 def model_name_extract_from_url(url: list[str]) -> str:
-    if len(url) < 3:
+    if len(url) < 2:
         raise NameError("Invalid HF Url")
     if url[0] != "huggingface.co":
         raise NameError("Invalid HF Url. Must be huggingface.co")
-    return f"{url[1]}/{url[2]}"
+    if len(url) < 4:
+        return f"{url[1]}"
+    else:
+        return f"{url[1]}/{url[2]}"
 
 def codebase_name_extract_from_url(url: list[str]) -> str:
     if len(url) < 3:
