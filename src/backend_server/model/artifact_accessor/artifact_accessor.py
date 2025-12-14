@@ -125,6 +125,7 @@ class ArtifactAccessor:
                 return RegisterArtifactEnum.DISQUALIFIED, None
 
             if artifact_type == ArtifactType.model:
+                logger.info(f"Beginnign data store {body.url}")
                 return register_data_store_model(artifact_id, body, size, temp_path, self.dependencies)
             return register_data_store_artifact(artifact_id, body, artifact_type, size, temp_path, self.dependencies)
 
