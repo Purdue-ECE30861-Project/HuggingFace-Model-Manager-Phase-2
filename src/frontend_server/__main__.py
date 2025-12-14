@@ -32,6 +32,7 @@ class CacheRouter:
 
     def __init__(
         self,
+        password: str = "",
         host: str = "172.31.10.22",
         port: int = 6379,
         db: int = 0,
@@ -45,6 +46,7 @@ class CacheRouter:
                 host=host,
                 port=port,
                 db=db,
+                password=password,
                 decode_responses=True,
                 socket_connect_timeout=5,
                 socket_timeout=5,
@@ -344,6 +346,7 @@ class CacheRouter:
 
 # Initialize Redis cache
 CACHE_CONFIG = {
+    "password": os.getenv("REDIS_PASSWORD", ""),
     "host": os.getenv("REDIS_HOST", "localhost"),
     "port": int(os.getenv("REDIS_PORT", "6379")),
     "db": int(os.getenv("REDIS_DB", "0")),
