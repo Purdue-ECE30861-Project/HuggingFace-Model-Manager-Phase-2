@@ -290,7 +290,6 @@ async def create_artifact(request: Request):
 
         # Extract filename from URL for default name
         url_str = url if isinstance(url, str) else str(url)
-        default_name = url_str.split("/")[-1]
 
         create_data = {
             "url": url_str,
