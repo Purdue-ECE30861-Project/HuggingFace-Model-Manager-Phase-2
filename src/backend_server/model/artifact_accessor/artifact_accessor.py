@@ -48,10 +48,7 @@ class ArtifactAccessor:
     def get_artifacts(self, body: ArtifactQuery, offset: str) -> tuple[GetArtifactsEnum, List[ArtifactMetadata]]:
         result = self.dependencies.db.router_artifact.db_artifact_get_query(body, offset)
 
-        # when to return the too many artifacts>
-
         if not result:
-            logger.error(f"FAILED: get_artifacts {body.__dict__}")
             return GetArtifactsEnum.SUCCESS, []
         return GetArtifactsEnum.SUCCESS, result
 
