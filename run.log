@@ -1,4 +1,3 @@
-{"time": "2025-12-14T18:24:09+00:00", "level": "WARNING", "logger": "root", "msg": "Failed to set up CloudWatch logging: Unable to locate credentials. Local logging will continue.", "filename": "logger.py", "lineno": 98}
-{"time": "2025-12-14T18:24:09+00:00", "level": "INFO", "logger": "uvicorn.error", "msg": "Started server process [8685]", "filename": "server.py", "lineno": 84}
-{"time": "2025-12-14T18:24:09+00:00", "level": "INFO", "logger": "uvicorn.error", "msg": "Waiting for application startup.", "filename": "on.py", "lineno": 48}
-{"time": "2025-12-14T18:24:09+00:00", "level": "INFO", "logger": "uvicorn.error", "msg": "Application startup complete.", "filename": "on.py", "lineno": 62}
+{"time": "2025-12-14T18:40:34+00:00", "level": "WARNING", "logger": "root", "msg": "Failed to set up CloudWatch logging: Unable to locate credentials. Local logging will continue.", "filename": "logger.py", "lineno": 98}
+{"time": "2025-12-14T18:40:34+00:00", "level": "INFO", "logger": "root", "msg": "Starting Server", "filename": "__main__.py", "lineno": 22}
+{"time": "2025-12-14T18:40:37+00:00", "level": "INFO", "logger": "src.backend_server.controller.accessor_api", "msg": "Successfully got page 0 of artifacts, len 0", "filename": "accessor_api.py", "lineno": 48}

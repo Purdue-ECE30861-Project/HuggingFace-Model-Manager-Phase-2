@@ -55,7 +55,7 @@ async def get_artifacts(
                     status_code=return_code.value, detail="Too many artifacts returned."
                 )
 
-    response.headers["offset"] = str(int(offset) + len(return_content))
+    response.headers["offset"] = str(int(offset) + len(response_agg))
     return response_agg
 
 
@@ -232,6 +232,7 @@ async def register_artifact(
             artifact_type_model, body
         )
     else:
+        logger.info(f"Start processing url {body.url} of type {artifact_type} asynchronous")
         return_code = await artifact_accessor.register_artifact_deferred(
             artifact_type_model, body
         )
