@@ -141,6 +141,13 @@ def cmd_rate_model(args):
     print_response(resp)
 
 
+def cmd_license_check(args):
+    url = f"{BASE_URL}/artifact/model/{args.model_id}/license-check"
+    payload = {"github_url": args.external_url}
+    resp = requests.post(url, json=payload)
+    print_response(resp)
+
+
 # ===========================
 # Argument Parser
 # ===========================
@@ -218,6 +225,11 @@ def build_parser():
     p = sub.add_parser("rate-model", help="GET /artifact/model/{id}/rate")
     p.add_argument("id")
     p.set_defaults(func=cmd_rate_model)
+
+    p = sub.add_parser("license-check", help="POST /artifact/model/{id}/license-check")
+    p.add_argument("model_id")
+    p.add_argument("external_url")
+    p.set_defaults(func=cmd_license_check)
 
     return parser
 
