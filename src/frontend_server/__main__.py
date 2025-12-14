@@ -518,6 +518,32 @@ class CacheMiddleware(BaseHTTPMiddleware):
                         # Verify method is allowed
                         route_methods = getattr(route, "methods", None)
                         if route_methods and request.method.upper() in route_methods:
+                            # Forward json requests to the backend if we only have a webui endpoint
+                            try:
+                                from fastapi.responses import HTMLResponse
+
+                                route_response_class = getattr(
+                                    route, "response_class", None
+                                )
+
+                                accept_header = request.headers.get("accept", "")
+                                accepts_html = (
+                                    (not accept_header)
+                                    or "*/*" in accept_header
+                                    or "text/html" in accept_header
+                                )
+
+                                is_html_route = (
+                                    route_response_class is not None
+                                    and isinstance(route_response_class, type)
+                                    and issubclass(route_response_class, HTMLResponse)
+                                )
+
+                                if is_html_route and not accepts_html:
+                                    continue
+                            except Exception:
+                                pass
+
                             return True
             return False
         except Exception as e:

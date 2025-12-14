@@ -29,11 +29,33 @@ async def fetch_through_middleware(
             url = f"{FRONTEND_BASE_URL}{endpoint}"
 
             if method == "GET":
-                response = await client.get(url, params=params)
+                response = await client.get(
+                    url,
+                    params=params,
+                    headers={
+                        "accept": "application/json",
+                        "content-type": "application/json",
+                    },
+                )
             elif method == "POST":
-                response = await client.post(url, json=data, params=params)
+                response = await client.post(
+                    url,
+                    json=data,
+                    params=params,
+                    headers={
+                        "accept": "application/json",
+                        "content-type": "application/json",
+                    },
+                )
             elif method == "PUT":
-                response = await client.put(url, json=data)
+                response = await client.put(
+                    url,
+                    json=data,
+                    headers={
+                        "accept": "application/json",
+                        "content-type": "application/json",
+                    },
+                )
             elif method == "DELETE":
                 response = await client.delete(url)
             else:
