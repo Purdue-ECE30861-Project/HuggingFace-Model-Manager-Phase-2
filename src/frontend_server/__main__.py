@@ -528,10 +528,8 @@ class CacheMiddleware(BaseHTTPMiddleware):
 
                                 accept_header = request.headers.get("accept", "")
                                 accepts_html = (
-                                    (not accept_header)
-                                    or "*/*" in accept_header
-                                    or "text/html" in accept_header
-                                )
+                                    not accept_header
+                                ) or "text/html" in accept_header
 
                                 is_html_route = (
                                     route_response_class is not None
