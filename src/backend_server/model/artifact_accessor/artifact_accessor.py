@@ -117,11 +117,11 @@ class ArtifactAccessor:
             temp_path: Path = Path(tempdir)
             try:
                 size = temporary_downloader.download_artifact(body.url, artifact_type, temp_path)
-            except FileNotFoundError:
-                logger.error(f"FAILED: model not found for {body.url}")
+            except FileNotFoundError as e:
+                logger.error(f"FAILED: artifact not found for {body.url}: {e.strerror}")
                 return RegisterArtifactEnum.BAD_REQUEST, None
-            except (OSError, EnvironmentError):
-                logger.error(f"FAILED: internal error when downloading artifact")
+            except (OSError, EnvironmentError) as e:
+                logger.error(f"FAILED: internal error when downloading artifact {e.strerror}")
                 return RegisterArtifactEnum.DISQUALIFIED, None
 
             if artifact_type == ArtifactType.model:
