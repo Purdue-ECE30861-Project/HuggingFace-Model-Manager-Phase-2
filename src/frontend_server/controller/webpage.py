@@ -57,11 +57,21 @@ async def fetch_through_middleware(
                     },
                 )
             elif method == "DELETE":
-                response = await client.delete(url)
+                response = await client.delete(
+                    url,
+                    headers={
+                        "accept": "application/json",
+                        "content-type": "application/json",
+                    },
+                )
+                if response.status_code >= 200 and response.status_code < 300:
+                    return {"response": response.status_code}
+                else:
+                    return None
             else:
                 return None
 
-            if response.status_code == 200:
+            if response.status_code >= 200 and response.status_code < 300:
                 return response.json()
             return None
     except Exception:
@@ -70,54 +80,7 @@ async def fetch_through_middleware(
 
 @webpage_router.get("/", response_class=HTMLResponse)
 async def index(request: Request, offset: int = Query(0)):
-    """Main artifacts list page with pagination and search"""
-    try:
-        # Fetch all artifacts with pagination through middleware
-        artifacts_data = (
-            await fetch_through_middleware(
-                "/artifacts",
-                method="POST",
-                data=[{"name": "*", "types": ["model", "dataset", "code"]}],
-                params={"offset": offset},
-            )
-            or []
-        )
-        if not isinstance(artifacts_data, list):
-            artifacts_data = []
-
-        next_offset = offset + len(artifacts_data) if artifacts_data else offset
-
-        # Fetch ratings for each artifact if it's a model
-        for artifact in artifacts_data:
-            artifact_id = artifact.get("id", "N/A")
-            rating = await fetch_through_middleware(
-                f"/artifact/model/{artifact_id}/rate"
-            )
-            artifact["rating"] = rating
-
-        context = {
-            "request": request,
-            "artifacts": artifacts_data,
-            "offset": offset,
-            "next_offset": next_offset,
-            "has_more": len(artifacts_data) > 0,
-        }
-
-        return templates.TemplateResponse(
-            request=request, name="index.html", context=context
-        )
-    except Exception as e:
-        context = {
-            "request": request,
-            "artifacts": [],
-            "offset": offset,
-            "next_offset": offset,
-            "has_more": False,
-            "error": str(e),
-        }
-        return templates.TemplateResponse(
-            request=request, name="index.html", context=context
-        )
+    return await artifact_view_page(request=request, offset=offset, message=None)
 
 
 @webpage_router.post("/search", response_class=HTMLResponse)
@@ -273,21 +236,67 @@ async def delete_artifact(request: Request, artifact_type: str, artifact_id: str
         )
 
         if result is not None:
-            context = {
-                "request": request,
-                "artifacts": [],
-                "offset": 0,
-                "next_offset": 0,
-                "has_more": False,
-                "success": "Artifact deleted successfully",
-            }
-            return templates.TemplateResponse(
-                request=request, name="index.html", context=context
+            return await artifact_view_page(
+                request=request, offset=0, message="Artifact successfully deleted."
             )
         else:
             raise HTTPException(status_code=400, detail="Failed to delete artifact")
     except Exception as e:
         raise HTTPException(status_code=502, detail=str(e))
+
+
+async def artifact_view_page(
+    request: Request, offset: int = Query(0), message: str | None = None
+):
+    """Main artifacts list page with pagination and search"""
+    try:
+        # Fetch all artifacts with pagination through middleware
+        artifacts_data = (
+            await fetch_through_middleware(
+                "/artifacts",
+                method="POST",
+                data=[{"name": "*", "types": ["model", "dataset", "code"]}],
+                params={"offset": offset},
+            )
+            or []
+        )
+        if not isinstance(artifacts_data, list):
+            artifacts_data = []
+
+        next_offset = offset + len(artifacts_data) if artifacts_data else offset
+
+        # Fetch ratings for each artifact if it's a model
+        for artifact in artifacts_data:
+            artifact_id = artifact.get("id", "N/A")
+            rating = await fetch_through_middleware(
+                f"/artifact/model/{artifact_id}/rate"
+            )
+            artifact["rating"] = rating
+
+        context = {
+            "request": request,
+            "artifacts": artifacts_data,
+            "offset": offset,
+            "next_offset": next_offset,
+            "has_more": len(artifacts_data) > 0,
+            "success": message,
+        }
+
+        return templates.TemplateResponse(
+            request=request, name="index.html", context=context
+        )
+    except Exception as e:
+        context = {
+            "request": request,
+            "artifacts": [],
+            "offset": offset,
+            "next_offset": offset,
+            "has_more": False,
+            "error": str(e),
+        }
+        return templates.TemplateResponse(
+            request=request, name="index.html", context=context
+        )
 
 
 @webpage_router.get("/upload", response_class=HTMLResponse)
@@ -324,16 +333,8 @@ async def create_artifact(request: Request):
         )
 
         if result is not None:
-            context = {
-                "request": request,
-                "artifacts": [],
-                "offset": 0,
-                "next_offset": 0,
-                "has_more": False,
-                "success": "Artifact created successfully",
-            }
-            return templates.TemplateResponse(
-                request=request, name="index.html", context=context
+            return await artifact_view_page(
+                request=request, offset=0, message="Artifact successfully created"
             )
         else:
             raise HTTPException(status_code=400, detail="Failed to create artifact")

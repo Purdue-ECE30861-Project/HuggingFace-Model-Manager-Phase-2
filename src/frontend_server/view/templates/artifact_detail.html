@@ -258,7 +258,7 @@
     {% endif %}
 
     <!-- License Check Result (if available) -->
-    {% if license_result != None %}
+    {% if license_result is defined and license_result != None %}
     <div class="bg-white rounded-lg shadow-md p-6">
         <h2 class="text-2xl font-bold text-gray-800 mb-4">License Check Result</h2>
         <div class="p-4 bg-blue-50 rounded-lg border border-blue-200">
@@ -360,6 +360,7 @@
                 }
             }).then(response => {
                 if (response.ok) {
+                    confirm('Artifact successfully deleted');
                     window.location.href = '/';
                 } else {
                     alert('Failed to delete artifact');
