@@ -3,7 +3,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
 from src.frontend_server import BACKEND_CONFIG
 import httpx
-from typing import Optional, Any, Annotated
+from typing import Optional, Any, Annotated, Annotated, Union
 
 webpage_router = APIRouter()
 
@@ -17,7 +17,7 @@ BACKEND_TIMEOUT: int = int(BACKEND_CONFIG.get("timeout", 30.0))
 async def fetch_through_middleware(
     endpoint: str,
     method: str = "GET",
-    data: Optional[dict[str, Any]] = None,
+    data: Optional[Union[dict[str, Any], list[Any]]] = None,
     params: Optional[dict[str, Any]] = None,
 ) -> Optional[dict[str, Any]]:
     """
@@ -385,5 +385,15 @@ async def license_check(request: Request, artifact_type: str, artifact_id: str):
         return templates.TemplateResponse(
             request=request, name="artifact_detail.html", context=context
         )
+
+        return templates.TemplateResponse(
+            request=request, name="artifact_detail.html", context=context
+        )
     except Exception as e:
         raise HTTPException(status_code=502, detail=str(e))
+
+
+@webpage_router.get("/health", response_class=HTMLResponse)
+async def health_dashboard(request: Request):
+    """Health dashboard page"""
+    return templates.TemplateResponse(request=request, name="health.html", context={"request": request})

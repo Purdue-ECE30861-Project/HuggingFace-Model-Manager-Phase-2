@@ -351,8 +351,7 @@ class DBRouterLineage(DBRouterBase):
                 metadata={"url": str(artifact.url)}
             ))
             parent_model_relation = DBConnectionAccessor.model_get_parent_model(self.engine, selected_model)
-            if parent_model_relation:
-                print(selected_model.id, parent_model_relation)
+            if parent_model_relation and parent_model_relation.src_id and parent_model_relation.dst_id:
                 lineage_graph.edges.append(ArtifactLineageEdge(
                     from_node_artifact_id=parent_model_relation.src_id,
                     to_node_artifact_id=parent_model_relation.dst_id,

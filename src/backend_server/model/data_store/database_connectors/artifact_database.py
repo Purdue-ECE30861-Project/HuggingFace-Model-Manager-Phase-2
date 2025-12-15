@@ -401,7 +401,7 @@ class DBArtifactAccessor:  # I assume we use separate tables for cost, lineage, 
                     sql_query = select(table).where(table.name == query.name)
                     artifact_results += session.exec(sql_query).fetchall()
 
-            return artifact_results[val_offset : val_offset + 10]
+            return artifact_results
 
     @staticmethod
     def artifact_exists(

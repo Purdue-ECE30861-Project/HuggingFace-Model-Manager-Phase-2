@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import override
 
 import huggingface_hub.utils
-from huggingface_hub import snapshot_download
+from huggingface_hub import snapshot_download, dataset_info, model_info
 
 from src.backend_server.model.downloaders.base_downloader import BaseArtifactDownloader
 from src.contracts.artifact_contracts import ArtifactType
@@ -56,7 +56,17 @@ class HFArtifactDownloader(BaseArtifactDownloader):
 
         repo_id: str = self._get_repo_id_from_url(url, artifact_type)
 
-        self._huggingface_pull(repo_id, tempdir, artifact_type)
+        download_flag: bool = True
+        if artifact_type == ArtifactType.dataset:
+            gotten_size = dataset_info(repo_id).usedStorage / (1024**3)
+            if gotten_size > 10:
+                download_flag = False
+
+        if download_flag:
+            self._huggingface_pull(repo_id, tempdir, artifact_type)
+        else:
+            with open(tempdir / "README.md", "w") as f:
+                f.write(f"{url} TOO BIG TO INSTALL!")
 
         for ele in os.scandir(tempdir):
             size += os.stat(ele).st_size

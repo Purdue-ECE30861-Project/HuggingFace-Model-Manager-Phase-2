@@ -101,7 +101,7 @@ class ArtifactCostDetails(BaseModel):
 
 class ArtifactCost(BaseModel):
     """Artifact Cost aggregates the total download size (in MB)."""
-    standalone_cost: float
+    standalone_cost: float | None
     total_cost: float
 
     @staticmethod

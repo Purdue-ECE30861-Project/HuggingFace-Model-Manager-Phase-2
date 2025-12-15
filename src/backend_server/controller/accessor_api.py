@@ -40,7 +40,9 @@ async def get_artifacts(
 
     response_agg: list[ArtifactMetadata] = []
 
+    print(f"ZOOBKA {body}")
     for request in body:
+        logger.info(f"Get artifacts {request.name}")
         return_code, return_content = artifact_accessor.get_artifacts(request, offset)
 
         match return_code:
@@ -55,7 +57,7 @@ async def get_artifacts(
                     status_code=return_code.value, detail="Too many artifacts returned."
                 )
 
-    response.headers["offset"] = str(int(offset) + len(response_agg))
+    response.headers["offset"] = str(int(offset) + 1)
     return response_agg
 
 
@@ -63,7 +65,6 @@ async def get_artifacts(
 async def get_artifacts_by_name(
     name: str,
 ) -> List[ArtifactMetadata]:
-    print(f"NAME BULLSHIT: {name}")
     logger.info(f"getting by name {name}")
     try:
         name_model: ArtifactName = ArtifactName(name=name)

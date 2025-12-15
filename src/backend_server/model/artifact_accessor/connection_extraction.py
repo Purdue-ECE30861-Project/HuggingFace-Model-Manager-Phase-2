@@ -4,6 +4,7 @@ import os
 import re
 from bs4 import BeautifulSoup
 import requests
+from huggingface_hub import model_info
 
 from src.backend_server.model.artifact_accessor.name_extraction import extract_name_from_url
 from src.backend_server.model.data_store.database_connectors.database_schemas import ModelLinkedArtifactNames
@@ -85,12 +86,14 @@ def model_identify_attached_parent_model(model_name: str, card_info: dict) -> tu
 
     if "base_model" in card_info:
         name = card_info["base_model"]
+        if isinstance(name, list):
+            name = name[0]
         if "base_model_relation" in card_info:
             relation = card_info["base_model_relation"]
             source = "model_card"
         else:
-            relation = model_identify_attached_parent_model_relation(model_name)
-            source = "model_webpage"
+            relation = "unknown"
+            source = "model_card"
 
     return name, relation, source
 

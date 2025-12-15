@@ -7,7 +7,6 @@ from typing import override
 from huggingface_hub import HfApi
 
 from src.backend_server.classes.get_exp_coefficient import get_exp_coefficient, score_large_good
-from src.backend_server.model.artifact_accessor.name_extraction import extract_name_from_url
 from src.backend_server.model.dependencies import DependencyBundle
 from src.contracts.artifact_contracts import Artifact, ArtifactType
 from src.contracts.metric_std import MetricStd
@@ -28,6 +27,8 @@ class DatasetQuality(MetricStd[float]):
         num_likes_score: float = score_large_good(get_exp_coefficient(self.half_score_point_likes), num_likes)
         num_downloads_score: float = score_large_good(get_exp_coefficient(self.half_score_point_downloads),
                                                       num_downloads)
+        if isinstance(num_dimensions, list):
+            num_dimensions = sum(num_dimensions) / len(num_dimensions)
         num_dimensions_score: float = score_large_good(get_exp_coefficient(self.half_score_point_dimensions),
                                                        num_dimensions)
         return (num_likes_score + num_downloads_score + num_dimensions_score) / 3
