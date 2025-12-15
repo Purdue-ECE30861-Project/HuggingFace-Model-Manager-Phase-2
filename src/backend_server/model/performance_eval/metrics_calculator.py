@@ -1,6 +1,7 @@
 import json
 import statistics
 from typing import Dict, List
+from pathlib import Path
 
 class MetricsCalculator:
     """Calculate performance metrics from raw load test data"""
@@ -81,7 +82,6 @@ class MetricsCalculator:
         }
 
 
-# CLI entry point
 def main():
     import argparse
     
@@ -95,13 +95,15 @@ def main():
     metrics = calculator.calculate_all_metrics()
     
     # Save calculated metrics
+
+    output_path = Path(args.output)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
     with open(args.output, 'w') as f:
         json.dump(metrics, f, indent=2)
     
-    print(f"Metrics calculated and saved to {args.output}")
+    #print(f"Metrics calculated and saved to {args.output}")
     return 0
 
 if __name__ == "__main__":
   exit(main())
-    exit(main())
-ubuntu@ip-172-31-34-188:~/HuggingFace-Model-Manager-Phase-2/src/backend_server/model/performance_eval$ 

@@ -1,5 +1,6 @@
 import json
 from typing import Dict
+from pathlib import Path
 
 class ResultsFormatter:
     """Format and display performance metrics"""
@@ -64,6 +65,9 @@ class ResultsFormatter:
     def generate_csv(self, output_file: str):
         """Generate CSV summary for spreadsheet analysis"""
         import csv
+
+        output_path = Path(output_file)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
         
         with open(output_file, 'w', newline='') as f:
             writer = csv.writer(f)

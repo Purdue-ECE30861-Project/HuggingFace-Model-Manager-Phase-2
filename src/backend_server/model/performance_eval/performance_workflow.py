@@ -5,20 +5,51 @@ import json
 import os
 from pathlib import Path
 from datetime import datetime
+from typing import Optional, Dict, List
+import logging
+
+# Setup logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
 
 class PerformanceWorkflow:
-    """Orchestrates complete performance evaluation workflow"""
-    
-    def __init__(self, results_dir: str = "results"):
-        self.results_dir = Path(results_dir)
-        self.results_dir.mkdir(exist_ok=True)
+    def __init__(
+        self,
+        artifact_id: str,
+        results_dir: str = "results",
+        num_clients: int = 100,
+        environment: str = "production",
+        monitor_duration: int = 120
+    ):
+        self.artifact_id = artifact_id
+        self.num_clients = num_clients
+        self.environment = environment
+        self.monitor_duration = monitor_duration
         
-        self.artifact_id = None
+        # Setup results directory
+        self.results_dir = Path(results_dir)
+        self.results_dir.mkdir(parents=True,exist_ok=True)
+        
+        # File paths
+        self.paths = self._setup_paths()
+        
+        # State tracking
         self.baseline_complete = False
         self.optimized_complete = False
         
-        # File paths
-        self.paths = {
+        logger.info(f"Workflow initialized")
+        logger.info(f"  Artifact ID: {artifact_id[:16]}...")
+        logger.info(f"  Results dir: {results_dir}")
+        logger.info(f"  Clients: {num_clients}")
+        logger.info(f"  Environment: {environment}")
+    
+    def _setup_paths(self) -> Dict[str, Path]:
+        """Setup all file paths"""
+        return {
             # Raw data
             'raw_baseline': self.results_dir / 'raw_baseline.json',
             'raw_optimized': self.results_dir / 'raw_optimized.json',
@@ -35,429 +66,419 @@ class PerformanceWorkflow:
             'bottlenecks': self.results_dir / 'bottlenecks.json',
             
             # Final outputs
-            'comparison': self.results_dir / 'comparison.json',
             'report': self.results_dir / 'performance_report.md',
             'csv_baseline': self.results_dir / 'baseline_summary.csv',
             'csv_optimized': self.results_dir / 'optimized_summary.csv',
         }
     
-    def _run_command(self, cmd: list, description: str, background: bool = False) -> subprocess.Popen:
-        """Run a command with error handling"""
-        print(f"\n{'='*70}")
-        print(f"{description}")
-        print(f"{'='*70}")
-        print(f"Command: {' '.join(cmd)}")
-        print()
+    def _run_command(
+        self,
+        cmd: List[str],
+        description: str,
+        background: bool = False
+    ) -> Optional[subprocess.Popen]:
+        logger.info(f"{description}")
+        logger.debug(f"Command: {' '.join(cmd)}")
         
         try:
             if background:
-                # Run in background, return process
                 process = subprocess.Popen(
                     cmd,
                     stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE
+                    stderr=subprocess.PIPE,
+                    text=True
                 )
-                print(f"Started background process (PID: {process.pid})")
+                logger.info(f"  Started background process (PID: {process.pid})")
                 return process
             else:
-                # Run and wait for completion
-                result = subprocess.run(cmd, check=True, capture_output=True, text=True)
+                result = subprocess.run(
+                    cmd,
+                    check=True,
+                    capture_output=True,
+                    text=True
+                )
                 if result.stdout:
-                    print(result.stdout)
+                    logger.debug(result.stdout)
+                logger.info(f"  ✓ Complete")
                 return None
                 
         except subprocess.CalledProcessError as e:
-            print(f"\nError running command:")
-            print(f"Return code: {e.returncode}")
-            if e.stdout:
-                print(f"STDOUT:\n{e.stdout}")
+            logger.error(f"  ✗ Command failed (exit code {e.returncode})")
             if e.stderr:
-                print(f"STDERR:\n{e.stderr}")
+                logger.error(f"  Error: {e.stderr}")
             raise
     
-    def step_1_verify_registry(self) -> bool:
-        """Verify registry is populated and get artifact ID"""
-        print(f"\n{'#'*70}")
-        print("STEP 1: VERIFY REGISTRY")
-        print(f"{'#'*70}")
+    def run_baseline_test(self) -> bool:
+        """
+        1. Start system monitor (background)
+        2. Run load test
+        3. Wait for monitor to complete
+        4. Calculate metrics
+        5. Format and display results
+        """
+        logger.info("="*70)
+        logger.info("BASELINE PERFORMANCE TEST")
+        logger.info("="*70)
         
-        # Check if registry is populated
         try:
-            self._run_command(
-                ['python', 'populate_registry.py', '--verify'],
-                "Checking registry status"
+            # Start system monitor in background
+            monitor_process = self._run_command(
+                [
+                    'python3', 'system_monitor.py',
+                    '--duration', str(self.monitor_duration),
+                    '--output', str(self.paths['system_baseline'])
+                ],
+                f"Starting system monitor ({self.monitor_duration}s)",
+                background=True
             )
-        except subprocess.CalledProcessError:
-            print("\nRegistry not ready!")
-            response = input("Populate registry now? (yes/no): ")
-            if response.lower() == 'yes':
-                self._run_command(
-                    ['python', 'populate_registry.py'],
-                    "Populating registry"
-                )
-            else:
-                print("Please run: python populate_registry.py")
-                return False
+            
+            time.sleep(2)  # Let monitor start
+            
+            # Run load test
+            self._run_command(
+                [
+                    'python3', 'load_generator.py',
+                    '--environment', self.environment,
+                    '--artifact-id', self.artifact_id,
+                    '--clients', str(self.num_clients),
+                    '--output', str(self.paths['raw_baseline'])
+                ],
+                f"Running load test ({self.num_clients} clients)"
+            )
+            
+            # Wait for monitor
+            if monitor_process:
+                logger.info("Waiting for system monitor to complete...")
+                monitor_process.wait()
+                logger.info("  ✓ Monitor complete")
+            
+            # Calculate metrics
+            self._run_command(
+                [
+                    'python3', 'metrics_calculator.py',
+                    '--input', str(self.paths['raw_baseline']),
+                    '--output', str(self.paths['metrics_baseline'])
+                ],
+                "Calculating metrics"
+            )
+            
+            # Format and display results
+            self._run_command(
+                [
+                    'python3', 'results_formatter.py',
+                    '--input', str(self.paths['metrics_baseline']),
+                    '--enable-csv',
+                    '--csv-output', str(self.paths['csv_baseline'])
+                ],
+                "Formatting results"
+            )
+            
+            self.baseline_complete = True
+            logger.info("✓ Baseline test complete")
+            logger.info(f"  Results: {self.paths['metrics_baseline']}")
+            logger.info(f"  CSV: {self.paths['csv_baseline']}")
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"✗ Baseline test failed: {e}")
+            return False
+    
+    def analyze_bottlenecks(self) -> bool:
+        """
+        Analyze performance bottlenecks from baseline test.
         
-        # Get artifact ID
-        print("\nEnter Tiny-LLM artifact ID from populate_registry.py output:")
-        print("(Look for the line: 'Tiny-LLM ID: ...')")
-        self.artifact_id = input("Artifact ID: ").strip()
+        Returns:
+            True if successful
+        """
+        logger.info("="*70)
+        logger.info("BOTTLENECK ANALYSIS")
+        logger.info("="*70)
         
-        if not self.artifact_id:
-            print("Artifact ID required")
+        if not self.baseline_complete:
+            logger.error("Baseline test required first")
             return False
         
-        print(f"\nRegistry verified. Artifact ID: {self.artifact_id[:16]}...")
-        return True
+        try:
+            self._run_command(
+                [
+                    'python3', 'analyze_bottlenecks.py',
+                    '--load-results', str(self.paths['metrics_baseline']),
+                    '--system-metrics', str(self.paths['system_baseline'])
+                ],
+                "Analyzing bottlenecks"
+            )
+            
+            # Display bottlenecks
+            if self.paths['bottlenecks'].exists():
+                with open(self.paths['bottlenecks']) as f:
+                    bottlenecks = json.load(f)
+                
+                logger.info(f"\nFound {len(bottlenecks)} bottleneck(s):")
+                for i, b in enumerate(bottlenecks, 1):
+                    logger.info(f"  {i}. {b['name']} ({b['type']})")
+                    logger.info(f"     Fix: {b['fix']}")
+            
+            logger.info(f"✓ Analysis complete")
+            logger.info(f"  Report: {self.paths['bottlenecks']}")
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"✗ Analysis failed: {e}")
+            return False
     
-    def step_2_baseline_test(self):
-        """Run baseline performance test"""
-        print(f"\n{'#'*70}")
-        print("STEP 2: BASELINE PERFORMANCE TEST")
-        print(f"{'#'*70}")
+    def run_optimized_test(self) -> bool:
+        """
+        Run optimized performance test (after fixes applied).
         
-        # Start system monitor in background
-        monitor_process = self._run_command(
-            [
-                'python', 'system_monitor.py',
-                '--duration', '120',
-                '--output', str(self.paths['system_baseline'])
-            ],
-            "Starting system monitor (120 seconds)",
-            background=True
-        )
+        Returns:
+            True if successful
+        """
+        logger.info("="*70)
+        logger.info("OPTIMIZED PERFORMANCE TEST")
+        logger.info("="*70)
+        logger.info("Ensure optimizations have been applied before running!")
         
-        time.sleep(2)  # Let monitor start
-        
-        # Run load test
-        self._run_command(
-            [
-                'python', 'load_generator.py',
-                '--environment', 'production',
-                '--artifact-id', self.artifact_id,
-                '--clients', '100',
-                '--output', str(self.paths['raw_baseline'])
-            ],
-            "Running baseline load test (100 clients)"
-        )
-        
-        # Wait for monitor to finish
-        if monitor_process:
-            print("\nWaiting for system monitor to complete...")
-            monitor_process.wait()
-        
-        # Calculate metrics
-        self._run_command(
-            [
-                'python', 'metrics_calculator.py',
-                '--input', str(self.paths['raw_baseline']),
-                '--output', str(self.paths['metrics_baseline'])
-            ],
-            "Calculating baseline metrics"
-        )
-        
-        # Display results
-        self._run_command(
-            [
-                'python', 'results_formatter.py',
-                '--input', str(self.paths['metrics_baseline']),
-                '--enable-csv',
-                '--csv-output', str(self.paths['csv_baseline'])
-            ],
-            "Formatting baseline results"
-        )
-        
-        self.baseline_complete = True
-        print(f"\nBaseline test complete")
+        try:
+            # Start system monitor
+            monitor_process = self._run_command(
+                [
+                    'python3', 'system_monitor.py',
+                    '--duration', str(self.monitor_duration),
+                    '--output', str(self.paths['system_optimized'])
+                ],
+                f"Starting system monitor ({self.monitor_duration}s)",
+                background=True
+            )
+            
+            time.sleep(2)
+            
+            # Run load test
+            self._run_command(
+                [
+                    'python3', 'load_generator.py',
+                    '--environment', self.environment,
+                    '--artifact-id', self.artifact_id,
+                    '--clients', str(self.num_clients),
+                    '--output', str(self.paths['raw_optimized'])
+                ],
+                f"Running optimized load test ({self.num_clients} clients)"
+            )
+            
+            # Wait for monitor
+            if monitor_process:
+                logger.info("Waiting for system monitor...")
+                monitor_process.wait()
+                logger.info("  ✓ Monitor complete")
+            
+            # Calculate metrics
+            self._run_command(
+                [
+                    'python3', 'metrics_calculator.py',
+                    '--input', str(self.paths['raw_optimized']),
+                    '--output', str(self.paths['metrics_optimized'])
+                ],
+                "Calculating metrics"
+            )
+            
+            # Format results
+            self._run_command(
+                [
+                    'python3', 'results_formatter.py',
+                    '--input', str(self.paths['metrics_optimized']),
+                    '--enable-csv',
+                    '--csv-output', str(self.paths['csv_optimized'])
+                ],
+                "Formatting results"
+            )
+            
+            self.optimized_complete = True
+            logger.info("✓ Optimized test complete")
+            logger.info(f"  Results: {self.paths['metrics_optimized']}")
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"✗ Optimized test failed: {e}")
+            return False
     
-    def step_3_analyze_bottlenecks(self):
-        """Analyze performance bottlenecks"""
-        print(f"\n{'#'*70}")
-        print("STEP 3: BOTTLENECK ANALYSIS")
-        print(f"{'#'*70}")
+    def generate_report(self) -> bool:
+        """
+        Generate final comparison report.
+        
+        Returns:
+            True if successful
+        """
+        logger.info("="*70)
+        logger.info("GENERATING FINAL REPORT")
+        logger.info("="*70)
         
         if not self.baseline_complete:
-            print("Run baseline test first (Step 2)")
-            return
+            logger.error("Baseline test required")
+            return False
         
-        self._run_command(
-            [
-                'python', 'analyze_bottlenecks.py',
-                '--load-results', str(self.paths['metrics_baseline']),
-                '--system-metrics', str(self.paths['system_baseline'])
-            ],
-            "Analyzing bottlenecks"
-        )
-        
-        print(f"\nBottleneck analysis complete")
-        print(f"Review bottlenecks above and in: {self.paths['bottlenecks']}")
+        try:
+            # Build command
+            cmd = [
+                'python3', 'report_generator.py',
+                '--baseline', str(self.paths['metrics_baseline']),
+                '--output', str(self.paths['report'])
+            ]
+            
+            if self.optimized_complete:
+                cmd.extend(['--optimized', str(self.paths['metrics_optimized'])])
+            
+            if self.paths['bottlenecks'].exists():
+                cmd.extend(['--bottlenecks', str(self.paths['bottlenecks'])])
+            
+            self._run_command(cmd, "Generating report")
+            
+            # Print summary
+            self._print_summary()
+            
+            logger.info("✓ Report generated")
+            logger.info(f"  Location: {self.paths['report']}")
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"✗ Report generation failed: {e}")
+            return False
     
-    def step_4_apply_optimizations(self):
-        """Manual step: Apply optimizations"""
-        print(f"\n{'#'*70}")
-        print("STEP 4: APPLY OPTIMIZATIONS")
-        print(f"{'#'*70}")
-        
-        print("\nBased on bottleneck analysis, apply optimizations:")
-        print("\nCommon optimizations:")
-        print("  1. Increase uvicorn workers")
-        print("     - Stop current server")
-        print("     - Restart with: uvicorn main:app --workers 8")
-        print()
-        print("  2. Optimize database connections")
-        print("     - Increase connection pool size")
-        print()
-        print("  3. Add caching layer")
-        print("     - Deploy Redis")
-        print("     - Update application code")
-        print()
-        
-        input("Press ENTER when optimizations are applied...")
-        
-        print("\nReady for optimized test")
-    
-    def step_5_optimized_test(self):
-        """Run optimized performance test"""
-        print(f"\n{'#'*70}")
-        print("STEP 5: OPTIMIZED PERFORMANCE TEST")
-        print(f"{'#'*70}")
-        
-        # Start system monitor in background
-        monitor_process = self._run_command(
-            [
-                'python', 'system_monitor.py',
-                '--duration', '120',
-                '--output', str(self.paths['system_optimized'])
-            ],
-            "Starting system monitor (120 seconds)",
-            background=True
-        )
-        
-        time.sleep(2)
-        
-        # Run load test
-        self._run_command(
-            [
-                'python', 'load_generator.py',
-                '--environment', 'production',
-                '--artifact-id', self.artifact_id,
-                '--clients', '100',
-                '--output', str(self.paths['raw_optimized'])
-            ],
-            "Running optimized load test (100 clients)"
-        )
-        
-        # Wait for monitor
-        if monitor_process:
-            print("\nWaiting for system monitor to complete...")
-            monitor_process.wait()
-        
-        # Calculate metrics
-        self._run_command(
-            [
-                'python', 'metrics_calculator.py',
-                '--input', str(self.paths['raw_optimized']),
-                '--output', str(self.paths['metrics_optimized'])
-            ],
-            "Calculating optimized metrics"
-        )
-        
-        # Display results
-        self._run_command(
-            [
-                'python', 'results_formatter.py',
-                '--input', str(self.paths['metrics_optimized']),
-                '--enable-csv'
-                '--csv-output', str(self.paths['csv_optimized'])
-            ],
-            "Formatting optimized results"
-        )
-        
-        self.optimized_complete = True
-        print(f"\nOptimized test complete")
-    
-    def step_6_generate_report(self):
-        """Generate final comparison report"""
-        print(f"\n{'#'*70}")
-        print("STEP 6: GENERATE FINAL REPORT")
-        print(f"{'#'*70}")
-        
-        if not self.baseline_complete:
-            print("Baseline test required")
-            return
-        
-        # Generate comparison
-        self._compare_results()
-        
-        # Generate report
-        cmd = [
-            'python', 'report_generator.py',
-            '--baseline', str(self.paths['metrics_baseline']),
-            '--output', str(self.paths['report'])
-        ]
-        
-        if self.optimized_complete:
-            cmd.extend(['--optimized', str(self.paths['metrics_optimized'])])
-        
-        if self.paths['bottlenecks'].exists():
-            cmd.extend(['--bottlenecks', str(self.paths['bottlenecks'])])
-        
-        self._run_command(cmd, "Generating final report")
-        
-        print(f"\nReport generated: {self.paths['report']}")
-        
-        # Print summary
-        self._print_final_summary()
-    
-    def _compare_results(self):
-        """Compare baseline and optimized results"""
-        if not self.optimized_complete:
+    def _print_summary(self):
+        """Print performance summary"""
+        if not self.paths['metrics_baseline'].exists():
             return
         
         with open(self.paths['metrics_baseline']) as f:
             baseline = json.load(f)
         
-        with open(self.paths['metrics_optimized']) as f:
-            optimized = json.load(f)
+        logger.info("\n" + "="*70)
+        logger.info("PERFORMANCE SUMMARY")
+        logger.info("="*70)
         
-        comparison = {
-            'baseline': {
-                'mean_latency_ms': baseline['latency_mean_ms'],
-                'p99_latency_ms': baseline['latency_p99_ms'],
-                'throughput_req_per_sec': baseline['throughput_req_per_sec']
-            },
-            'optimized': {
-                'mean_latency_ms': optimized['latency_mean_ms'],
-                'p99_latency_ms': optimized['latency_p99_ms'],
-                'throughput_req_per_sec': optimized['throughput_req_per_sec']
-            },
-            'improvements': {
-                'mean_latency_percent': ((baseline['latency_mean_ms'] - optimized['latency_mean_ms']) / 
-                                        baseline['latency_mean_ms']) * 100,
-                'p99_latency_percent': ((baseline['latency_p99_ms'] - optimized['latency_p99_ms']) / 
-                                       baseline['latency_p99_ms']) * 100,
-                'throughput_percent': ((optimized['throughput_req_per_sec'] - baseline['throughput_req_per_sec']) / 
-                                      baseline['throughput_req_per_sec']) * 100
-            }
-        }
+        logger.info(f"\nBaseline Performance:")
+        logger.info(f"  Mean Latency:   {baseline['latency_mean_ms']:.2f} ms")
+        logger.info(f"  Median Latency: {baseline['latency_median_ms']:.2f} ms")
+        logger.info(f"  P99 Latency:    {baseline['latency_p99_ms']:.2f} ms")
+        logger.info(f"  Throughput:     {baseline['throughput_req_per_sec']:.2f} req/sec")
         
-        with open(self.paths['comparison'], 'w') as f:
-            json.dump(comparison, f, indent=2)
-        
-        print(f"\nComparison saved to: {self.paths['comparison']}")
-    
-    def _print_final_summary(self):
-        """Print final summary of all results"""
-        print(f"\n{'='*70}")
-        print("PERFORMANCE EVALUATION SUMMARY")
-        print(f"{'='*70}")
-        
-        print(f"\nGenerated Files:")
-        for name, path in self.paths.items():
-            if path.exists():
-                print(f" {name}: {path}")
-        
-        if self.paths['comparison'].exists():
-            with open(self.paths['comparison']) as f:
-                comparison = json.load(f)
+        if self.optimized_complete and self.paths['metrics_optimized'].exists():
+            with open(self.paths['metrics_optimized']) as f:
+                optimized = json.load(f)
             
-            print(f"\nPerformance Improvements:")
-            print(f"  Mean Latency: {comparison['improvements']['mean_latency_percent']:+.1f}%")
-            print(f"  P99 Latency:  {comparison['improvements']['p99_latency_percent']:+.1f}%")
-            print(f"  Throughput:   {comparison['improvements']['throughput_percent']:+.1f}%")
+            mean_improvement = ((baseline['latency_mean_ms'] - optimized['latency_mean_ms']) / 
+                              baseline['latency_mean_ms']) * 100
+            throughput_improvement = ((optimized['throughput_req_per_sec'] - baseline['throughput_req_per_sec']) / 
+                                     baseline['throughput_req_per_sec']) * 100
+            
+            logger.info(f"\nOptimized Performance:")
+            logger.info(f"  Mean Latency:   {optimized['latency_mean_ms']:.2f} ms")
+            logger.info(f"  P99 Latency:    {optimized['latency_p99_ms']:.2f} ms")
+            logger.info(f"  Throughput:     {optimized['throughput_req_per_sec']:.2f} req/sec")
+            
+            logger.info(f"\nImprovements:")
+            logger.info(f"  Mean Latency: {mean_improvement:+.1f}%")
+            logger.info(f"  Throughput:   {throughput_improvement:+.1f}%")
         
-        print(f"\nFinal Report: {self.paths['report']}")
-        print(f"{'='*70}")
+        logger.info("="*70)
     
-    def run_full_workflow(self):
-        """Run complete workflow from start to finish"""
+    def run_baseline_workflow(self) -> int:
+        """
+        Run baseline workflow only.
+        
+        Steps:
+            1. Baseline test
+            2. Analyze bottlenecks
+            3. Generate report
+            
+        Returns:
+            0 if successful, 1 if failed
+        """
+        logger.info("\n" + "="*70)
+        logger.info("STARTING BASELINE WORKFLOW")
+        logger.info("="*70 + "\n")
+        
         try:
-            # Step 1: Verify registry
-            if not self.step_1_verify_registry():
+            # Baseline test
+            if not self.run_baseline_test():
                 return 1
             
-            # Step 2: Baseline test
-            self.step_2_baseline_test()
+            # Analyze bottlenecks
+            if not self.analyze_bottlenecks():
+                return 1
             
-            # Step 3: Analyze bottlenecks
-            self.step_3_analyze_bottlenecks()
+            # Generate report
+            if not self.generate_report():
+                return 1
             
-            # Step 4: Apply optimizations (manual)
-            response = input("\nProceed with optimization phase? (yes/no): ")
-            if response.lower() == 'yes':
-                self.step_4_apply_optimizations()
-                
-                # Step 5: Optimized test
-                self.step_5_optimized_test()
-            
-            # Step 6: Generate final report
-            self.step_6_generate_report()
-            
-            print("\nPerformance evaluation complete!")
+            logger.info("\n✓ Baseline workflow complete!")
             return 0
             
         except KeyboardInterrupt:
-            print("\n\nWorkflow interrupted by user")
+            logger.warning("\n✗ Workflow interrupted by user")
             return 1
         except Exception as e:
-            print(f"\nWorkflow failed: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error(f"\n✗ Workflow failed: {e}")
             return 1
     
-    def run_interactive(self):
-        """Run workflow with step-by-step menu"""
-        while True:
-            print(f"\n{'='*70}")
-            print("PERFORMANCE EVALUATION WORKFLOW")
-            print(f"{'='*70}")
-            print("\nSteps:")
-            print("  1. Verify registry")
-            print("  2. Run baseline test")
-            print("  3. Analyze bottlenecks")
-            print("  4. Apply optimizations (manual)")
-            print("  5. Run optimized test")
-            print("  6. Generate final report")
-            print("\nOptions:")
-            print("  7. Run full workflow (steps 1-6)")
-            print("  8. View current status")
-            print("  0. Exit")
+    def run_full_workflow(self) -> int:
+        """
+        Run complete workflow (baseline + optimized).
+        
+        Steps:
+            1. Baseline test
+            2. Analyze bottlenecks
+            3. Pause for optimizations
+            4. Optimized test
+            5. Generate final report
             
-            choice = input("\nSelect option: ").strip()
+        Returns:
+            0 if successful, 1 if failed
+        """
+        logger.info("\n" + "="*70)
+        logger.info("STARTING FULL WORKFLOW")
+        logger.info("="*70 + "\n")
+        
+        try:
+            # Baseline test
+            if not self.run_baseline_test():
+                return 1
             
-            if choice == '1':
-                self.step_1_verify_registry()
-            elif choice == '2':
-                self.step_2_baseline_test()
-            elif choice == '3':
-                self.step_3_analyze_bottlenecks()
-            elif choice == '4':
-                self.step_4_apply_optimizations()
-            elif choice == '5':
-                self.step_5_optimized_test()
-            elif choice == '6':
-                self.step_6_generate_report()
-            elif choice == '7':
-                return self.run_full_workflow()
-            elif choice == '8':
-                self._print_status()
-            elif choice == '0':
-                print("Exiting...")
-                return 0
-            else:
-                print("Invalid choice")
-    
-    def _print_status(self):
-        """Print current workflow status"""
-        print(f"\n{'='*70}")
-        print("CURRENT STATUS")
-        print(f"{'='*70}")
-        print(f"Artifact ID: {self.artifact_id if self.artifact_id else 'Not set'}")
-        print(f"Baseline test: {'Complete' if self.baseline_complete else '✗ Not run'}")
-        print(f"Optimized test: {'Complete' if self.optimized_complete else '✗ Not run'}")
-        print(f"\nResults directory: {self.results_dir}")
-        print(f"{'='*70}")
+            # Analyze bottlenecks
+            if not self.analyze_bottlenecks():
+                return 1
+            
+            # Manual optimization step
+            logger.info("\n" + "="*70)
+            logger.info("APPLY OPTIMIZATIONS")
+            logger.info("="*70)
+            logger.info("Review bottleneck analysis and apply fixes.")
+            logger.info("Common optimizations:")
+            logger.info("  - Increase uvicorn workers")
+            logger.info("  - Optimize database connection pool")
+            logger.info("  - Enable caching")
+            logger.info("\nPress ENTER when optimizations are applied...")
+            input()
+            
+            # Optimized test
+            if not self.run_optimized_test():
+                return 1
+            
+            # Generate final report
+            if not self.generate_report():
+                return 1
+            
+            logger.info("\n✓ Full workflow complete!")
+            return 0
+            
+        except KeyboardInterrupt:
+            logger.warning("\n✗ Workflow interrupted by user")
+            return 1
+        except Exception as e:
+            logger.error(f"\n✗ Workflow failed: {e}")
+            return 1
 
 
 def main():
@@ -467,37 +488,117 @@ def main():
         description="Performance evaluation workflow orchestrator",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
-Modes:
-  Interactive: python performance_workflow.py
-  Automated:   python performance_workflow.py --auto
-  
 Examples:
-  python performance_workflow.py              # Interactive menu
-  python performance_workflow.py --auto       # Run full workflow
-  python performance_workflow.py --results my_results/  # Custom output dir
+    # Run baseline test only
+    python3 performance_workflow.py --artifact-id abc123 --baseline
+    
+    # Run full workflow (with optimization step)
+    python3 performance_workflow.py --artifact-id abc123 --full
+    
+    # Custom configuration
+    python3 performance_workflow.py \\
+        --artifact-id abc123 \\
+        --clients 50 \\
+        --baseline \\
+        --results my_results/
+    
+    # Get artifact ID first
+    python3 populate_registry_standalone.py --get-artifact-id
         """
     )
     
+    # Required arguments
     parser.add_argument(
-        '--auto',
-        action='store_true',
-        help='Run full workflow automatically'
+        '--artifact-id',
+        required=True,
+        help='Tiny-LLM artifact ID from populate_registry'
     )
     
+    # Workflow mode
+    mode_group = parser.add_mutually_exclusive_group(required=True)
+    mode_group.add_argument(
+        '--baseline',
+        action='store_true',
+        help='Run baseline workflow only (test + analysis + report)'
+    )
+    mode_group.add_argument(
+        '--full',
+        action='store_true',
+        help='Run full workflow (baseline + optimized)'
+    )
+    mode_group.add_argument(
+        '--optimized-only',
+        action='store_true',
+        help='Run optimized test only (assumes baseline already done)'
+    )
+    
+    # Optional configuration
+    parser.add_argument(
+        '--clients',
+        type=int,
+        default=100,
+        help='Number of concurrent clients (default: 100)'
+    )
+    parser.add_argument(
+        '--environment',
+        choices=['local', 'production'],
+        default='production',
+        help='Test environment (default: production)'
+    )
     parser.add_argument(
         '--results',
         default='results',
         help='Results directory (default: results/)'
     )
+    parser.add_argument(
+        '--monitor-duration',
+        type=int,
+        default=120,
+        help='System monitoring duration in seconds (default: 120)'
+    )
+    parser.add_argument(
+        '--debug',
+        action='store_true',
+        help='Enable debug logging'
+    )
     
     args = parser.parse_args()
     
-    workflow = PerformanceWorkflow(results_dir=args.results)
+    # Setup logging level
+    if args.debug:
+        logging.getLogger().setLevel(logging.DEBUG)
     
-    if args.auto:
-        return workflow.run_full_workflow()
-    else:
-        return workflow.run_interactive()
+    # Create workflow
+    workflow = PerformanceWorkflow(
+        artifact_id=args.artifact_id,
+        results_dir=args.results,
+        num_clients=args.clients,
+        environment=args.environment,
+        monitor_duration=args.monitor_duration
+    )
+    
+    # Run requested workflow
+    try:
+        if args.baseline:
+            return workflow.run_baseline_workflow()
+        elif args.full:
+            return workflow.run_full_workflow()
+        elif args.optimized_only:
+            if not workflow.run_optimized_test():
+                return 1
+            if not workflow.generate_report():
+                return 1
+            logger.info("\n✓ Optimized test complete!")
+            return 0
+    
+    except KeyboardInterrupt:
+        logger.warning("\n\n✗ Interrupted by user")
+        return 1
+    except Exception as e:
+        logger.error(f"\n✗ Fatal error: {e}")
+        import traceback
+        traceback.print_exc()
+        return 1
 
 
 if __name__ == "__main__":

@@ -3,10 +3,12 @@ import time
 import json
 import subprocess
 from datetime import datetime
+from pathlib import Path
+import logging
 
-class SystemMonitor:
-    """Monitor system performance externally"""
-    
+logger = logging.getLogger(__name__)
+
+class SystemMonitor:    
     def __init__(self, output_file="system_metrics.json"):
         self.output_file = output_file
         self.samples = []
@@ -40,7 +42,7 @@ class SystemMonitor:
     
     def monitor(self, duration_seconds=60):
         """Monitor system for specified duration"""
-        print(f"Monitoring system for {duration_seconds} seconds...")
+        logger.debug(f"Monitoring system for {duration_seconds} seconds")
         
         start_time = time.time()
         
@@ -55,12 +57,15 @@ class SystemMonitor:
             }
             
             self.samples.append(sample)
-            print(f"  Sample {len(self.samples)}: CPU={sample['cpu_percent']:.1f}% MEM={sample['memory_percent']:.1f}%")
+            logger.debug(f"  Sample {len(self.samples)}: CPU={sample['cpu_percent']:.1f}% MEM={sample['memory_percent']:.1f}%")
         
+        output_path = Path(self.output_file)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+
         with open(self.output_file, 'w') as f:
             json.dump(self.samples, f, indent=2)
         
-        print(f"\nMonitoring complete. Saved to {self.output_file}")
+        logger.debug(f"\nMonitoring complete. Saved to {self.output_file}")
         return self.samples
 
 

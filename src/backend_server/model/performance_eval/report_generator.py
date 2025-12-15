@@ -1,6 +1,7 @@
 import json
 from datetime import datetime
 from typing import Dict
+from pathlib import Path
 
 class ReportGenerator:
     """Generate performance evaluation report"""
@@ -73,12 +74,13 @@ class ReportGenerator:
             
             report.append(f"- Mean Latency: {mean_improvement:+.1f}%")
             report.append(f"- Throughput: {throughput_improvement:+.1f}%")
-        
-        # Write report
+
+        output_path = Path(output_file)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
         with open(output_file, 'w') as f:
             f.write('\n'.join(report))
         
-        print(f"Report generated: {output_file}")
+        #print(f"Report generated: {output_file}")
 
 
 # CLI entry point
