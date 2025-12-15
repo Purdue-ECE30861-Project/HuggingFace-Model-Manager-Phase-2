@@ -27,9 +27,12 @@ class HFArtifactDownloader(BaseArtifactDownloader):
 
         match artifact_type:
             case ArtifactType.model:
-                if len(split) < 5:
+                if len(split) < 4:
                     raise NameError("Invalid HF Url")
-                return f"{split[3]}/{split[4]}"
+                if len(split) < 5:
+                    return f"{split[3]}"
+                else:
+                    return f"{split[3]}/{split[4]}"
             case ArtifactType.dataset:
                 if len(split) < 6:
                     raise NameError("Invalid HF Url")

@@ -113,17 +113,15 @@ class ModelRating(BaseModelRating):
         weighted_scores: dict[str, Any] = dict()
         latencies: dict[str, float] = dict()
 
-        print(f"SILLY SILLY 6 {os.listdir(ingested_path)}")
-
         with ThreadPoolExecutor(max_workers=dependency_bundle.num_processors) as ex:
             result = list(ex.map(ModelRating._run_metric, metrics))
             for field_name, latency, score, weighted_score in result:
-                print(f"Field Name: {field_name}, {os.listdir(ingested_path)}")
                 scores[field_name] = score
                 weighted_scores[field_name] = weighted_score
                 latencies[f"{field_name}_latency"] = latency
 
-        print(f"SILLY SILLY 7 {os.listdir(ingested_path)}")
+        print("MODEL RATING FINISHED")
+
         end = time.time()
         return ModelRating(
             name=artifact.metadata.name,

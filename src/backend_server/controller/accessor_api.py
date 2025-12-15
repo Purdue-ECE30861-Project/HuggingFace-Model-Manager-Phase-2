@@ -63,6 +63,7 @@ async def get_artifacts(
 async def get_artifacts_by_name(
     name: str,
 ) -> List[ArtifactMetadata]:
+    print(f"NAME BULLSHIT: {name}")
     logger.info(f"getting by name {name}")
     try:
         name_model: ArtifactName = ArtifactName(name=name)
@@ -219,6 +220,7 @@ async def register_artifact(
     artifact_type: str, body: ArtifactData, response: Response
 ) -> Artifact | None:
     logger.info(f"registering url {body.url} of type {artifact_type}")
+
     try:
         artifact_type_model: ArtifactType = ArtifactType(artifact_type)
     except ValidationError:

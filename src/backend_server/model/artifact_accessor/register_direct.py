@@ -1,6 +1,8 @@
 import logging
 import os
 import shutil
+import subprocess
+import zipfile
 from pathlib import Path
 
 import botocore.exceptions as botoexc
@@ -14,6 +16,15 @@ from .name_extraction import extract_name_from_url
 from .enums import *
 from ..data_store.database_connectors.database_schemas import ModelLinkedArtifactNames
 from ..data_store.database_connectors.mother_db_connector import DBManager
+
+
+def make_zip(src: Path, out: Path):
+    subprocess.run(
+        ["zip", "-r", "-1", str(out), "."],
+        cwd=src,
+        check=True
+    )
+
 
 logger = logging.getLogger(__name__)
 
@@ -68,11 +79,20 @@ def model_rate_direct(
     if not register_database(dependencies.db, new_artifact, tempdir, size):
         raise IOError("Database Failure")
 
-    print(f"SILLY SILLY 4 {os.listdir(tempdir)}")
     rating: ModelRating = ModelRating.generate_rating(tempdir, new_artifact, dependencies)
-    print(f"SILLY SILLY 5 {os.listdir(tempdir)}")
 
     return new_artifact, rating
+
+def artifact_to_s3(tempdir: Path, dependencies: DependencyBundle, artifact: Artifact) -> Path:
+    print("BEGINNING STORAGE")
+    archive_path = tempdir / f"artifact{id}.zip"
+    make_zip(
+        tempdir,
+        archive_path
+    )
+    print("FINISHED TARING")
+    dependencies.s3_manager.s3_artifact_upload(artifact.metadata.id, Path(archive_path))
+    print("FINISHED UPLOAD")
 
 def register_data_store_model(
         id: str,
@@ -86,24 +106,15 @@ def register_data_store_model(
     rating: ModelRating
 
     try:
-        print(f"SILLY SILLY 3 {os.listdir(tempdir)}")
         artifact, rating = model_rate_direct(id, data, size, tempdir, dependencies)
-        print(f"SILLY SILLY 2 {os.listdir(tempdir)}")
         if rating.net_score < dependencies.ingest_score_threshold:
             logger.error(f"FAILED: {data.url} id {artifact.metadata.id} failed to ingest due to low score")
             dependencies.db.router_artifact.db_artifact_delete(artifact.metadata.id, artifact.metadata.type)
             return RegisterArtifactEnum.DISQUALIFIED, None
         dependencies.db.router_rating.db_rating_add(artifact.metadata.id, BaseModelRating.to_base(rating))
 
-        logger.warning(f"SILLY SILLY {os.listdir(tempdir)}")
-
         if s3_store:
-            archive_path = shutil.make_archive(
-                str(tempdir / f"artifact{id}"),
-                "xztar",
-                root_dir=tempdir,
-            )
-            dependencies.s3_manager.s3_artifact_upload(artifact.metadata.id, Path(archive_path))
+            artifact_to_s3(tempdir, dependencies, artifact)
     except botoexc.ClientError as e:
         logger.error(f"FAILED: {e.response['Error']['Message']}")
         return RegisterArtifactEnum.INTERNAL_ERROR, None
@@ -136,12 +147,7 @@ def register_data_store_artifact(
         logger.warning(f"SILLY SILLY {os.listdir(tempdir)}")
 
         if s3_store:
-            archive_path = shutil.make_archive(
-                str(tempdir / f"artifact{id}"),
-                "xztar",
-                root_dir=tempdir,
-            )
-            dependencies.s3_manager.s3_artifact_upload(artifact.metadata.id, Path(archive_path))
+            artifact_to_s3(tempdir, dependencies, artifact)
     except botoexc.ClientError as e:
         logger.error(f"FAILED: {e.response['Error']['Message']}")
         return RegisterArtifactEnum.INTERNAL_ERROR, None

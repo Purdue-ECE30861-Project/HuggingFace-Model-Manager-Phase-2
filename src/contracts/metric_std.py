@@ -39,6 +39,7 @@ class MetricStd(ABC, Generic[T]):
 
         end_time = time.time()
 
+        print(f"METRIC: {self.metric_name} FINISHED")
         return self.metric_name, end_time - start_time, metric_score, metric_score_weighted
 
     @abstractmethod

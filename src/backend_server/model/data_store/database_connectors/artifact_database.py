@@ -47,6 +47,10 @@ def get_tables() -> tuple[type[DBModelSchema], type[DBDSetSchema], type[DBCodeSc
 class DBReadmeAccessor:
     @staticmethod
     def artifact_insert_readme(engine: Engine, artifact: Artifact, readme_content: str):
+        print(len(readme_content))
+        if len(readme_content) >= 64000:
+            readme_content = readme_content[0:64000]
+        print(len(readme_content))
         with Session(engine) as session:
             readme_sch_content: DBArtifactReadmeSchema = (
                 DBArtifactReadmeSchema.from_artifact(artifact, readme_content)

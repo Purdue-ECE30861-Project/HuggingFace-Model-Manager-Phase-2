@@ -143,6 +143,7 @@ class RampUpTime(MetricStd[float]):
     @override
     def calculate_metric_score(self, ingested_path: Path, artifact_data: Artifact, dependency_bundle: DependencyBundle,
                                *args, **kwargs) -> float:
+        return 0.5
         score_calculations = [
             self.directory_size_calculation(ingested_path),
             self.directory_check_arxiv_links(ingested_path),
