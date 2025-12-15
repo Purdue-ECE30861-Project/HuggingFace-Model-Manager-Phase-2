@@ -27,11 +27,12 @@ jobs:
               run: |
                 aws ec2 start-instances --instance-ids $EC2_INSTANCE
                 # final setup
-                public_ip=$(aws ec2 describe-instances --instance-ids $EC2_INSTANCE | grep "PublicIpAddress" | sed 's/"PublicIpAddress": //g' | sed 's/["|"]//g' | awk '{$1=$1};1')
-                echo "$EC2_PRIVATE_KEY" > ec2_key.pem
-                chmod 600 ec2_key.pem
-                # all following code until ENDSSH runs on ec2 instance
-                ssh -o StrictHostKeyChecking=no -i ec2_key.pem $EC2_USER@$public_ip << 'ENDSSH'
+                cat << EOF > .ssh/config
+                Host *
+                  StrictHostKeyChecking no
+                  UserKnownHostsFile /dev/null
+                EOF
+                aws ec2-instance-connect ssh --instance-id $EC2_INSTANCE --os-user ubuntu --connection-type eice << 'ENDSSH'
                 mkdir -p ~/.ssh/
                 echo "${{ secrets.REPO_PRIVATE_KEY }}" > ~/.ssh/id_github
                 chmod 600 ~/.ssh/id_github
