@@ -28,5 +28,3 @@ code: https://github.com/patrickjohncyh/fashion-clip
 code: https://github.com/huggingface/lerobot/tree/main
 code: https://github.com/Parth1811/ptm-recommendation-with-transformers.git
 code: https://github.com/KaimingHe/deep-residual-networks
-model: https://huggingface.co/vikhyatk/moondream2
-model: https://huggingface.co/prajjwal1/bert-tiny

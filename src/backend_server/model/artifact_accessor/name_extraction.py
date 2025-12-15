@@ -1,5 +1,5 @@
 import hashlib
-
+from huggingface_hub import model_info, dataset_info
 from src.contracts.artifact_contracts import ArtifactType
 
 
@@ -7,13 +7,22 @@ def dataset_name_extract_from_url(url: list[str]) -> str:
     if len(url) < 4:
         raise NameError("Invalid HF Url")
     if url[0] != "huggingface.co":
-        raise NameError("Invalid HF Url. Must be huggingface.co")
+        print(url)
+        if url[0] != "www.kaggle.com":
+            raise NameError("Invalid HF Url. Must be huggingface.co")
     if url[1] != "datasets":
         raise NameError("Specified type of dataset, hugginface url format requires 'dataset' path")
-    print(url)
-    return f"{url[3]}"
+    name = f"{url[2]}-{url[3]}"
+    if url[0] == "huggingface.co":
+        name = url[3]
+        try:
+            dataset_info(name)
+        except:
+            name = f"{url[2]}-{url[3]}"
+    return name
 
 def model_name_extract_from_url(url: list[str]) -> str:
+    print(url)
     if len(url) < 2:
         raise NameError("Invalid HF Url")
     if url[0] != "huggingface.co":
@@ -21,14 +30,22 @@ def model_name_extract_from_url(url: list[str]) -> str:
     if len(url) < 3:
         return f"{url[1]}"
     else:
-        return f"{url[2]}"
+        name = url[2]
+        try:
+            model_info(name)
+        except:
+            name = f"{url[1]}-{url[2]}"
+        return name
 
 def codebase_name_extract_from_url(url: list[str]) -> str:
     if len(url) < 3:
         raise NameError("Invalid GH Url")
     if url[0] != "github.com":
         raise NameError("Invalid GH Url. Must be github.com")
-    return f"{url[1]}/{url[2]}"
+    name = f"{url[1]}-{url[2]}"
+    if name.endswith(".git"):
+        name = name[:-4]
+    return name
 
 def extract_name_from_url(url: str, artifact_type: ArtifactType) -> str:
     if url.startswith("https://"):

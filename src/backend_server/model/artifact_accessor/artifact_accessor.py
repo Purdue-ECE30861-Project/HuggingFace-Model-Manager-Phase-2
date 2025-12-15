@@ -32,6 +32,7 @@ from src.backend_server.model.downloaders.gh_downloader import GHArtifactDownloa
 from src.backend_server.model.downloaders.hf_downloader import HFArtifactDownloader
 from ..data_store.s3_manager import S3BucketManager
 from src.backend_server.model.llm_api import LLMAccessor
+from ..downloaders.ka_downloader import KAArtifactDownloader
 
 logger = logging.getLogger(__name__)
 
@@ -67,6 +68,7 @@ class ArtifactAccessor:
         )
 
         if not result:
+            print("Ruh roh none found!")
             return GetArtifactsEnum.SUCCESS, []
         return GetArtifactsEnum.SUCCESS, result
 
@@ -152,6 +154,8 @@ class ArtifactAccessor:
         )
         if artifact_type == ArtifactType.code:
             temporary_downloader = GHArtifactDownloader()
+        if "kaggle" in body.url:
+            temporary_downloader = KAArtifactDownloader()
 
         with TemporaryDirectory() as tempdir:
             size: float = 0.0

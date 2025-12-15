@@ -52,6 +52,7 @@ class HFArtifactDownloader(BaseArtifactDownloader):
 
     @override
     def download_artifact(self, url: str, artifact_type: ArtifactType, tempdir: Path) -> float: # returns the size of the downloaded huggingface artifact
+        print(url)
         size: int = 0
 
         repo_id: str = self._get_repo_id_from_url(url, artifact_type)
