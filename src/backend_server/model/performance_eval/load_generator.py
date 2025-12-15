@@ -155,10 +155,6 @@ class LoadGenerator:
             "raw_results": [r.to_dict() for r in self.results]
         }
 
-
-# CLI entry point
-# Add at the end of load_generator.py
-
 async def main():
     """Main entry point - supports both CLI and interactive modes"""
     import argparse
