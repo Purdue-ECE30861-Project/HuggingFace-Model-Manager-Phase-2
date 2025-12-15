@@ -1,21 +1,20 @@
+import asyncio
+import contextlib
 import logging
 import queue
+from concurrent.futures import ProcessPoolExecutor
+from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from src.backend_server.model.dependencies import DependencyBundle
 from src.backend_server.model.artifact_accessor.enums import RegisterArtifactEnum, UpdateArtifactEnum
 from src.backend_server.model.artifact_accessor.register_direct import \
     register_data_store_model, register_data_store_artifact, update_data_store_model, update_data_store_artifact
 from src.backend_server.model.data_store.database_connectors.mother_db_connector import DBManager
+from src.backend_server.model.data_store.s3_manager import S3BucketManager
+from src.backend_server.model.dependencies import DependencyBundle
 from src.backend_server.model.downloaders.base_downloader import BaseArtifactDownloader
 from src.backend_server.model.downloaders.gh_downloader import GHArtifactDownloader
 from src.backend_server.model.downloaders.hf_downloader import HFArtifactDownloader
-from src.backend_server.model.data_store.s3_manager import S3BucketManager
-import asyncio
-from concurrent.futures import ProcessPoolExecutor
-from pathlib import Path
-import contextlib
-
 from src.backend_server.model.llm_api import LLMAccessor
 from src.contracts.artifact_contracts import Artifact, ArtifactType, ArtifactData
 
@@ -23,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 
 def register_task(artifact_id: str, artifact_type: ArtifactType, body: ArtifactData, dependencies: DependencyBundle):
-    temporary_downloader: BaseArtifactDownloader = HFArtifactDownloader()
+    temporary_downloader: BaseArtifactDownloader = HFArtifactDownloader(hf_token=dependencies.hf_token)
     if artifact_type == ArtifactType.code:
         temporary_downloader = GHArtifactDownloader()
 
@@ -47,7 +46,7 @@ def register_task(artifact_id: str, artifact_type: ArtifactType, body: ArtifactD
 
 
 def update_task(artifact_id: str, artifact_type: ArtifactType, body: Artifact, dependencies: DependencyBundle):
-    temporary_downloader: BaseArtifactDownloader = HFArtifactDownloader()
+    temporary_downloader: BaseArtifactDownloader = HFArtifactDownloader(hf_token=dependencies.hf_token)
     if artifact_type == ArtifactType.code:
         temporary_downloader = GHArtifactDownloader()
 
@@ -77,8 +76,8 @@ def update_task(artifact_id: str, artifact_type: ArtifactType, body: Artifact, d
 class RaterTaskManager:
     def __init__(self, ingest_score_threshold: float, s3_manager: S3BucketManager, db_manager: DBManager,
                  llm_accessor: LLMAccessor,
-                 max_workers: int = 4, max_processes_per_rater: int = 1, max_queue_size: int = 100,
-        ):
+                 max_workers: int = 4, max_processes_per_rater: int = 1, max_queue_size: int = 100, hf_token: str = ""
+                 ):
 
         self.executor = ProcessPoolExecutor(max_workers=max_workers)
         self.queue: asyncio.Queue[tuple[str, ArtifactType, ArtifactData | Artifact]] = asyncio.Queue(
@@ -92,6 +91,7 @@ class RaterTaskManager:
             db=db_manager,
             num_processors=max_processes_per_rater,
             llm_accessor=llm_accessor,
+            hf_token=hf_token
         )
 
     async def start(self):

@@ -2,12 +2,13 @@ from fastapi import Depends, APIRouter, HTTPException, status
 from fastapi.exceptions import RequestValidationError
 from typing import Annotated
 from pydantic import ValidationError
-
+import logging
 from src.backend_server.global_state import database_manager
 from src.contracts.artifact_contracts import ArtifactID, ArtifactLineageGraph
 
 
 lineage_router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 @lineage_router.get("/artifact/model/{id}/lineage", status_code=status.HTTP_200_OK)

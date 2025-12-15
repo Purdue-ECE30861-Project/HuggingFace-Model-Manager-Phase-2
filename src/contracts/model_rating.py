@@ -1,3 +1,4 @@
+import os
 import time
 
 from pydantic import BaseModel, Field
@@ -118,6 +119,8 @@ class ModelRating(BaseModelRating):
                 scores[field_name] = score
                 weighted_scores[field_name] = weighted_score
                 latencies[f"{field_name}_latency"] = latency
+
+        print("MODEL RATING FINISHED")
 
         end = time.time()
         return ModelRating(

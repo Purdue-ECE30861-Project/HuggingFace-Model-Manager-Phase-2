@@ -1,5 +1,8 @@
 import logging
+import os
 import shutil
+import subprocess
+import zipfile
 from pathlib import Path
 
 import botocore.exceptions as botoexc
@@ -13,6 +16,15 @@ from .name_extraction import extract_name_from_url
 from .enums import *
 from ..data_store.database_connectors.database_schemas import ModelLinkedArtifactNames
 from ..data_store.database_connectors.mother_db_connector import DBManager
+
+
+def make_zip(src: Path, out: Path):
+    subprocess.run(
+        ["zip", "-r", "-1", str(out), "."],
+        cwd=src,
+        check=True
+    )
+
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +61,7 @@ def register_database(
         collect_readmes(tempdir)
     )
 
+#def extract_name_from_url_corrected()
 def model_rate_direct(
         id: str,
         data: ArtifactData,
@@ -56,9 +69,11 @@ def model_rate_direct(
         tempdir: Path,
         dependencies: DependencyBundle
 ) -> tuple[Artifact, ModelRating]:
+    name = extract_name_from_url(data.url, ArtifactType.model)
+    print(f"THIS IS MY NAME {name}")
     new_artifact: Artifact = Artifact(
         metadata=ArtifactMetadata(
-            name=extract_name_from_url(data.url, ArtifactType.model),
+            name=name,
             id=id,
             type=ArtifactType.model,
         ),
@@ -66,16 +81,29 @@ def model_rate_direct(
     )
     if not register_database(dependencies.db, new_artifact, tempdir, size):
         raise IOError("Database Failure")
+
     rating: ModelRating = ModelRating.generate_rating(tempdir, new_artifact, dependencies)
 
     return new_artifact, rating
+
+def artifact_to_s3(tempdir: Path, dependencies: DependencyBundle, artifact: Artifact) -> Path:
+    print("BEGINNING STORAGE")
+    archive_path = tempdir / f"artifact{id}.zip"
+    make_zip(
+        tempdir,
+        archive_path
+    )
+    print("FINISHED TARING")
+    dependencies.s3_manager.s3_artifact_upload(artifact.metadata.id, Path(archive_path))
+    print("FINISHED UPLOAD")
 
 def register_data_store_model(
         id: str,
         data: ArtifactData,
         size: float,
         tempdir: Path,
-        dependencies: DependencyBundle
+        dependencies: DependencyBundle,
+        s3_store: bool = True
 ) -> tuple[RegisterArtifactEnum, Artifact | None]:
     artifact: Artifact
     rating: ModelRating
@@ -88,8 +116,8 @@ def register_data_store_model(
             return RegisterArtifactEnum.DISQUALIFIED, None
         dependencies.db.router_rating.db_rating_add(artifact.metadata.id, BaseModelRating.to_base(rating))
 
-        archive_path = shutil.make_archive(str(tempdir.resolve()), "xztar", root_dir=tempdir)
-        dependencies.s3_manager.s3_artifact_upload(artifact.metadata.id, Path(archive_path))
+        if s3_store:
+            artifact_to_s3(tempdir, dependencies, artifact)
     except botoexc.ClientError as e:
         logger.error(f"FAILED: {e.response['Error']['Message']}")
         return RegisterArtifactEnum.INTERNAL_ERROR, None
@@ -104,7 +132,8 @@ def register_data_store_artifact(
     artifact_type: ArtifactType,
     size: float,
     tempdir: Path,
-    dependencies: DependencyBundle
+    dependencies: DependencyBundle,
+    s3_store: bool = True
 ) -> tuple[RegisterArtifactEnum, Artifact | None]:
     try:
         artifact: Artifact = Artifact(
@@ -118,8 +147,10 @@ def register_data_store_artifact(
         if not register_database(dependencies.db, artifact, tempdir, size):
             raise IOError("Database Failure")
 
-        archive_path = shutil.make_archive(str(tempdir.resolve()), "xztar", root_dir=tempdir)
-        dependencies.s3_manager.s3_artifact_upload(artifact.metadata.id, Path(archive_path))
+        logger.warning(f"SILLY SILLY {os.listdir(tempdir)}")
+
+        if s3_store:
+            artifact_to_s3(tempdir, dependencies, artifact)
     except botoexc.ClientError as e:
         logger.error(f"FAILED: {e.response['Error']['Message']}")
         return RegisterArtifactEnum.INTERNAL_ERROR, None

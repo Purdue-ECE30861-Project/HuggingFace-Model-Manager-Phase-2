@@ -39,7 +39,7 @@ class ArtifactName(BaseModel):
 class ArtifactData(BaseModel):
     """Source location for ingesting an artifact."""
     url: str = Field(..., description="Artifact source url used during ingest")
-    download_url: str = Field(..., description="The download link provided by server to get preserved artifiact bundle. Present in response only")
+    download_url: str = ""
 
     @staticmethod
     def test_value() -> "ArtifactData":
@@ -101,7 +101,7 @@ class ArtifactCostDetails(BaseModel):
 
 class ArtifactCost(BaseModel):
     """Artifact Cost aggregates the total download size (in MB)."""
-    standalone_cost: float
+    standalone_cost: float | None
     total_cost: float
 
     @staticmethod

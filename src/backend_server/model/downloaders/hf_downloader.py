@@ -1,15 +1,23 @@
+import logging
 import os
 from pathlib import Path
 from typing import override
 
 import huggingface_hub.utils
-from huggingface_hub import snapshot_download
+from huggingface_hub import snapshot_download, dataset_info, model_info
 
 from src.backend_server.model.downloaders.base_downloader import BaseArtifactDownloader
 from src.contracts.artifact_contracts import ArtifactType
 
 
+logger = logging.getLogger(__name__)
+
+
 class HFArtifactDownloader(BaseArtifactDownloader):
+    def __init__(self, hf_token: str = ""):
+        super().__init__()
+        self.hf_token = hf_token
+
     def _validate_url(self, url: str) -> bool:
         """Internal method to validate URL format"""
         return url.startswith(('http://huggingface.co', 'https://huggingface.co'))
@@ -19,9 +27,12 @@ class HFArtifactDownloader(BaseArtifactDownloader):
 
         match artifact_type:
             case ArtifactType.model:
-                if len(split) < 5:
+                if len(split) < 4:
                     raise NameError("Invalid HF Url")
-                return f"{split[3]}/{split[4]}"
+                if len(split) < 5:
+                    return f"{split[3]}"
+                else:
+                    return f"{split[3]}/{split[4]}"
             case ArtifactType.dataset:
                 if len(split) < 6:
                     raise NameError("Invalid HF Url")
@@ -33,10 +44,9 @@ class HFArtifactDownloader(BaseArtifactDownloader):
 
     def _huggingface_pull(self, repo_id: str, tempdir: Path, artifact_type: ArtifactType):
         try:
-            print(repo_id)
-            snapshot_download(repo_id=repo_id, local_dir=tempdir, repo_type="dataset") \
+            snapshot_download(repo_id=repo_id, local_dir=tempdir, repo_type="dataset", max_workers=2) \
                 if artifact_type == "dataset" else \
-                snapshot_download(repo_id=repo_id, local_dir=tempdir)
+                snapshot_download(repo_id=repo_id, local_dir=tempdir, token=self.hf_token, max_workers=2)
         except (huggingface_hub.utils.RepositoryNotFoundError, huggingface_hub.utils.RevisionNotFoundError):
             raise FileNotFoundError("Requested repository doesnt exist")
 
@@ -46,7 +56,17 @@ class HFArtifactDownloader(BaseArtifactDownloader):
 
         repo_id: str = self._get_repo_id_from_url(url, artifact_type)
 
-        self._huggingface_pull(repo_id, tempdir, artifact_type)
+        download_flag: bool = True
+        if artifact_type == ArtifactType.dataset:
+            gotten_size = dataset_info(repo_id).usedStorage / (1024**3)
+            if gotten_size > 10:
+                download_flag = False
+
+        if download_flag:
+            self._huggingface_pull(repo_id, tempdir, artifact_type)
+        else:
+            with open(tempdir / "README.md", "w") as f:
+                f.write(f"{url} TOO BIG TO INSTALL!")
 
         for ele in os.scandir(tempdir):
             size += os.stat(ele).st_size

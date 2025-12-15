@@ -11,9 +11,12 @@ class DependencyBundle:
                  s3: S3BucketManager,
                  llm_accessor: LLMAccessor,
                  num_processors: int = 1,
-                 ingest_score_threshold: float = 0.5,):
+                 ingest_score_threshold: float = 0.5,
+                 hf_token: str = "",
+    ):
         self.db: DBManager = db
         self.s3_manager = s3
         self.llm_accessor = llm_accessor
         self.num_processors: int = num_processors
         self.ingest_score_threshold: float = ingest_score_threshold
+        self.hf_token: str = hf_token

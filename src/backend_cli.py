@@ -7,8 +7,8 @@ import requests
 # ===========================
 # Global server configuration
 # ===========================
-SERVER_HOST = "18.191.95.56"
-SERVER_PORT = 80
+SERVER_HOST = "127.0.0.1"
+SERVER_PORT = 8000
 
 BASE_URL = f"http://{SERVER_HOST}:{SERVER_PORT}"
 
@@ -29,12 +29,10 @@ def print_response(resp: requests.Response):
 # Endpoint Implementations
 # ===========================
 
+
 # POST /artifacts
 def cmd_get_artifacts(args):
     url = f"{BASE_URL}/artifacts"
-    payload = {
-        "artifact_type": args.artifact_type if hasattr(args, "artifact_type") else None
-    }
     # actual ArtifactQuery fields must be filled by user
     try:
         query_obj = json.loads(args.query_json)
@@ -43,7 +41,6 @@ def cmd_get_artifacts(args):
         sys.exit(1)
 
     params = {"offset": args.offset}
-
     resp = requests.post(url, json=query_obj, params=params)
     print_response(resp)
 
@@ -98,7 +95,8 @@ def cmd_delete_artifact(args):
 
 # POST /artifacts/{artifact_type}
 def cmd_register_artifact(args):
-    url = f"{BASE_URL}/artifacts/{args.artifact_type}"
+    url = f"{BASE_URL}/artifact/{args.artifact_type}"
+    print(url)
     try:
         payload = {
             "url": str(args.url),
@@ -110,6 +108,7 @@ def cmd_register_artifact(args):
 
     resp = requests.post(url, json=payload)
     print_response(resp)
+
 
 def cmd_reset(args):
     url = f"{BASE_URL}/reset"
@@ -142,9 +141,17 @@ def cmd_rate_model(args):
     print_response(resp)
 
 
+def cmd_license_check(args):
+    url = f"{BASE_URL}/artifact/model/{args.model_id}/license-check"
+    payload = {"github_url": args.external_url}
+    resp = requests.post(url, json=payload)
+    print_response(resp)
+
+
 # ===========================
 # Argument Parser
 # ===========================
+
 
 def build_parser():
     parser = argparse.ArgumentParser(description="CLI client for backend artifact API")
@@ -203,8 +210,12 @@ def build_parser():
     p = sub.add_parser("get-cost", help="GET /artifact/{type}/{id}/cost")
     p.add_argument("artifact_type")
     p.add_argument("id")
-    p.add_argument("--dependency", required=True, choices=["true", "false"],
-                   help="Whether to compute dependency cost")
+    p.add_argument(
+        "--dependency",
+        required=True,
+        choices=["true", "false"],
+        help="Whether to compute dependency cost",
+    )
     p.set_defaults(func=cmd_get_cost)
 
     p = sub.add_parser("get-lineage", help="GET /artifact/model/{id}/lineage")
@@ -214,6 +225,11 @@ def build_parser():
     p = sub.add_parser("rate-model", help="GET /artifact/model/{id}/rate")
     p.add_argument("id")
     p.set_defaults(func=cmd_rate_model)
+
+    p = sub.add_parser("license-check", help="POST /artifact/model/{id}/license-check")
+    p.add_argument("model_id")
+    p.add_argument("external_url")
+    p.set_defaults(func=cmd_license_check)
 
     return parser
 

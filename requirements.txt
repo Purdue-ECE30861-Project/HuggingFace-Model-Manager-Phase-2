@@ -27,5 +27,10 @@ typing_extensions~=4.15.0
 dotenv~=0.9.9
 cryptography~=46.0.3
 pylint==4.0.3
-beautifulsoup4
+beautifulsoup4~=4.14.3
 redis==7.1.0
+zstandard~=0.25.0
+huggingface_hub~=1.1.4
+numpy~=2.2
+PyYAML~=6.0.3
+typing_extensions~=4.15.0

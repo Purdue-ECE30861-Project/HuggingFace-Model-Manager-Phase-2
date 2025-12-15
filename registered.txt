@@ -1,0 +1,32 @@
+model: https://huggingface.co/google-bert/bert-base-uncased
+dataset: https://huggingface.co/datasets/bookcorpus/bookcorpus
+code: https://github.com/google-research/bert
+model: https://huggingface.co/parvk11/audience_classifier_model
+model: https://huggingface.co/distilbert-base-uncased-distilled-squad
+model: https://huggingface.co/caidas/swin2SR-lightweight-x2-64
+model: https://huggingface.co/vikhyatk/moondream2
+model: https://huggingface.co/microsoft/git-base
+model: https://huggingface.co/WinKawaks/vit-tiny-patch16-224
+model: https://huggingface.co/patrickjohncyh/fashion-clip
+model: https://huggingface.co/lerobot/diffusion_pusht
+model: https://huggingface.co/parthvpatil18/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab
+model: https://huggingface.co/microsoft/resnet-50
+model: https://huggingface.co/crangana/trained-gender
+model: https://huggingface.co/onnx-community/trained-gender-ONNX
+dataset: https://huggingface.co/datasets/rajpurkar/squad
+dataset: https://www.kaggle.com/datasets/hliang001/flickr2k I AM KAGGLE
+dataset: https://github.com/zalandoresearch/fashion-mnist I AM GITHUB
+dataset: https://huggingface.co/datasets/lerobot/pusht
+dataset: https://huggingface.co/datasets/ILSVRC/imagenet-1k I AM MASSIVE
+dataset: https://huggingface.co/datasets/HuggingFaceM4/FairFace
+code: https://github.com/openai/whisper
+code: https://github.com/huggingface/transformers-research-projects/tree/main/distillation
+code: https://github.com/mv-lab/swin2sr
+code: https://github.com/vikhyat/moondream
+code: https://github.com/microsoft/GenerativeImage2Text
+code: https://github.com/patrickjohncyh/fashion-clip
+code: https://github.com/huggingface/lerobot/tree/main
+code: https://github.com/Parth1811/ptm-recommendation-with-transformers.git
+code: https://github.com/KaimingHe/deep-residual-networks
+model: https://huggingface.co/vikhyatk/moondream2
+model: https://huggingface.co/prajjwal1/bert-tiny

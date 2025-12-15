@@ -164,6 +164,8 @@ class DBRouterArtifact(DBRouterBase):
         return True
 
     def db_artifact_get_query(self, query: ArtifactQuery, offset: str) -> list[ArtifactMetadata]|None:
+        if len(query.types) == 0:
+            query.types = [ArtifactType.model, ArtifactType.dataset, ArtifactType.code]
         results: list[DBArtifactSchema]|None = DBArtifactAccessor.artifact_get_by_query(self.engine, query, offset)
         if not results:
             return None
@@ -349,8 +351,7 @@ class DBRouterLineage(DBRouterBase):
                 metadata={"url": str(artifact.url)}
             ))
             parent_model_relation = DBConnectionAccessor.model_get_parent_model(self.engine, selected_model)
-            if parent_model_relation:
-                print(selected_model.id, parent_model_relation)
+            if parent_model_relation and parent_model_relation.src_id and parent_model_relation.dst_id:
                 lineage_graph.edges.append(ArtifactLineageEdge(
                     from_node_artifact_id=parent_model_relation.src_id,
                     to_node_artifact_id=parent_model_relation.dst_id,
@@ -426,6 +427,8 @@ class DBRouterRating(DBRouterBase):
             return None
 
         rating_result: DBModelRatingSchema = DBModelRatingAccessor.get_rating(self.engine, model_id)
+        if not rating_result:
+            return None
         if not DBAuditAccessor.append_audit(
             self.engine,
             action=AuditAction.RATE,

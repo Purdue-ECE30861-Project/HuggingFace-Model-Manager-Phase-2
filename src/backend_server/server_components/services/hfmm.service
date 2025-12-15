@@ -7,12 +7,13 @@ User=ubuntu
 Group=www-data
 WorkingDirectory=/opt/hfmm
 Environment="DEVEL_TEST=false"
-Environment="RATER_PROCESSES=4"
+Environment="RATER_PROCESSES=1"
 Environment="PROD_DB_LOCATION=172.31.10.22:3306/artifacts_db"
 Environment="REDIS_HOST=172.31.10.22"
 Environment="REDIS_PORT=6379"
 Environment="GIT_PYTHON_GIT_EXECUTABLE=/usr/bin/git"
-ExecStart=/opt/hfmm/venv/bin/uvicorn src.backend_server.__main__:api_core --workers 4 --uds /opt/hfmm/hfmm.sock --proxy-headers
+Environment="INGEST_ASYNCHRONOUS=False"
+ExecStart=/opt/hfmm/venv/bin/uvicorn src.backend_server.__main__:api_core --workers 2 --uds /opt/hfmm/hfmm.sock --proxy-headers
 
 [Install]
 WantedBy=multi-user.target

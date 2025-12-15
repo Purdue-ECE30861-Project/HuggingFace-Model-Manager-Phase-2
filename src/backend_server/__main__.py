@@ -3,7 +3,15 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
-from .controller import accessor_api, cost_api, lineage_api, rater_api, reset_api, audit_api
+from .controller import (
+    accessor_api,
+    cost_api,
+    lineage_api,
+    rater_api,
+    reset_api,
+    audit_api,
+    license_api,
+)
 from src.backend_server.utils.logger import setup_logging
 import sys
 import logging
@@ -21,11 +29,14 @@ api_core.include_router(rater_api.rater_router)
 api_core.include_router(reset_api.reset_router)
 api_core.include_router(lineage_api.lineage_router)
 api_core.include_router(audit_api.audit_router)
+api_core.include_router(license_api.router)
 
 
 @api_core.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    logger.error(f"Request Validation Failed\n\tURL: {request.url}\n\tBODY: {request.body}\n\tErrors: {exc.errors()}")
+    logger.error(
+        f"Request Validation Failed\n\tURL: {request.url}\n\tBODY: {request.body}\n\tErrors: {exc.errors()}"
+    )
     return JSONResponse(
         status_code=400,
         content={"detail": exc.errors(), "body": exc.body},
@@ -39,11 +50,7 @@ async def get_health():
 
 @api_core.get("/tracks", status_code=200)
 async def get_track():
-    return {
-        "plannedTracks":[
-            "Performance track"
-        ]
-    }
+    return {"plannedTracks": ["Performance track"]}
 
 
 # logging output needs:

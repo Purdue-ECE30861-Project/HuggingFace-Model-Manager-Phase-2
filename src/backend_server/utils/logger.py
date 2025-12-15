@@ -69,6 +69,7 @@ def setup_logging():
     """
     
     # Get root logger
+    logging.getLogger("httpx").setLevel(logging.WARNING)
     root_logger = logging.getLogger()
     root_logger.setLevel(LEVEL_MAP.get(LOG_LEVEL, logging.INFO))
     

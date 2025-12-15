@@ -3,7 +3,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
 from src.frontend_server import BACKEND_CONFIG
 import httpx
-from typing import Optional, Any, Annotated, Union
+from typing import Optional, Any, Annotated, Annotated, Union
 
 webpage_router = APIRouter()
 
@@ -381,6 +381,10 @@ async def license_check(request: Request, artifact_type: str, artifact_id: str):
             "license_result": license_result,
             "github_url": github_url,
         }
+
+        return templates.TemplateResponse(
+            request=request, name="artifact_detail.html", context=context
+        )
 
         return templates.TemplateResponse(
             request=request, name="artifact_detail.html", context=context

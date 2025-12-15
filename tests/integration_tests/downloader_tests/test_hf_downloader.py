@@ -7,7 +7,7 @@ from src.contracts.artifact_contracts import ArtifactType
 
 class TestHFArtifactDownloader(unittest.TestCase):
     def setUp(self):
-        self.downloader = HFArtifactDownloader(timeout=10)
+        self.downloader = HFArtifactDownloader()
         self.valid_model_url = "https://huggingface.co/user123/model456"
         self.valid_dataset_url = "https://huggingface.co/datasets/user456/dataset789"
         self.invalid_url = "https://example.com/not-huggingface"

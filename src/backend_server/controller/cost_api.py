@@ -1,6 +1,6 @@
-from fastapi import Depends, APIRouter, HTTPException, status
+from fastapi import Depends, APIRouter, HTTPException, status, Query
 from fastapi.exceptions import RequestValidationError
-from typing import Annotated
+from typing import Annotated, Dict
 from pydantic import ValidationError
 from sqlalchemy.orm import dependency
 
@@ -15,8 +15,8 @@ cost_router = APIRouter()
 async def cost_model(
         id: str,
         artifact_type: str,
-        dependency: bool,
-) -> ArtifactCost:
+        dependency: bool = False,
+) -> Dict[str, ArtifactCost]:
     try:
         id_model: ArtifactID = ArtifactID(id=id)
         artifact_type_model: ArtifactType = ArtifactType(artifact_type)
@@ -30,4 +30,7 @@ async def cost_model(
 
     if not return_content:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="internal cost calculatioin error")
-    return return_content
+    if not dependency:
+        return_content.total_cost = return_content.standalone_cost
+        return_content.standalone_cost = None
+    return {id:return_content}
