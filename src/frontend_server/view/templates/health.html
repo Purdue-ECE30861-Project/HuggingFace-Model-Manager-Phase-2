@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}Health Dashboard - Model Registry{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-8">
+    <h1 class="text-4xl font-bold text-gray-800 mb-6">System Health Dashboard</h1>
+    <!-- Heartbeat summary -->
+    <div id="heartbeat" class="bg-white rounded-lg shadow-md p-6 mb-6">
+        <h2 class="text-2xl font-bold text-gray-800 mb-2">API Heartbeat</h2>
+        <p id="heartbeat-status" class="text-lg text-gray-700">Loading...</p>
+    </div>
+    <!-- Component health details -->
+    <div id="components" class="bg-white rounded-lg shadow-md p-6 mb-6">
+        <h2 class="text-2xl font-bold text-gray-800 mb-2">Component Health</h2>
+        <div id="component-list" class="space-y-4">
+            <p class="text-gray-500">Loading component health...</p>
+        </div>
+    </div>
+    <!-- Request summary -->
+    <div id="request-summary" class="bg-white rounded-lg shadow-md p-6 mb-6">
+        <h2 class="text-2xl font-bold text-gray-800 mb-2">Recent API Activity</h2>
+        <div id="request-summary-content" class="space-y-2">
+            <p class="text-gray-500">Loading request summary...</p>
+        </div>
+    </div>
+</div>
+
+<script>
+async function fetchHealth() {
+    // Heartbeat
+    const heartbeatResp = await fetch('/health');
+    document.getElementById('heartbeat-status').textContent = heartbeatResp.ok ? 'API is reachable (200 OK)' : 'API is unreachable';
+
+    // Component health
+    const compResp = await fetch('/health/components?windowMinutes=60&includeTimeline=0');
+    if (compResp.ok) {
+        const compData = await compResp.json();
+        const compList = document.getElementById('component-list');
+        compList.innerHTML = '';
+        compData.components.forEach(comp => {
+            const statusColor = comp.status === 'ok' ? 'text-green-600' : (comp.status === 'degraded' ? 'text-yellow-600' : 'text-red-600');
+            compList.innerHTML += `
+                <div class="border-l-4 pl-4 mb-2 ${statusColor} border-current">
+                    <div class="flex justify-between items-center">
+                        <span class="font-semibold">${comp.display_name || comp.id}</span>
+                        <span class="font-mono">${comp.status.toUpperCase()}</span>
+                    </div>
+                    <div class="text-gray-600 text-sm">${comp.description || ''}</div>
+                    <div class="text-gray-400 text-xs">Last event: ${comp.last_event_at || comp.observed_at || ''}</div>
+                </div>
+            `;
+        });
+    } else {
+        document.getElementById('component-list').innerHTML = '<p class="text-red-600">Failed to load component health.</p>';
+    }
+
+    // Request summary (from /health/components)
+    if (compResp.ok) {
+        const compData = await compResp.json();
+        if (compData.request_summary) {
+            const req = compData.request_summary;
+            document.getElementById('request-summary-content').innerHTML = `
+                <div class="grid grid-cols-2 gap-4">
+                    <div><span class="font-semibold">Window:</span> ${req.window_start} to ${req.window_end}</div>
+                    <div><span class="font-semibold">Total Requests:</span> ${req.total_requests}</div>
+                    <div><span class="font-semibold">Unique Clients:</span> ${req.unique_clients}</div>
+                </div>
+                <div class="mt-4">
+                    <h3 class="font-semibold mb-2">Requests by Route</h3>
+                    <ul class="list-disc ml-6">
+                        ${Object.entries(req.per_route || {}).map(([route, count]) => `<li>${route}: ${count}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+        } else {
+            document.getElementById('request-summary-content').innerHTML = '<p class="text-gray-500">No request summary available.</p>';
+        }
+    }
+}
+window.addEventListener('DOMContentLoaded', fetchHealth);
+</script>
+{% endblock %}
