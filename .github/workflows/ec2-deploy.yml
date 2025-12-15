@@ -27,7 +27,8 @@ jobs:
               run: |
                 aws ec2 start-instances --instance-ids $EC2_INSTANCE
                 # final setup
-                cat << EOF > .ssh/config
+                touch ~/.ssh/config
+                cat << EOF > ~/.ssh/config
                 Host *
                   StrictHostKeyChecking no
                   UserKnownHostsFile /dev/null
