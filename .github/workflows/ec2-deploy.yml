@@ -27,6 +27,7 @@ jobs:
               run: |
                 aws ec2 start-instances --instance-ids $EC2_INSTANCE
                 # final setup
+                mkdir ~/.ssh
                 touch ~/.ssh/config
                 cat << EOF > ~/.ssh/config
                 Host *
