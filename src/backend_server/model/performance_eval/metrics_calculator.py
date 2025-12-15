@@ -103,5 +103,3 @@ def main():
 
 if __name__ == "__main__":
   exit(main())
-    exit(main())
-ubuntu@ip-172-31-34-188:~/HuggingFace-Model-Manager-Phase-2/src/backend_server/model/performance_eval$ 
