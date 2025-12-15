@@ -268,7 +268,7 @@ class PerformanceWorkflow:
             [
                 'python', 'results_formatter.py',
                 '--input', str(self.paths['metrics_optimized']),
-                '--enable-csv'
+                '--enable-csv',
                 '--csv-output', str(self.paths['csv_optimized'])
             ],
             "Formatting optimized results"
