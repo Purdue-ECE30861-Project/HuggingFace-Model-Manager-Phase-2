@@ -61,6 +61,7 @@ def register_database(
         collect_readmes(tempdir)
     )
 
+#def extract_name_from_url_corrected()
 def model_rate_direct(
         id: str,
         data: ArtifactData,
@@ -68,9 +69,11 @@ def model_rate_direct(
         tempdir: Path,
         dependencies: DependencyBundle
 ) -> tuple[Artifact, ModelRating]:
+    name = extract_name_from_url(data.url, ArtifactType.model)
+    print(f"THIS IS MY NAME {name}")
     new_artifact: Artifact = Artifact(
         metadata=ArtifactMetadata(
-            name=extract_name_from_url(data.url, ArtifactType.model),
+            name=name,
             id=id,
             type=ArtifactType.model,
         ),

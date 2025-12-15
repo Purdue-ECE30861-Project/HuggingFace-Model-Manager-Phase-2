@@ -1,3 +1,4 @@
+import logging
 import time
 from abc import ABC, abstractmethod
 from pathlib import Path
@@ -8,6 +9,8 @@ from ..backend_server.model.dependencies import DependencyBundle
 
 #from ..backend_server.model.data_store.database_connectors.mother_db_connector import DBManager
 
+
+logger = logging.getLogger(__name__)
 T = TypeVar("T")
 
 
@@ -32,11 +35,16 @@ class MetricStd(ABC, Generic[T]):
 
     def run_score_calculation(self, dependency_bundle: DependencyBundle, *args, **kwargs) -> tuple[str, float, T, T]:
         start_time = time.time()
-        metric_score = self.calculate_metric_score(self.ingested_path, self.artifact_data, dependency_bundle, *args, **kwargs)
-        if metric_score > 1.0 or metric_score < 0.0:
-            raise ValueError(f"The raw metric score for {self.metric_name} must be normalized between 0 and 1")
-        metric_score_weighted = self.metric_weight * metric_score
 
+        metric_score = 0
+        try:
+            metric_score = self.calculate_metric_score(self.ingested_path, self.artifact_data, dependency_bundle, *args, **kwargs)
+            if metric_score > 1.0 or metric_score < 0.0:
+                raise ValueError(f"The raw metric score for {self.metric_name} must be normalized between 0 and 1")
+        except Exception as e:
+            logger.error(f"{self.metric_name} FAILED DUE TO {e}")
+
+        metric_score_weighted = self.metric_weight * metric_score
         end_time = time.time()
 
         print(f"METRIC: {self.metric_name} FINISHED")

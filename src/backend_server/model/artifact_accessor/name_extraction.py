@@ -10,17 +10,18 @@ def dataset_name_extract_from_url(url: list[str]) -> str:
         raise NameError("Invalid HF Url. Must be huggingface.co")
     if url[1] != "datasets":
         raise NameError("Specified type of dataset, hugginface url format requires 'dataset' path")
-    return f"{url[2]}/{url[3]}"
+    print(url)
+    return f"{url[3]}"
 
 def model_name_extract_from_url(url: list[str]) -> str:
     if len(url) < 2:
         raise NameError("Invalid HF Url")
     if url[0] != "huggingface.co":
         raise NameError("Invalid HF Url. Must be huggingface.co")
-    if len(url) < 4:
+    if len(url) < 3:
         return f"{url[1]}"
     else:
-        return f"{url[1]}/{url[2]}"
+        return f"{url[2]}"
 
 def codebase_name_extract_from_url(url: list[str]) -> str:
     if len(url) < 3:
